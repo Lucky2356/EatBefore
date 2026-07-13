@@ -1,0 +1,98 @@
+package com.eatbefore.testutil
+
+import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.InventoryBatch
+import com.eatbefore.domain.model.InventoryEvent
+import com.eatbefore.domain.model.InventoryItem
+import com.eatbefore.domain.model.Product
+import com.eatbefore.domain.repository.HistoryRepository
+import com.eatbefore.domain.repository.InventoryRepository
+import com.eatbefore.domain.repository.ProductRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
+
+/**
+ * In-memory fakes for use-case tests. Only the methods exercised by tests hold real
+ * behavior; observe* streams return static values since these tests assert on state and
+ * recorded events, not on reactive emissions.
+ */
+class FakeProductRepository(
+    private val products: MutableMap<Long, Product> = mutableMapOf(),
+) : ProductRepository {
+    private var nextId = 1L
+
+    override suspend fun getById(id: Long): Product? = products[id]
+    override fun observeById(id: Long): Flow<Product?> = flowOf(products[id])
+    override suspend fun getByBarcode(barcode: String): Product? =
+        products.values.firstOrNull { it.barcode == barcode }
+
+    override suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product? =
+        products.values.firstOrNull {
+            it.isUserCreated && it.barcode == null &&
+                it.name.equals(name, ignoreCase = true) &&
+                (it.brand?.equals(brand, ignoreCase = true) ?: (brand == null))
+        }
+
+    override suspend fun upsert(product: Product): Long {
+        val id = if (product.id == 0L) nextId++ else product.id
+        products[id] = product.copy(id = id)
+        return id
+    }
+
+    override fun observeAll(): Flow<List<Product>> = flowOf(products.values.toList())
+
+    fun observeAllCount(): Int = products.size
+}
+
+class FakeInventoryRepository(
+    val batches: MutableMap<Long, InventoryBatch> = mutableMapOf(),
+    val events: MutableList<InventoryEvent> = mutableListOf(),
+) : InventoryRepository {
+    private var nextBatchId = 1L
+    private var nextEventId = 1L
+
+    override fun observePresentByExpiry(): Flow<List<InventoryItem>> = emptyFlow()
+    override fun observePresentByLocation(locationId: Long): Flow<List<InventoryItem>> = emptyFlow()
+    override fun observeExpiringBefore(thresholdEpochDay: Long): Flow<List<InventoryItem>> = emptyFlow()
+    override fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>> = emptyFlow()
+    override fun observeRecent(limit: Int): Flow<List<InventoryItem>> = emptyFlow()
+    override fun observePresentCount(): Flow<Int> = flowOf(batches.size)
+    override fun observeItem(batchId: Long): Flow<InventoryItem?> = emptyFlow()
+
+    override suspend fun getBatch(id: Long): InventoryBatch? = batches[id]
+
+    override suspend fun getPresentForProduct(productId: Long): List<InventoryBatch> =
+        batches.values.filter { it.productId == productId && it.status.isPresent && it.deletedAt == null }
+
+    override suspend fun addBatchWithEvent(
+        batch: InventoryBatch,
+        buildEvent: (batchId: Long) -> InventoryEvent,
+    ): Long {
+        val id = nextBatchId++
+        batches[id] = batch.copy(id = id)
+        events += buildEvent(id).copy(id = nextEventId++)
+        return id
+    }
+
+    override suspend fun updateBatchWithEvent(batch: InventoryBatch, event: InventoryEvent) {
+        batches[batch.id] = batch
+        events += event.copy(id = nextEventId++)
+    }
+
+    fun lastEvent(): InventoryEvent = events.last()
+    fun eventTypes(): List<EventType> = events.map { it.eventType }
+}
+
+class FakeHistoryRepository(
+    private val backing: FakeInventoryRepository,
+) : HistoryRepository {
+    override fun observeAll(): Flow<List<InventoryEvent>> = flowOf(backing.events.toList())
+    override fun observeForProduct(productId: Long): Flow<List<InventoryEvent>> =
+        flowOf(backing.events.filter { it.productId == productId })
+
+    override fun observeByType(type: EventType): Flow<List<InventoryEvent>> =
+        flowOf(backing.events.filter { it.eventType == type })
+
+    override suspend fun getLastEvent(): InventoryEvent? = backing.events.lastOrNull()
+}

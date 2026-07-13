@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme applied before Compose takes over. Uses Material 3 to avoid a
+         flash of an unstyled system bar on cold start. -->
+    <style name="Theme.EatBefore" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

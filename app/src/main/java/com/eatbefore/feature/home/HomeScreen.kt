@@ -1,0 +1,101 @@
+package com.eatbefore.feature.home
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.component.QuickActionButton
+import com.eatbefore.feature.common.InventoryRowCard
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onScan: () -> Unit,
+    onAddManual: () -> Unit,
+    onOpenShopping: () -> Unit,
+    onOpenBatch: (Long) -> Unit,
+    viewModel: HomeViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Scaffold(
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.home_title)) }) },
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    QuickActionButton(Icons.Outlined.QrCodeScanner, stringResource(R.string.home_quick_scan), onScan)
+                    QuickActionButton(Icons.Outlined.AddCircleOutline, stringResource(R.string.home_quick_add_manual), onAddManual)
+                    QuickActionButton(Icons.Outlined.ShoppingCart, stringResource(R.string.home_quick_shopping), onOpenShopping)
+                }
+            }
+
+            item {
+                Text(
+                    text = stringResource(R.string.home_total_products, state.totalCount),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            if (state.totalCount == 0 && !state.isLoading) {
+                item { EmptyState(message = stringResource(R.string.home_empty)) }
+            }
+
+            if (state.expiringSoon.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.home_expiring_section), Icons.Outlined.Schedule) }
+                items(state.expiringSoon, key = { "exp-${it.batchId}" }) { row ->
+                    InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
+                }
+            }
+
+            if (state.recent.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.home_recent_section), Icons.Outlined.AddCircleOutline) }
+                items(state.recent, key = { "rec-${it.batchId}" }) { row ->
+                    InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Row(
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(top = 8.dp),
+    ) {
+        androidx.compose.material3.Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
+    }
+}

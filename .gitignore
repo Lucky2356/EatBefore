@@ -1,0 +1,17 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+# Ignore build outputs in every module (root and app/*).
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.keystore
+*.jks
+!debug.keystore
+
+# Keep the Gradle wrapper jar tracked (needed to build via ./gradlew).
+!gradle/wrapper/gradle-wrapper.jar
