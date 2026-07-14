@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,19 +26,6 @@ import com.eatbefore.core.designsystem.component.EmptyState
  * honest "coming soon" screens — never dead buttons — and the scanner offers the working
  * manual-add path so the user is never blocked.
  */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ShoppingPlaceholderScreen() {
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_shopping)) }) }) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            EmptyState(
-                message = stringResource(R.string.shopping_placeholder),
-                icon = Icons.Outlined.ShoppingCart,
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MorePlaceholderScreen(onOpenHistory: () -> Unit, onOpenSettings: () -> Unit) {

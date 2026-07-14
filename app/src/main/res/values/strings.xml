@@ -123,6 +123,22 @@
     <string name="event_added_to_shopping">В список покупок</string>
     <string name="event_removed_from_shopping">Убрано из покупок</string>
 
+    <!-- Shopping list -->
+    <string name="shopping_title">Список покупок</string>
+    <string name="shopping_empty">Список пуст. Добавьте товар или отметьте продукт закончившимся.</string>
+    <string name="shopping_add">Добавить в список</string>
+    <string name="shopping_item_name">Что купить</string>
+    <string name="shopping_quantity">Количество</string>
+    <string name="shopping_no_category">Без категории</string>
+    <string name="shopping_to_inventory">В запасы</string>
+    <string name="shopping_delete">Удалить</string>
+    <string name="shopping_moved">Добавлено в запасы</string>
+    <string name="shopping_added">Добавлено в список покупок</string>
+    <string name="shopping_offer_title">Добавить в список покупок?</string>
+    <string name="shopping_offer_body">Продукт «%1$s» закончился. Добавить его в список покупок?</string>
+    <string name="shopping_offer_yes">Добавить</string>
+    <string name="shopping_offer_no">Не нужно</string>
+
     <!-- Placeholder screens -->
     <string name="shopping_placeholder">Список покупок скоро будет доступен.</string>
     <string name="more_placeholder">Настройки, аналитика и резервные копии появятся здесь.</string>

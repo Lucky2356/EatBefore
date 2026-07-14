@@ -13,6 +13,7 @@ import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -43,8 +45,16 @@ data class ProductUiState(
     val locations: List<StorageLocation> = emptyList(),
     /** Timestamp of the last undoable action; drives a one-shot Undo snackbar. */
     val undoableActionAt: Long? = null,
+    /** Set after the item is used up: offer to put it on the shopping list. */
+    val offerShoppingList: Boolean = false,
     /** True once the batch no longer exists as present (e.g. add was undone). */
     val closed: Boolean = false,
+)
+
+/** Transient, screen-local signals kept in one flow so the state combine stays small. */
+private data class ProductLocalState(
+    val undoableActionAt: Long? = null,
+    val offerShoppingList: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -61,13 +71,14 @@ class ProductViewModel @Inject constructor(
     private val markStatus: MarkBatchStatusUseCase,
     private val moveBatch: MoveBatchUseCase,
     private val undoLastAction: UndoLastActionUseCase,
+    private val addToShoppingList: AddToShoppingListUseCase,
     private val clock: AppClock,
 ) : ViewModel() {
 
     private val batchId: Long = checkNotNull(savedStateHandle[Routes.PRODUCT_BATCH_ARG]) {
         "Missing ${Routes.PRODUCT_BATCH_ARG}"
     }
-    private val undoSignal = MutableStateFlow<Long?>(null)
+    private val localState = MutableStateFlow(ProductLocalState())
 
     private val itemFlow: Flow<InventoryItem?> = inventoryRepository.observeItem(batchId)
 
@@ -80,13 +91,14 @@ class ProductViewModel @Inject constructor(
         historyFlow,
         storageLocationRepository.observeActive(),
         preferences.preferences,
-        undoSignal,
-    ) { item, history, locations, prefs, undoAt ->
+        localState,
+    ) { item, history, locations, prefs, local ->
         if (item == null) {
             ProductUiState(
                 isLoading = false,
                 locations = locations,
-                closed = undoAt != null,
+                // Only pop once an action actually removed the batch, not on first load.
+                closed = local.undoableActionAt != null && !local.offerShoppingList,
             )
         } else {
             val effective = item.batch.effectiveExpirationDate
@@ -97,7 +109,8 @@ class ProductViewModel @Inject constructor(
                 remainingDays = effective?.let { ChronoUnit.DAYS.between(clock.today(), it) },
                 history = history,
                 locations = locations,
-                undoableActionAt = undoAt,
+                undoableActionAt = local.undoableActionAt,
+                offerShoppingList = local.offerShoppingList,
             )
         }
     }.stateIn(
@@ -113,26 +126,72 @@ class ProductViewModel @Inject constructor(
         changeQuantity(batchId, batch.quantity - 1)
     }
 
-    fun markFinished() = runAction { changeQuantity(batchId, 0.0) }
-    fun discard() = runAction { markStatus(batchId, BatchStatus.DISCARDED) }
+    /** Using it up offers to put the product straight onto the shopping list. */
+    fun markFinished() = runAction(offerShopping = true) { changeQuantity(batchId, 0.0) }
+
+    fun discard() = runAction(offerShopping = true) { markStatus(batchId, BatchStatus.DISCARDED) }
     fun markExpired() = runAction { markStatus(batchId, BatchStatus.EXPIRED) }
     fun moveTo(locationId: Long) = runAction { moveBatch(batchId, locationId) }
+
+    /** Quick action: put this product on the shopping list without writing it off. */
+    fun addToShopping() {
+        viewModelScope.launch {
+            val productId = uiState.value.item?.product?.id ?: return@launch
+            runCatching {
+                addToShoppingList(
+                    AddToShoppingListUseCase.Params(
+                        productId = productId,
+                        sourceInventoryBatchId = batchId,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** Accepts the "add to shopping list?" offer shown after the item ran out. */
+    fun acceptShoppingOffer() {
+        viewModelScope.launch {
+            val productId = inventoryRepository.getBatch(batchId)?.productId
+            if (productId != null) {
+                runCatching {
+                    addToShoppingList(
+                        AddToShoppingListUseCase.Params(
+                            productId = productId,
+                            sourceInventoryBatchId = batchId,
+                        ),
+                    )
+                }
+            }
+            localState.update { it.copy(offerShoppingList = false) }
+        }
+    }
+
+    fun dismissShoppingOffer() {
+        localState.update { it.copy(offerShoppingList = false) }
+    }
 
     fun undo() {
         viewModelScope.launch {
             runCatching { undoLastAction() }
-            undoSignal.value = null
+            localState.value = ProductLocalState()
         }
     }
 
     fun consumeUndoSignal() {
-        undoSignal.value = null
+        localState.update { it.copy(undoableActionAt = null) }
     }
 
-    private fun runAction(block: suspend () -> Unit) {
+    private fun runAction(offerShopping: Boolean = false, block: suspend () -> Unit) {
         viewModelScope.launch {
             runCatching { block() }
-                .onSuccess { undoSignal.value = clock.now().toEpochMilli() }
+                .onSuccess {
+                    localState.update {
+                        it.copy(
+                            undoableActionAt = clock.now().toEpochMilli(),
+                            offerShoppingList = offerShopping,
+                        )
+                    }
+                }
         }
     }
 }

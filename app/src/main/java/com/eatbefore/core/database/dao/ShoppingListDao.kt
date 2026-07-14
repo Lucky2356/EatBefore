@@ -23,6 +23,13 @@ interface ShoppingListDao {
     @Query("SELECT * FROM shopping_list_items WHERE id = :id")
     suspend fun getById(id: Long): ShoppingListItemEntity?
 
+    /** An open (not yet bought) entry for this product, used to merge instead of duplicate. */
+    @Query(
+        "SELECT * FROM shopping_list_items " +
+            "WHERE product_id = :productId AND is_completed = 0 LIMIT 1",
+    )
+    suspend fun findOpenForProduct(productId: Long): ShoppingListItemEntity?
+
     @Query("SELECT * FROM shopping_list_items ORDER BY is_completed ASC, added_at DESC")
     fun observeAll(): Flow<List<ShoppingListItemEntity>>
 

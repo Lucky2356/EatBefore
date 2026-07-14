@@ -15,7 +15,9 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MoveUp
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.RemoveCircleOutline
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -29,6 +31,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,8 +65,10 @@ fun ProductScreen(
         if (state.closed) onBack()
     }
 
+    // When the shopping-list offer dialog is up it is the primary affordance, so the undo
+    // snackbar stays out of the way (undo remains available from History).
     LaunchedEffect(state.undoableActionAt) {
-        if (state.undoableActionAt != null) {
+        if (state.undoableActionAt != null && !state.offerShoppingList) {
             val result = snackbarHost.showSnackbar(
                 message = "✓",
                 actionLabel = undoLabel,
@@ -75,6 +80,25 @@ fun ProductScreen(
                 viewModel.consumeUndoSignal()
             }
         }
+    }
+
+    val offeredItem = state.item
+    if (state.offerShoppingList && offeredItem != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissShoppingOffer,
+            title = { Text(stringResource(R.string.shopping_offer_title)) },
+            text = { Text(stringResource(R.string.shopping_offer_body, offeredItem.product.name)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::acceptShoppingOffer) {
+                    Text(stringResource(R.string.shopping_offer_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissShoppingOffer) {
+                    Text(stringResource(R.string.shopping_offer_no))
+                }
+            },
+        )
     }
 
     Scaffold(
@@ -148,6 +172,11 @@ fun ProductScreen(
                         onClick = viewModel::discard,
                         label = { Text(stringResource(R.string.product_action_discard)) },
                         leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                    )
+                    AssistChip(
+                        onClick = viewModel::addToShopping,
+                        label = { Text(stringResource(R.string.product_action_shopping)) },
+                        leadingIcon = { Icon(Icons.Outlined.ShoppingCart, contentDescription = null) },
                     )
                     MoveChip(state, viewModel)
                 }

@@ -4,11 +4,13 @@ import com.eatbefore.data.ocr.MlKitExpiryDateOcrProvider
 import com.eatbefore.data.repository.HistoryRepositoryImpl
 import com.eatbefore.data.repository.InventoryRepositoryImpl
 import com.eatbefore.data.repository.ProductRepositoryImpl
+import com.eatbefore.data.repository.ShoppingListRepositoryImpl
 import com.eatbefore.data.repository.StorageLocationRepositoryImpl
 import com.eatbefore.domain.ocr.ExpiryDateOcrProvider
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.repository.ShoppingListRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import dagger.Binds
 import dagger.Module
@@ -37,6 +39,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindHistoryRepository(impl: HistoryRepositoryImpl): HistoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindShoppingListRepository(
+        impl: ShoppingListRepositoryImpl,
+    ): ShoppingListRepository
 
     @Binds
     @Singleton

@@ -2,6 +2,7 @@ package com.eatbefore.data.repository
 
 import com.eatbefore.core.database.dao.InventoryEventDao
 import com.eatbefore.data.mapper.toDomain
+import com.eatbefore.data.mapper.toEntity
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.repository.HistoryRepository
@@ -23,4 +24,8 @@ class HistoryRepositoryImpl @Inject constructor(
         eventDao.observeByType(type.name).map { list -> list.map { it.toDomain() } }
 
     override suspend fun getLastEvent(): InventoryEvent? = eventDao.getLast()?.toDomain()
+
+    override suspend fun record(event: InventoryEvent) {
+        eventDao.insert(event.toEntity())
+    }
 }

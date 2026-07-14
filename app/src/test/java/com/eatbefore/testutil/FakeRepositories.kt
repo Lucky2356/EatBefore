@@ -5,9 +5,11 @@ import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
 import com.eatbefore.domain.model.Product
+import com.eatbefore.domain.model.ShoppingListItem
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -95,4 +97,34 @@ class FakeHistoryRepository(
         flowOf(backing.events.filter { it.eventType == type })
 
     override suspend fun getLastEvent(): InventoryEvent? = backing.events.lastOrNull()
+
+    override suspend fun record(event: InventoryEvent) {
+        backing.events += event
+    }
+}
+
+class FakeShoppingListRepository(
+    val items: MutableMap<Long, ShoppingListItem> = mutableMapOf(),
+) : ShoppingListRepository {
+    private var nextId = 1L
+
+    override fun observeAll(): Flow<List<ShoppingListItem>> = flowOf(items.values.toList())
+
+    override fun observeOpenCount(): Flow<Int> =
+        flowOf(items.values.count { !it.isCompleted })
+
+    override suspend fun getById(id: Long): ShoppingListItem? = items[id]
+
+    override suspend fun findOpenForProduct(productId: Long): ShoppingListItem? =
+        items.values.firstOrNull { it.productId == productId && !it.isCompleted }
+
+    override suspend fun upsert(item: ShoppingListItem): Long {
+        val id = if (item.id == 0L) nextId++ else item.id
+        items[id] = item.copy(id = id)
+        return id
+    }
+
+    override suspend fun delete(item: ShoppingListItem) {
+        items.remove(item.id)
+    }
 }

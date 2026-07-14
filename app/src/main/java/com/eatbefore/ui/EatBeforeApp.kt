@@ -22,8 +22,8 @@ import com.eatbefore.feature.inventory.InventoryScreen
 import com.eatbefore.feature.ocr.OcrScreen
 import com.eatbefore.feature.onboarding.OnboardingScreen
 import com.eatbefore.feature.placeholder.MorePlaceholderScreen
-import com.eatbefore.feature.placeholder.ShoppingPlaceholderScreen
 import com.eatbefore.feature.product.ProductScreen
+import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.feature.scanner.ScannerScreen
 import com.eatbefore.feature.settings.SettingsScreen
 import com.eatbefore.navigation.EatBeforeBottomBar
@@ -101,7 +101,7 @@ private fun MainNavigation(startDestination: String) {
                 )
             }
 
-            composable(Routes.SHOPPING) { ShoppingPlaceholderScreen() }
+            composable(Routes.SHOPPING) { ShoppingScreen() }
 
             composable(Routes.MORE) {
                 MorePlaceholderScreen(
