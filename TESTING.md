@@ -7,7 +7,7 @@
 ./gradlew :app:connectedDebugAndroidTest    # инструментальные (нужно устройство/эмулятор)
 ```
 
-## Что покрыто — 43 теста, 0 падений
+## Что покрыто — 48 unit + 1 инструментальный тест, 0 падений
 
 ### Unit (чистый JVM)
 - `DetermineExpiryStatusUseCaseTest` — статусы срока (нет даты/просрочен/сегодня/скоро/свежий).
@@ -20,6 +20,13 @@
   обработка ошибки/«не найдено».
 - `ExpiryDateParserTest` (11 тестов) — форматы дат, month-year → конец месяца, различие
   «годен до»/«дата изготовления», отсев неправдоподобных/невалидных дат.
+- `NotificationLogicTest` (5 тестов) — подсчёт просрочено/сегодня/скоро, пустой план,
+  тихие часы (в т.ч. с переходом через полночь).
+
+### Инструментальные (на устройстве/эмуляторе)
+- `ExpiryCheckWorkerTest` — реальный `ExpiryCheckWorker` через `TestListenableWorkerBuilder`
+  + `HiltWorkerFactory`: сеет истекающий сегодня продукт, запускает воркер, проверяет
+  успех и публикацию системного уведомления (`NotificationManager.activeNotifications`).
 
 ### Интеграционные (Robolectric, Room in-memory)
 - `EatBeforeDatabaseTest` — seed мест хранения, insert/query, исключение soft-deleted из present.

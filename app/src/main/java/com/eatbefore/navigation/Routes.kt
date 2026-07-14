@@ -21,6 +21,8 @@ object Routes {
 
     const val HISTORY = "history"
 
+    const val SETTINGS = "settings"
+
     const val OCR = "ocr_expiry"
     /** Key used to hand a recognized expiry date (epoch day) back to the add screen. */
     const val OCR_RESULT_EPOCH_DAY = "ocr_result_epoch_day"

@@ -163,4 +163,30 @@
     <string name="ocr_retry">Сфотографировать снова</string>
     <string name="ocr_enter_manually">Ввести вручную</string>
     <string name="ocr_from_photo">Распознать по фото</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Сроки годности</string>
+    <string name="notif_channel_desc">Напоминания о продуктах с истекающим сроком</string>
+    <string name="notif_title">Проверьте продукты</string>
+    <string name="notif_summary_one">Сегодня стоит проверить 1 продукт</string>
+    <string name="notif_summary_few">Сегодня стоит проверить %1$d продукта</string>
+    <string name="notif_summary_many">Сегодня стоит проверить %1$d продуктов</string>
+    <string name="notif_line_expired">Просрочено: %1$d</string>
+    <string name="notif_line_today">Истекает сегодня: %1$d</string>
+    <string name="notif_line_soon">Скоро истекает: %1$d</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_section_notifications">Уведомления</string>
+    <string name="settings_notifications_enabled">Уведомления о сроках</string>
+    <string name="settings_notifications_desc">Ежедневное напоминание о продуктах с истекающим сроком</string>
+    <string name="settings_notification_time">Время уведомления</string>
+    <string name="settings_soon_days">За сколько дней предупреждать</string>
+    <string name="settings_soon_days_value">%1$d дн.</string>
+    <string name="settings_quiet_hours">Тихие часы</string>
+    <string name="settings_quiet_hours_desc">Не уведомлять в этот интервал</string>
+    <string name="settings_quiet_from">С</string>
+    <string name="settings_quiet_to">до</string>
+    <string name="settings_permission_needed">Разрешите уведомления, чтобы получать напоминания</string>
+    <string name="settings_grant_permission">Разрешить</string>
 </resources>

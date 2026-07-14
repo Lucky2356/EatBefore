@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -41,13 +42,19 @@ fun ShoppingPlaceholderScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MorePlaceholderScreen(onOpenHistory: () -> Unit) {
+fun MorePlaceholderScreen(onOpenHistory: () -> Unit, onOpenSettings: () -> Unit) {
     Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_more)) }) }) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             ListItem(
                 headlineContent = { Text(stringResource(R.string.history_title)) },
                 leadingContent = { Icon(Icons.Outlined.History, contentDescription = null) },
                 modifier = Modifier.clickable(onClick = onOpenHistory),
+            )
+            HorizontalDivider()
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_title)) },
+                leadingContent = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenSettings),
             )
             HorizontalDivider()
             EmptyState(

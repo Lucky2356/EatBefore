@@ -16,6 +16,13 @@ data class UserPreferences(
     val onboardingCompleted: Boolean = false,
     val soonThresholdDays: Int = DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
     val detailedQuantityMode: Boolean = false,
+    val notificationsEnabled: Boolean = true,
+    /** Local time of day for the daily expiry check (24h). */
+    val notificationHour: Int = 9,
+    val notificationMinute: Int = 0,
+    val quietHoursEnabled: Boolean = false,
+    val quietStartHour: Int = 22,
+    val quietEndHour: Int = 8,
 )
 
 @Singleton
@@ -28,6 +35,12 @@ class UserPreferencesRepository @Inject constructor(
             soonThresholdDays = prefs[KEY_SOON_DAYS]
                 ?: DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
             detailedQuantityMode = prefs[KEY_DETAILED_QTY] ?: false,
+            notificationsEnabled = prefs[KEY_NOTIF_ENABLED] ?: true,
+            notificationHour = prefs[KEY_NOTIF_HOUR] ?: 9,
+            notificationMinute = prefs[KEY_NOTIF_MINUTE] ?: 0,
+            quietHoursEnabled = prefs[KEY_QUIET_ENABLED] ?: false,
+            quietStartHour = prefs[KEY_QUIET_START] ?: 22,
+            quietEndHour = prefs[KEY_QUIET_END] ?: 8,
         )
     }
 
@@ -43,9 +56,34 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it[KEY_DETAILED_QTY] = enabled }
     }
 
+    suspend fun setNotificationsEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_NOTIF_ENABLED] = enabled }
+    }
+
+    suspend fun setNotificationTime(hour: Int, minute: Int) {
+        dataStore.edit {
+            it[KEY_NOTIF_HOUR] = hour.coerceIn(0, 23)
+            it[KEY_NOTIF_MINUTE] = minute.coerceIn(0, 59)
+        }
+    }
+
+    suspend fun setQuietHours(enabled: Boolean, startHour: Int, endHour: Int) {
+        dataStore.edit {
+            it[KEY_QUIET_ENABLED] = enabled
+            it[KEY_QUIET_START] = startHour.coerceIn(0, 23)
+            it[KEY_QUIET_END] = endHour.coerceIn(0, 23)
+        }
+    }
+
     private companion object {
         val KEY_ONBOARDING = booleanPreferencesKey("onboarding_completed")
         val KEY_SOON_DAYS = intPreferencesKey("soon_threshold_days")
         val KEY_DETAILED_QTY = booleanPreferencesKey("detailed_quantity_mode")
+        val KEY_NOTIF_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val KEY_NOTIF_HOUR = intPreferencesKey("notification_hour")
+        val KEY_NOTIF_MINUTE = intPreferencesKey("notification_minute")
+        val KEY_QUIET_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
+        val KEY_QUIET_START = intPreferencesKey("quiet_start_hour")
+        val KEY_QUIET_END = intPreferencesKey("quiet_end_hour")
     }
 }

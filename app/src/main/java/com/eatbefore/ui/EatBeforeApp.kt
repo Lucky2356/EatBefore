@@ -25,6 +25,7 @@ import com.eatbefore.feature.placeholder.MorePlaceholderScreen
 import com.eatbefore.feature.placeholder.ShoppingPlaceholderScreen
 import com.eatbefore.feature.product.ProductScreen
 import com.eatbefore.feature.scanner.ScannerScreen
+import com.eatbefore.feature.settings.SettingsScreen
 import com.eatbefore.navigation.EatBeforeBottomBar
 import com.eatbefore.navigation.Routes
 import com.eatbefore.navigation.TopLevelDestination
@@ -103,7 +104,14 @@ private fun MainNavigation(startDestination: String) {
             composable(Routes.SHOPPING) { ShoppingPlaceholderScreen() }
 
             composable(Routes.MORE) {
-                MorePlaceholderScreen(onOpenHistory = { navController.navigate(Routes.HISTORY) })
+                MorePlaceholderScreen(
+                    onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) },
+                )
+            }
+
+            composable(Routes.SETTINGS) {
+                SettingsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(
