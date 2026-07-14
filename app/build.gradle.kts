@@ -15,8 +15,8 @@ android {
         applicationId = "com.eatbefore"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "com.eatbefore.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -34,6 +34,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Signed with the debug key so the published APK is installable. Replace
+            // with a real upload keystore before any store distribution.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

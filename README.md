@@ -1,7 +1,19 @@
 # EatBefore
 
+[![CI](https://github.com/Lucky2356/EatBefore/actions/workflows/ci.yml/badge.svg)](https://github.com/Lucky2356/EatBefore/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Lucky2356/EatBefore)](https://github.com/Lucky2356/EatBefore/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
+
 Локальное Android-приложение для домашнего учёта продуктов: помогает помнить, что
 есть дома, вовремя использовать продукты и меньше выбрасывать еду.
+
+**[⬇ Скачать APK (последний релиз)](https://github.com/Lucky2356/EatBefore/releases/latest)**
+
+| Главная | Запасы | Сканер | Аналитика | Тёмная тема |
+|---|---|---|---|---|
+| ![Главная](docs/screenshots/home.png) | ![Запасы](docs/screenshots/inventory.png) | ![Сканер](docs/screenshots/scanner-found.png) | ![Аналитика](docs/screenshots/analytics.png) | ![Тёмная тема](docs/screenshots/home-dark.png) |
 
 > **Статус:** весь обязательный объём **P0 реализован и проверен на устройстве** —
 > включая сканер (EAN/QR/DataMatrix и коды «Честного знака»), OCR срока, уведомления,
@@ -52,6 +64,10 @@ Coil. Готовые точки расширения: `ProductCatalogProvider` (
 ```bash
 # Debug APK (результат: app/build/outputs/apk/debug/app-debug.apk)
 ./gradlew :app:assembleDebug
+
+# Минифицированный release APK (R8; подписывается debug-ключом — замените
+# на собственный keystore перед публикацией в магазины)
+./gradlew :app:assembleRelease
 
 # Установить на подключённое устройство/эмулятор
 ./gradlew :app:installDebug
@@ -112,3 +128,7 @@ app/src/main/java/com/eatbefore/
 ## Конфиденциальность
 
 Local-first, без регистрации, без рекламных SDK и трекеров. Подробнее — [PRIVACY.md](PRIVACY.md).
+
+## Лицензия
+
+[MIT](LICENSE).
