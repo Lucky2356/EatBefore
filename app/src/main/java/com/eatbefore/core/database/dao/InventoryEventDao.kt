@@ -28,4 +28,14 @@ interface InventoryEventDao {
     /** Most recent event overall — backs the global "undo last action" affordance. */
     @Query("SELECT * FROM inventory_events ORDER BY created_at DESC, id DESC LIMIT 1")
     suspend fun getLast(): InventoryEventEntity?
+
+    // Backup/export support (bulk restore only; history stays append-only otherwise).
+    @Query("SELECT * FROM inventory_events")
+    suspend fun getAll(): List<InventoryEventEntity>
+
+    @Insert
+    suspend fun insertAll(items: List<InventoryEventEntity>)
+
+    @Query("DELETE FROM inventory_events")
+    suspend fun deleteAll()
 }

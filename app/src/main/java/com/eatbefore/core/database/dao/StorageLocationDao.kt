@@ -34,4 +34,11 @@ interface StorageLocationDao {
 
     @Query("SELECT COUNT(*) FROM storage_locations")
     suspend fun count(): Int
+
+    // Backup/export support.
+    @Query("SELECT * FROM storage_locations")
+    suspend fun getAll(): List<StorageLocationEntity>
+
+    @Query("DELETE FROM storage_locations")
+    suspend fun deleteAll()
 }

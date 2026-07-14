@@ -56,6 +56,8 @@
     <string name="home_expiring_section">Скоро испортятся</string>
     <string name="home_recent_section">Недавно добавленные</string>
     <string name="home_total_products">Всего продуктов: %1$d</string>
+    <string name="home_stat_total">Продуктов дома</string>
+    <string name="home_stat_expiring">Скоро истекут</string>
     <string name="home_quick_scan">Сканировать</string>
     <string name="home_quick_add_manual">Добавить вручную</string>
     <string name="home_quick_shopping">Список покупок</string>
@@ -77,6 +79,7 @@
     <string name="add_brand">Бренд</string>
     <string name="add_category">Категория</string>
     <string name="add_quantity">Количество</string>
+    <string name="add_unit">Единица измерения</string>
     <string name="add_location">Место хранения</string>
     <string name="add_expiration">Срок годности</string>
     <string name="add_note">Заметка</string>
@@ -102,6 +105,7 @@
     <string name="product_action_move">Переместить</string>
     <string name="product_action_edit">Изменить</string>
     <string name="product_action_shopping">В покупки</string>
+    <string name="product_edit_quantity">Изменить количество</string>
 
     <!-- History -->
     <string name="history_title">История</string>
@@ -139,9 +143,38 @@
     <string name="shopping_offer_yes">Добавить</string>
     <string name="shopping_offer_no">Не нужно</string>
 
+    <!-- Analytics -->
+    <string name="analytics_title">Аналитика</string>
+    <string name="analytics_period_week">7 дней</string>
+    <string name="analytics_period_month">30 дней</string>
+    <string name="analytics_period_year">Год</string>
+    <string name="analytics_period_all">Всё время</string>
+    <string name="analytics_added">Добавлено</string>
+    <string name="analytics_consumed">Использовано</string>
+    <string name="analytics_discarded">Выброшено</string>
+    <string name="analytics_expired">Просрочено</string>
+    <string name="analytics_used_in_time">Использовано вовремя: %1$d%%</string>
+    <string name="analytics_wasted_by_category">Чаще всего выбрасывается</string>
+    <string name="analytics_top_products">Регулярные покупки</string>
+    <string name="analytics_no_category">Без категории</string>
+    <string name="analytics_empty">Пока нет данных. Добавляйте и используйте продукты — статистика появится здесь.</string>
+
+    <!-- Backup -->
+    <string name="settings_section_data">Данные</string>
+    <string name="settings_export">Экспорт резервной копии</string>
+    <string name="settings_export_desc">Сохранить все данные в файл</string>
+    <string name="settings_import">Импорт из файла</string>
+    <string name="settings_import_desc">Заменить данные содержимым копии</string>
+    <string name="backup_export_done">Резервная копия сохранена</string>
+    <string name="backup_export_error">Не удалось сохранить копию</string>
+    <string name="backup_import_done">Данные восстановлены</string>
+    <string name="backup_import_error">Файл повреждён или не подходит</string>
+    <string name="backup_import_confirm_title">Заменить данные?</string>
+    <string name="backup_import_confirm_body">Текущие продукты, история и список покупок будут заменены данными из файла. Это действие нельзя отменить.</string>
+    <string name="backup_import_confirm_yes">Заменить</string>
+
     <!-- Placeholder screens -->
-    <string name="shopping_placeholder">Список покупок скоро будет доступен.</string>
-    <string name="more_placeholder">Настройки, аналитика и резервные копии появятся здесь.</string>
+    <string name="more_placeholder">Экспорт, аналитика и настройки — в разделах выше.</string>
 
     <!-- Scanner -->
     <string name="scanner_title">Сканирование</string>
@@ -165,6 +198,7 @@
     <string name="scanner_add_manual">Добавить вручную</string>
     <string name="scanner_added">Упаковка добавлена</string>
     <string name="scanner_scan_again">Сканировать ещё</string>
+    <string name="scanner_expiry_from_code">Срок из кода: %1$s</string>
 
     <!-- OCR -->
     <string name="ocr_title">Распознать срок</string>

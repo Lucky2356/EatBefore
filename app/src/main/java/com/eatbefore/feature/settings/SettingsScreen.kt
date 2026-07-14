@@ -1,7 +1,10 @@
 package com.eatbefore.feature.settings
 
 import android.Manifest
+import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +24,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +33,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,7 +56,25 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val prefs by viewModel.state.collectAsStateWithLifecycle()
+    val message by viewModel.message.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
     var showTimePicker by remember { mutableStateOf(false) }
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri -> uri?.let(viewModel::exportTo) }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let { pendingImportUri = it } }
+
+    val messageText = message?.let { stringResource(it) }
+    LaunchedEffect(message) {
+        if (messageText != null) {
+            snackbarHost.showSnackbar(messageText)
+            viewModel.consumeMessage()
+        }
+    }
 
     // On Android 13+ the notification runtime permission is required to actually show reminders.
     val notifPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -72,6 +96,7 @@ fun SettingsScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -165,7 +190,45 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Text(
+                stringResource(R.string.settings_section_data),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            SettingActionRow(
+                title = stringResource(R.string.settings_export),
+                subtitle = stringResource(R.string.settings_export_desc),
+                onClick = { exportLauncher.launch("eatbefore-backup.json") },
+            )
+            SettingActionRow(
+                title = stringResource(R.string.settings_import),
+                subtitle = stringResource(R.string.settings_import_desc),
+                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            )
         }
+    }
+
+    // Restoring replaces user data — never proceed without an explicit confirmation.
+    pendingImportUri?.let { uri ->
+        AlertDialog(
+            onDismissRequest = { pendingImportUri = null },
+            title = { Text(stringResource(R.string.backup_import_confirm_title)) },
+            text = { Text(stringResource(R.string.backup_import_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.importFrom(uri)
+                    pendingImportUri = null
+                }) { Text(stringResource(R.string.backup_import_confirm_yes)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingImportUri = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 
     if (showTimePicker) {
@@ -212,6 +275,20 @@ private fun SettingSwitchRow(
             )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+@Composable
+private fun SettingActionRow(title: String, subtitle: String, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
+    ) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

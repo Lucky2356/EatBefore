@@ -21,7 +21,8 @@ import com.eatbefore.feature.home.HomeScreen
 import com.eatbefore.feature.inventory.InventoryScreen
 import com.eatbefore.feature.ocr.OcrScreen
 import com.eatbefore.feature.onboarding.OnboardingScreen
-import com.eatbefore.feature.placeholder.MorePlaceholderScreen
+import com.eatbefore.feature.analytics.AnalyticsScreen
+import com.eatbefore.feature.more.MoreScreen
 import com.eatbefore.feature.product.ProductScreen
 import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.feature.scanner.ScannerScreen
@@ -97,21 +98,28 @@ private fun MainNavigation(startDestination: String) {
             composable(Routes.SCANNER) {
                 ScannerScreen(
                     onOpenBatch = { navController.navigate(Routes.product(it)) },
-                    onAddManual = { barcode -> navController.navigate(Routes.addManual(barcode)) },
+                    onAddManual = { barcode, expiryEpochDay ->
+                        navController.navigate(Routes.addManual(barcode, expiryEpochDay))
+                    },
                 )
             }
 
             composable(Routes.SHOPPING) { ShoppingScreen() }
 
             composable(Routes.MORE) {
-                MorePlaceholderScreen(
+                MoreScreen(
                     onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                    onOpenAnalytics = { navController.navigate(Routes.ANALYTICS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
 
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.ANALYTICS) {
+                AnalyticsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(
@@ -121,6 +129,10 @@ private fun MainNavigation(startDestination: String) {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null
+                    },
+                    navArgument(Routes.ADD_MANUAL_ARG_EXPIRY) {
+                        type = NavType.LongType
+                        defaultValue = -1L
                     },
                 ),
             ) { entry ->

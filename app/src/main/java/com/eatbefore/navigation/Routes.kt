@@ -11,9 +11,18 @@ object Routes {
     const val MORE = "more"
 
     const val ADD_MANUAL_ARG_BARCODE = "barcode"
-    const val ADD_MANUAL = "add_manual?$ADD_MANUAL_ARG_BARCODE={$ADD_MANUAL_ARG_BARCODE}"
-    fun addManual(barcode: String? = null): String =
-        if (barcode.isNullOrBlank()) "add_manual" else "add_manual?$ADD_MANUAL_ARG_BARCODE=$barcode"
+    const val ADD_MANUAL_ARG_EXPIRY = "expiryEpochDay"
+    const val ADD_MANUAL = "add_manual?$ADD_MANUAL_ARG_BARCODE={$ADD_MANUAL_ARG_BARCODE}" +
+        "&$ADD_MANUAL_ARG_EXPIRY={$ADD_MANUAL_ARG_EXPIRY}"
+
+    /** [expiryEpochDay] carries a date extracted from a scanned GS1 code, if any. */
+    fun addManual(barcode: String? = null, expiryEpochDay: Long? = null): String {
+        val params = buildList {
+            if (!barcode.isNullOrBlank()) add("$ADD_MANUAL_ARG_BARCODE=$barcode")
+            if (expiryEpochDay != null) add("$ADD_MANUAL_ARG_EXPIRY=$expiryEpochDay")
+        }
+        return if (params.isEmpty()) "add_manual" else "add_manual?" + params.joinToString("&")
+    }
 
     const val PRODUCT_BATCH_ARG = "batchId"
     const val PRODUCT = "product/{$PRODUCT_BATCH_ARG}"
@@ -22,6 +31,7 @@ object Routes {
     const val HISTORY = "history"
 
     const val SETTINGS = "settings"
+    const val ANALYTICS = "analytics"
 
     const val OCR = "ocr_expiry"
     /** Key used to hand a recognized expiry date (epoch day) back to the add screen. */

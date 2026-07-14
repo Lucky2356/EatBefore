@@ -95,4 +95,14 @@ interface InventoryBatchDao {
         """,
     )
     suspend fun getPresentForProduct(productId: Long): List<InventoryBatchEntity>
+
+    // Backup/export support.
+    @Query("SELECT * FROM inventory_batches")
+    suspend fun getAll(): List<InventoryBatchEntity>
+
+    @Insert
+    suspend fun insertAll(items: List<InventoryBatchEntity>)
+
+    @Query("DELETE FROM inventory_batches")
+    suspend fun deleteAll()
 }

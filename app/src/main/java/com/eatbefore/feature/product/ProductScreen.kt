@@ -1,5 +1,6 @@
 package com.eatbefore.feature.product
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,6 +61,7 @@ fun ProductScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val undoLabel = stringResource(R.string.action_undo)
+    var showQuantityDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.closed) {
         if (state.closed) onBack()
@@ -80,6 +82,18 @@ fun ProductScreen(
                 viewModel.consumeUndoSignal()
             }
         }
+    }
+
+    if (showQuantityDialog) {
+        val current = state.item?.batch?.quantity ?: 0.0
+        QuantityDialog(
+            initial = current,
+            onConfirm = { value ->
+                viewModel.setQuantity(value)
+                showQuantityDialog = false
+            },
+            onDismiss = { showQuantityDialog = false },
+        )
     }
 
     val offeredItem = state.item
@@ -129,9 +143,11 @@ fun ProductScreen(
                         item.product.brand?.let {
                             Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        // Tapping the amount opens precise editing (detailed mode).
                         Text(
                             formatQuantity(item.batch.quantity, item.batch.measurementUnit),
                             style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.clickable { showQuantityDialog = true },
                         )
                     }
                     StatusBadge(status = state.expiryStatus)
@@ -224,6 +240,38 @@ private fun MoveChip(state: ProductUiState, viewModel: ProductViewModel) {
                 )
             }
     }
+}
+
+@Composable
+private fun QuantityDialog(
+    initial: Double,
+    onConfirm: (Double) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by remember {
+        mutableStateOf(if (initial % 1.0 == 0.0) initial.toLong().toString() else initial.toString())
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.product_edit_quantity)) },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.filter { c -> c.isDigit() || c == '.' } },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { text.toDoubleOrNull()?.let(onConfirm) },
+                enabled = text.toDoubleOrNull() != null,
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 @Composable

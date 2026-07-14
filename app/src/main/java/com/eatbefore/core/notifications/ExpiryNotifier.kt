@@ -48,6 +48,9 @@ class ExpiryNotifier @Inject constructor(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    // POST_NOTIFICATIONS is verified by hasPermission() right below; lint can't see
+    // through the indirection.
+    @android.annotation.SuppressLint("MissingPermission")
     fun notify(plan: ExpiryNotificationPlan) {
         if (!plan.hasContent || !hasPermission()) return
         ensureChannel()

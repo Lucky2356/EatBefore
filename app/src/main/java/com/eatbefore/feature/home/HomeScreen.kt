@@ -61,10 +61,25 @@ fun HomeScreen(
             }
 
             item {
-                Text(
-                    text = stringResource(R.string.home_total_products, state.totalCount),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    HomeStatTile(
+                        value = state.totalCount,
+                        label = stringResource(R.string.home_stat_total),
+                        container = MaterialTheme.colorScheme.primaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    HomeStatTile(
+                        value = state.expiringSoon.size,
+                        label = stringResource(R.string.home_stat_expiring),
+                        container = MaterialTheme.colorScheme.tertiaryContainer,
+                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
 
             if (state.totalCount == 0 && !state.isLoading) {
@@ -84,6 +99,30 @@ fun HomeScreen(
                     InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeStatTile(
+    value: Int,
+    label: String,
+    container: androidx.compose.ui.graphics.Color,
+    onContainer: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.material3.Card(
+        modifier = modifier,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = container),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(
+                text = value.toString(),
+                style = MaterialTheme.typography.headlineMedium,
+                color = onContainer,
+            )
+            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = onContainer)
         }
     }
 }

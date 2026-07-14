@@ -11,7 +11,9 @@ import java.time.ZoneId
 interface AppClock {
     fun now(): Instant
     fun zone(): ZoneId
-    fun today(): LocalDate = LocalDate.ofInstant(now(), zone())
+
+    // atZone(...) instead of LocalDate.ofInstant: the latter needs API 34 (minSdk is 26).
+    fun today(): LocalDate = now().atZone(zone()).toLocalDate()
 }
 
 class SystemAppClock : AppClock {

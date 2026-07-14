@@ -12,7 +12,6 @@ import com.eatbefore.domain.usecase.BuildExpiryNotificationUseCase
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
-import java.time.LocalTime
 
 /**
  * Daily background job that checks expiring stock and posts a single batched notification.
@@ -34,7 +33,8 @@ class ExpiryCheckWorker @AssistedInject constructor(
         val prefs = preferences.preferences.first()
         if (!prefs.notificationsEnabled) return Result.success()
 
-        val nowHour = LocalTime.ofInstant(clock.now(), clock.zone()).hour
+        // atZone(...) instead of LocalTime.ofInstant: the latter needs API 31 (minSdk 26).
+        val nowHour = clock.now().atZone(clock.zone()).hour
         if (prefs.quietHoursEnabled &&
             isWithinQuietHours(nowHour, prefs.quietStartHour, prefs.quietEndHour)
         ) {

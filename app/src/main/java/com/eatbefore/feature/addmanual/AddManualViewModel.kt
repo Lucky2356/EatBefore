@@ -44,7 +44,13 @@ class AddManualViewModel @Inject constructor(
     /** Optional barcode passed when arriving from the scanner (unknown product). */
     private val barcode: String? = savedStateHandle[Routes.ADD_MANUAL_ARG_BARCODE]
 
-    private val _state = MutableStateFlow(AddManualUiState())
+    /** Expiration extracted from a scanned GS1 code (Честный знак), if any. */
+    private val expiryFromCode: LocalDate? =
+        savedStateHandle.get<Long>(Routes.ADD_MANUAL_ARG_EXPIRY)
+            ?.takeIf { it >= 0 }
+            ?.let(LocalDate::ofEpochDay)
+
+    private val _state = MutableStateFlow(AddManualUiState(expirationDate = expiryFromCode))
     val state: StateFlow<AddManualUiState> = _state.asStateFlow()
 
     init {

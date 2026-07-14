@@ -3,6 +3,7 @@ package com.eatbefore.feature.scanner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.domain.gs1.Gs1Parser
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.repository.StorageLocationRepository
@@ -16,22 +17,37 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
-/** What the scanner resolved the current code to. */
+/**
+ * What the scanner resolved the current code to. [expiryFromCode] is present when the
+ * scanned code was a GS1 payload (e.g. «Честный знак» DataMatrix) carrying an
+ * expiration/best-before date — it pre-fills the batch so the user types nothing.
+ */
 sealed interface ScanResolution {
     val code: String
+    val expiryFromCode: LocalDate?
 
     data class Found(
         override val code: String,
         val product: Product,
         val fromNetwork: Boolean,
+        override val expiryFromCode: LocalDate? = null,
     ) : ScanResolution
 
-    data class NotFound(override val code: String, val type: BarcodeType) : ScanResolution
+    data class NotFound(
+        override val code: String,
+        val type: BarcodeType,
+        override val expiryFromCode: LocalDate? = null,
+    ) : ScanResolution
 
-    data class Error(override val code: String, val type: BarcodeType, val message: String) :
-        ScanResolution
+    data class Error(
+        override val code: String,
+        val type: BarcodeType,
+        val message: String,
+        override val expiryFromCode: LocalDate? = null,
+    ) : ScanResolution
 }
 
 data class ScannerUiState(
@@ -66,17 +82,25 @@ class ScannerViewModel @Inject constructor(
         lastCode = scanned.value
         lastHandledAtMillis = nowMillis
 
+        // «Честный знак» / GS1 DataMatrix and QR: extract the GTIN (product code) and,
+        // when encoded, the expiration date. The payload itself is never executed.
+        val gs1 = Gs1Parser.parse(scanned.value)
+        val lookupCode = gs1?.normalizedGtin ?: scanned.value
+        val expiry = gs1?.expirationDate
+
         _state.update { it.copy(isScanning = false, isResolving = true) }
         viewModelScope.launch {
-            val result = runCatching { lookupProduct(scanned.value, scanned.type) }
+            val result = runCatching { lookupProduct(lookupCode, scanned.type) }
                 .getOrElse { BarcodeLookupResult.Error(it.message ?: "lookup failed") }
             val resolution = when (result) {
                 is BarcodeLookupResult.Found ->
-                    ScanResolution.Found(scanned.value, result.product, result.fromNetwork)
+                    ScanResolution.Found(lookupCode, result.product, result.fromNetwork, expiry)
 
-                BarcodeLookupResult.NotFound -> ScanResolution.NotFound(scanned.value, scanned.type)
+                BarcodeLookupResult.NotFound ->
+                    ScanResolution.NotFound(lookupCode, scanned.type, expiry)
+
                 is BarcodeLookupResult.Error ->
-                    ScanResolution.Error(scanned.value, scanned.type, result.message)
+                    ScanResolution.Error(lookupCode, scanned.type, result.message, expiry)
             }
             _state.update { it.copy(isResolving = false, resolution = resolution) }
         }
@@ -87,8 +111,11 @@ class ScannerViewModel @Inject constructor(
         onCodeDetected(ScannedCode(raw, type))
     }
 
-    /** Quick-add one package of a resolved product to the default storage location. */
-    fun addOnePackage(product: Product) {
+    /**
+     * Quick-add one package of a resolved product to the default storage location, with
+     * the expiration date from the scanned code when it carried one.
+     */
+    fun addOnePackage(product: Product, expiryFromCode: LocalDate?) {
         _state.update { it.copy(isResolving = true) }
         viewModelScope.launch {
             val locationId = storageLocationRepository.getDefault()?.id
@@ -101,9 +128,19 @@ class ScannerViewModel @Inject constructor(
                     productId = product.id,
                     storageLocationId = locationId,
                     quantity = 1.0,
+                    expirationDate = expiryFromCode,
                 ),
             )
-            _state.update { it.copy(isResolving = false, addedBatchId = batchId) }
+            // Return to live scanning immediately — the result card must not linger and
+            // swallow taps while the confirmation snackbar is visible.
+            _state.update {
+                it.copy(
+                    isResolving = false,
+                    isScanning = true,
+                    resolution = null,
+                    addedBatchId = batchId,
+                )
+            }
         }
     }
 

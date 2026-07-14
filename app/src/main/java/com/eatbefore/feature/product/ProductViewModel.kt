@@ -126,6 +126,11 @@ class ProductViewModel @Inject constructor(
         changeQuantity(batchId, batch.quantity - 1)
     }
 
+    /** Detailed mode: set an exact remaining amount (grams, percent, pieces, …). */
+    fun setQuantity(value: Double) = runAction(offerShopping = value <= 0.0) {
+        changeQuantity(batchId, value)
+    }
+
     /** Using it up offers to put the product straight onto the shopping list. */
     fun markFinished() = runAction(offerShopping = true) { changeQuantity(batchId, 0.0) }
 

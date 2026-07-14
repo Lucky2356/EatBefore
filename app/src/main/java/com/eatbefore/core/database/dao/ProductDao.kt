@@ -36,4 +36,14 @@ interface ProductDao {
 
     @Query("SELECT * FROM products ORDER BY name COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<ProductEntity>>
+
+    // Backup/export support.
+    @Query("SELECT * FROM products")
+    suspend fun getAll(): List<ProductEntity>
+
+    @Insert
+    suspend fun insertAll(items: List<ProductEntity>)
+
+    @Query("DELETE FROM products")
+    suspend fun deleteAll()
 }

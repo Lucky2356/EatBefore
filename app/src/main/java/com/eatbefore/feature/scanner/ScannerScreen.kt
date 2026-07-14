@@ -57,7 +57,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 @Composable
 fun ScannerScreen(
     onOpenBatch: (Long) -> Unit,
-    onAddManual: (barcode: String?) -> Unit,
+    onAddManual: (barcode: String?, expiryEpochDay: Long?) -> Unit,
     viewModel: ScannerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -102,7 +102,7 @@ fun ScannerScreen(
             } else {
                 CameraPermissionRequest(
                     onGrant = { cameraPermission.launchPermissionRequest() },
-                    onAddManual = { onAddManual(null) },
+                    onAddManual = { onAddManual(null, null) },
                 )
             }
 
@@ -125,9 +125,12 @@ fun ScannerScreen(
             state.resolution?.let { resolution ->
                 ScanResultDialog(
                     resolution = resolution,
-                    onAddOnePackage = { viewModel.addOnePackage(it) },
-                    onDetails = { barcode -> onAddManual(barcode) },
-                    onAddManual = { barcode -> onAddManual(barcode) },
+                    onAddOnePackage = { product ->
+                        viewModel.addOnePackage(product, resolution.expiryFromCode)
+                    },
+                    onGoManual = { barcode ->
+                        onAddManual(barcode, resolution.expiryFromCode?.toEpochDay())
+                    },
                     onDismiss = viewModel::resume,
                 )
             }
@@ -214,7 +217,8 @@ private fun ManualCodeDialog(onSubmit: (String) -> Unit, onDismiss: () -> Unit) 
         text = {
             OutlinedTextField(
                 value = text,
-                onValueChange = { text = it.filter { c -> c.isLetterOrDigit() } },
+                // GS1 serials (Честный знак) may contain symbols; only whitespace is dropped.
+                onValueChange = { text = it.take(128).filterNot { c -> c.isWhitespace() } },
                 singleLine = true,
                 label = { Text(stringResource(R.string.scanner_manual_hint)) },
                 modifier = Modifier.fillMaxWidth(),
@@ -235,8 +239,7 @@ private fun ManualCodeDialog(onSubmit: (String) -> Unit, onDismiss: () -> Unit) 
 private fun ScanResultDialog(
     resolution: ScanResolution,
     onAddOnePackage: (com.eatbefore.domain.model.Product) -> Unit,
-    onDetails: (String?) -> Unit,
-    onAddManual: (String?) -> Unit,
+    onGoManual: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     when (resolution) {
@@ -247,6 +250,14 @@ private fun ScanResultDialog(
                 Column {
                     Text(resolution.product.name, style = MaterialTheme.typography.titleMedium)
                     resolution.product.brand?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                    resolution.expiryFromCode?.let { date ->
+                        Text(
+                            stringResource(R.string.scanner_expiry_from_code, date.toString()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
                     if (resolution.fromNetwork) {
                         Text(
                             stringResource(R.string.scanner_found_network),
@@ -263,7 +274,7 @@ private fun ScanResultDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { onDetails(resolution.product.barcode) }) {
+                TextButton(onClick = { onGoManual(resolution.product.barcode) }) {
                     Text(stringResource(R.string.scanner_details))
                 }
             },
@@ -272,9 +283,21 @@ private fun ScanResultDialog(
         is ScanResolution.NotFound -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.scanner_not_found_title)) },
-            text = { Text(stringResource(R.string.scanner_not_found_body, resolution.code)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.scanner_not_found_body, resolution.code))
+                    resolution.expiryFromCode?.let { date ->
+                        Text(
+                            stringResource(R.string.scanner_expiry_from_code, date.toString()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = { onAddManual(resolution.code) }) {
+                TextButton(onClick = { onGoManual(resolution.code) }) {
                     Text(stringResource(R.string.scanner_add_manual))
                 }
             },
@@ -288,7 +311,7 @@ private fun ScanResultDialog(
             title = { Text(stringResource(R.string.scanner_error_title)) },
             text = { Text(stringResource(R.string.scanner_error_body)) },
             confirmButton = {
-                TextButton(onClick = { onAddManual(resolution.code) }) {
+                TextButton(onClick = { onGoManual(resolution.code) }) {
                     Text(stringResource(R.string.scanner_add_manual))
                 }
             },

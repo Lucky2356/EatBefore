@@ -1,5 +1,9 @@
 package com.eatbefore.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
@@ -7,12 +11,17 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.eatbefore.R
 
 private data class BottomItem(
@@ -29,6 +38,7 @@ private val bottomItems = listOf(
     BottomItem(TopLevelDestination.MORE, Icons.Filled.MoreHoriz, R.string.nav_more),
 )
 
+/** Bottom navigation with the scanner as the emphasized central action (per the spec). */
 @Composable
 fun EatBeforeBottomBar(
     currentRoute: String?,
@@ -36,11 +46,37 @@ fun EatBeforeBottomBar(
 ) {
     NavigationBar {
         bottomItems.forEach { item ->
+            val isScanner = item.destination == TopLevelDestination.SCANNER
             NavigationBarItem(
                 selected = currentRoute == item.destination.route,
                 onClick = { onNavigate(item.destination) },
-                icon = { Icon(item.icon, contentDescription = null) },
+                icon = {
+                    if (isScanner) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                item.icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        }
+                    } else {
+                        Icon(item.icon, contentDescription = null)
+                    }
+                },
                 label = { Text(stringResource(item.labelRes)) },
+                colors = if (isScanner) {
+                    // The circle already carries the emphasis; hide the pill indicator.
+                    NavigationBarItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.surface,
+                    )
+                } else {
+                    NavigationBarItemDefaults.colors()
+                },
             )
         }
     }

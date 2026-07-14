@@ -111,7 +111,7 @@ fun AddManualScreen(
                 )
             }
 
-            LabeledSection(stringResource(R.string.add_quantity)) {
+            LabeledSection(stringResource(R.string.add_unit)) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

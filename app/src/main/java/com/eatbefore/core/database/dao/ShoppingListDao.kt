@@ -35,4 +35,14 @@ interface ShoppingListDao {
 
     @Query("SELECT COUNT(*) FROM shopping_list_items WHERE is_completed = 0")
     fun observeOpenCount(): Flow<Int>
+
+    // Backup/export support.
+    @Query("SELECT * FROM shopping_list_items")
+    suspend fun getAll(): List<ShoppingListItemEntity>
+
+    @Insert
+    suspend fun insertAll(items: List<ShoppingListItemEntity>)
+
+    @Query("DELETE FROM shopping_list_items")
+    suspend fun deleteAll()
 }
