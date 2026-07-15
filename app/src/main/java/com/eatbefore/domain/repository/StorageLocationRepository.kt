@@ -8,5 +8,6 @@ interface StorageLocationRepository {
     fun observeAll(): Flow<List<StorageLocation>>
     suspend fun getById(id: Long): StorageLocation?
     suspend fun getDefault(): StorageLocation?
+    suspend fun setDefault(id: Long)
     suspend fun upsert(location: StorageLocation): Long
 }

@@ -1,16 +1,25 @@
 package com.eatbefore.feature.analytics
 
+import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,8 +33,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,9 +44,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.LocalStatusColors
+import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.usecase.AnalyticsSummary
 import com.eatbefore.domain.usecase.BuildAnalyticsUseCase
+import com.eatbefore.domain.usecase.WeeklyStat
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +59,8 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val reportText = state.summary?.let { buildReportText(it, state.period, state.byLocation) }
 
     Scaffold(
         topBar = {
@@ -52,6 +69,23 @@ fun AnalyticsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                    }
+                },
+                actions = {
+                    if (reportText != null && state.summary?.hasData == true) {
+                        IconButton(onClick = {
+                            // Plain-text report via the system share sheet; the user picks the target.
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, reportText)
+                            }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        }) {
+                            Icon(
+                                Icons.Outlined.Share,
+                                contentDescription = stringResource(R.string.analytics_share),
+                            )
+                        }
                     }
                 },
             )
@@ -80,9 +114,68 @@ fun AnalyticsScreen(
                 EmptyState(message = stringResource(R.string.analytics_empty))
             } else if (summary != null) {
                 SummaryContent(summary)
+                if (state.byLocation.isNotEmpty()) {
+                    SectionList(
+                        title = stringResource(R.string.analytics_by_location),
+                        rows = state.byLocation.map { (location, count) ->
+                            location.displayName() to count
+                        },
+                    )
+                }
             }
         }
     }
+}
+
+/** Human-readable plain-text report for the system share sheet. */
+@Composable
+private fun buildReportText(
+    summary: AnalyticsSummary,
+    period: AnalyticsPeriod,
+    byLocation: List<Pair<StorageLocation, Int>>,
+): String {
+    val periodLabel = stringResource(
+        when (period) {
+            AnalyticsPeriod.WEEK -> R.string.analytics_period_week
+            AnalyticsPeriod.MONTH -> R.string.analytics_period_month
+            AnalyticsPeriod.YEAR -> R.string.analytics_period_year
+            AnalyticsPeriod.ALL -> R.string.analytics_period_all
+        },
+    )
+    return buildString {
+        appendLine(stringResource(R.string.analytics_report_title))
+        appendLine(stringResource(R.string.analytics_report_period, periodLabel))
+        appendLine()
+        appendLine("${stringResource(R.string.analytics_added)}: ${summary.addedCount}")
+        appendLine("${stringResource(R.string.analytics_consumed)}: ${summary.consumedCount}")
+        appendLine("${stringResource(R.string.analytics_discarded)}: ${summary.discardedCount}")
+        appendLine("${stringResource(R.string.analytics_expired)}: ${summary.expiredCount}")
+        summary.usedInTimePercent?.let {
+            appendLine(stringResource(R.string.analytics_used_in_time, it))
+        }
+        if (summary.wastedByCategory.isNotEmpty()) {
+            appendLine()
+            appendLine(stringResource(R.string.analytics_wasted_by_category) + ":")
+            summary.wastedByCategory.forEach { (category, count) ->
+                val label = category.ifBlank { stringResource(R.string.analytics_no_category) }
+                appendLine("  $label — $count")
+            }
+        }
+        if (summary.topAddedProducts.isNotEmpty()) {
+            appendLine()
+            appendLine(stringResource(R.string.analytics_top_products) + ":")
+            summary.topAddedProducts.forEach { (name, count) ->
+                appendLine("  $name — $count")
+            }
+        }
+        if (byLocation.isNotEmpty()) {
+            appendLine()
+            appendLine(stringResource(R.string.analytics_by_location) + ":")
+            byLocation.forEach { (location, count) ->
+                appendLine("  ${location.displayName()} — $count")
+            }
+        }
+    }.trimEnd()
 }
 
 @Composable
@@ -144,6 +237,10 @@ private fun SummaryContent(summary: AnalyticsSummary) {
         }
     }
 
+    if (summary.weeklyTrend.size >= 2) {
+        WeeklyTrendCard(summary.weeklyTrend)
+    }
+
     if (summary.wastedByCategory.isNotEmpty()) {
         SectionList(
             title = stringResource(R.string.analytics_wasted_by_category),
@@ -163,6 +260,84 @@ private fun SummaryContent(summary: AnalyticsSummary) {
             title = stringResource(R.string.analytics_top_products),
             rows = summary.topAddedProducts,
         )
+    }
+}
+
+/** Grouped bar chart: added vs wasted per week. Values are also readable from labels. */
+@Composable
+private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
+    val max = trend.maxOf { maxOf(it.added, it.wasted) }.coerceAtLeast(1)
+    val barMaxHeight = 96.dp
+    val weekFormatter = DateTimeFormatter.ofPattern("dd.MM")
+    val addedColor = MaterialTheme.colorScheme.primary
+    val wastedColor = MaterialTheme.colorScheme.error
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.analytics_trend), style = MaterialTheme.typography.titleMedium)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                trend.forEach { week ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            TrendBar(week.added, max, barMaxHeight, addedColor)
+                            TrendBar(week.wasted, max, barMaxHeight, wastedColor)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            week.weekStart.format(weekFormatter),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LegendDot(addedColor, stringResource(R.string.analytics_trend_added))
+                LegendDot(wastedColor, stringResource(R.string.analytics_trend_wasted))
+            }
+        }
+    }
+}
+
+@Composable
+private fun TrendBar(value: Int, max: Int, maxHeight: androidx.compose.ui.unit.Dp, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (value > 0) {
+            Text(
+                value.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .width(14.dp)
+                // Even zero gets a sliver so the week visibly exists.
+                .height((maxHeight * value / max).coerceAtLeast(2.dp))
+                .background(
+                    color = if (value > 0) color else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
+                ),
+        )
+    }
+}
+
+@Composable
+private fun LegendDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(modifier = Modifier.size(10.dp).background(color, RoundedCornerShape(50)))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

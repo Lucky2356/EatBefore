@@ -173,8 +173,10 @@
     <string name="backup_import_confirm_body">Текущие продукты, история и список покупок будут заменены данными из файла. Это действие нельзя отменить.</string>
     <string name="backup_import_confirm_yes">Заменить</string>
 
-    <!-- Placeholder screens -->
-    <string name="more_placeholder">Экспорт, аналитика и настройки — в разделах выше.</string>
+    <!-- More tab -->
+    <string name="more_history_desc">Все действия с продуктами, отмена и восстановление</string>
+    <string name="more_analytics_desc">Статистика, отчёты и динамика по неделям</string>
+    <string name="more_settings_desc">Тема, уведомления, резервные копии</string>
 
     <!-- Scanner -->
     <string name="scanner_title">Сканирование</string>
@@ -239,4 +241,33 @@
     <string name="settings_quiet_to">до</string>
     <string name="settings_permission_needed">Разрешите уведомления, чтобы получать напоминания</string>
     <string name="settings_grant_permission">Разрешить</string>
+
+    <!-- Settings: appearance -->
+    <string name="settings_section_appearance">Внешний вид</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_system">Система</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_dynamic_colors">Динамические цвета</string>
+    <string name="settings_dynamic_colors_desc">Палитра из обоев (Material You)</string>
+
+    <!-- Settings: inventory -->
+    <string name="settings_section_inventory">Запасы</string>
+    <string name="settings_default_location">Место хранения по умолчанию</string>
+    <string name="settings_detailed_quantity">Точный режим количества</string>
+    <string name="settings_detailed_quantity_desc">«Уменьшить» открывает ввод точного остатка вместо −1</string>
+
+    <!-- Settings: about -->
+    <string name="settings_section_about">О приложении</string>
+    <string name="settings_version">Версия</string>
+    <string name="settings_about_privacy">Данные хранятся только на устройстве. Без рекламы и трекеров.</string>
+
+    <!-- Analytics: report extensions -->
+    <string name="analytics_share">Поделиться отчётом</string>
+    <string name="analytics_trend">Динамика по неделям</string>
+    <string name="analytics_trend_added">Добавлено</string>
+    <string name="analytics_trend_wasted">Выброшено</string>
+    <string name="analytics_by_location">Сейчас в запасах</string>
+    <string name="analytics_report_title">Отчёт EatBefore</string>
+    <string name="analytics_report_period">Период: %1$s</string>
 </resources>

@@ -40,9 +40,27 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val today = androidx.compose.runtime.remember {
+        java.time.LocalDate.now().format(
+            java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", java.util.Locale.forLanguageTag("ru")),
+        ).replaceFirstChar { it.uppercase() }
+    }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.home_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(stringResource(R.string.home_title))
+                        Text(
+                            today,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
+        },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),

@@ -32,6 +32,10 @@ interface StorageLocationDao {
     @Query("SELECT * FROM storage_locations WHERE is_default = 1 ORDER BY sort_order ASC LIMIT 1")
     suspend fun getDefault(): StorageLocationEntity?
 
+    /** Marks exactly one location as the default target for quick adds. */
+    @Query("UPDATE storage_locations SET is_default = (id = :id)")
+    suspend fun setDefault(id: Long)
+
     @Query("SELECT COUNT(*) FROM storage_locations")
     suspend fun count(): Int
 

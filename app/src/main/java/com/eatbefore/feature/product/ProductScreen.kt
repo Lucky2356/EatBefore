@@ -175,7 +175,10 @@ fun ProductScreen(
                         leadingIcon = { Icon(Icons.Outlined.LockOpen, contentDescription = null) },
                     )
                     AssistChip(
-                        onClick = viewModel::decrement,
+                        // Detailed mode asks for the exact remaining amount instead of −1.
+                        onClick = {
+                            if (state.detailedMode) showQuantityDialog = true else viewModel.decrement()
+                        },
                         label = { Text(stringResource(R.string.product_action_decrement)) },
                         leadingIcon = { Icon(Icons.Outlined.RemoveCircleOutline, contentDescription = null) },
                     )

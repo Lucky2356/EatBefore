@@ -13,16 +13,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,7 +51,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.eatbefore.BuildConfig
 import com.eatbefore.R
+import com.eatbefore.core.datastore.ThemeMode
+import com.eatbefore.core.designsystem.format.displayName
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -56,9 +66,11 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val prefs by viewModel.state.collectAsStateWithLifecycle()
+    val locations by viewModel.locations.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showLocationPicker by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -104,60 +116,46 @@ fun SettingsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                stringResource(R.string.settings_section_notifications),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            SettingSwitchRow(
-                title = stringResource(R.string.settings_notifications_enabled),
-                subtitle = stringResource(R.string.settings_notifications_desc),
-                checked = prefs.notificationsEnabled,
-                onCheckedChange = { enabled ->
-                    viewModel.setNotificationsEnabled(enabled)
-                    if (enabled) notifPermission?.launchPermissionRequest()
-                },
-            )
-
-            if (permissionMissing) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        stringResource(R.string.settings_permission_needed),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = { notifPermission?.launchPermissionRequest() }) {
-                        Text(stringResource(R.string.settings_grant_permission))
+            SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
+                Text(
+                    stringResource(R.string.settings_theme),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    ThemeMode.entries.forEachIndexed { index, mode ->
+                        SegmentedButton(
+                            selected = prefs.themeMode == mode,
+                            onClick = { viewModel.setThemeMode(mode) },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = ThemeMode.entries.size,
+                            ),
+                        ) { Text(themeModeLabel(mode)) }
                     }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    SettingSwitchRow(
+                        title = stringResource(R.string.settings_dynamic_colors),
+                        subtitle = stringResource(R.string.settings_dynamic_colors_desc),
+                        checked = prefs.dynamicColors,
+                        onCheckedChange = viewModel::setDynamicColors,
+                    )
                 }
             }
 
-            if (prefs.notificationsEnabled) {
-                HorizontalDivider()
-
-                ClickableRow(
-                    title = stringResource(R.string.settings_notification_time),
-                    value = formatTime(prefs.notificationHour, prefs.notificationMinute),
-                    onClick = { showTimePicker = true },
-                )
-
-                HorizontalDivider()
-
-                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            SettingsSection(title = stringResource(R.string.settings_section_inventory)) {
+                Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(stringResource(R.string.settings_soon_days))
-                        Text(stringResource(R.string.settings_soon_days_value, prefs.soonThresholdDays))
+                        Text(
+                            stringResource(R.string.settings_soon_days_value, prefs.soonThresholdDays),
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     }
                     Slider(
                         value = prefs.soonThresholdDays.toFloat(),
@@ -166,49 +164,150 @@ fun SettingsScreen(
                         steps = 12,
                     )
                 }
-
                 HorizontalDivider()
-
+                ClickableRow(
+                    title = stringResource(R.string.settings_default_location),
+                    value = locations.firstOrNull { it.isDefault }?.displayName() ?: "—",
+                    onClick = { showLocationPicker = true },
+                )
+                HorizontalDivider()
                 SettingSwitchRow(
-                    title = stringResource(R.string.settings_quiet_hours),
-                    subtitle = stringResource(R.string.settings_quiet_hours_desc),
-                    checked = prefs.quietHoursEnabled,
-                    onCheckedChange = {
-                        viewModel.setQuietHours(it, prefs.quietStartHour, prefs.quietEndHour)
+                    title = stringResource(R.string.settings_detailed_quantity),
+                    subtitle = stringResource(R.string.settings_detailed_quantity_desc),
+                    checked = prefs.detailedQuantityMode,
+                    onCheckedChange = viewModel::setDetailedQuantityMode,
+                )
+            }
+
+            SettingsSection(title = stringResource(R.string.settings_section_notifications)) {
+                SettingSwitchRow(
+                    title = stringResource(R.string.settings_notifications_enabled),
+                    subtitle = stringResource(R.string.settings_notifications_desc),
+                    checked = prefs.notificationsEnabled,
+                    onCheckedChange = { enabled ->
+                        viewModel.setNotificationsEnabled(enabled)
+                        if (enabled) notifPermission?.launchPermissionRequest()
                     },
                 )
-                if (prefs.quietHoursEnabled) {
-                    QuietHoursRow(
-                        startHour = prefs.quietStartHour,
-                        endHour = prefs.quietEndHour,
-                        onStartChange = {
-                            viewModel.setQuietHours(true, it, prefs.quietEndHour)
-                        },
-                        onEndChange = {
-                            viewModel.setQuietHours(true, prefs.quietStartHour, it)
+
+                if (permissionMissing) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            stringResource(R.string.settings_permission_needed),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = { notifPermission?.launchPermissionRequest() }) {
+                            Text(stringResource(R.string.settings_grant_permission))
+                        }
+                    }
+                }
+
+                if (prefs.notificationsEnabled) {
+                    HorizontalDivider()
+                    ClickableRow(
+                        title = stringResource(R.string.settings_notification_time),
+                        value = formatTime(prefs.notificationHour, prefs.notificationMinute),
+                        onClick = { showTimePicker = true },
+                    )
+                    HorizontalDivider()
+                    SettingSwitchRow(
+                        title = stringResource(R.string.settings_quiet_hours),
+                        subtitle = stringResource(R.string.settings_quiet_hours_desc),
+                        checked = prefs.quietHoursEnabled,
+                        onCheckedChange = {
+                            viewModel.setQuietHours(it, prefs.quietStartHour, prefs.quietEndHour)
                         },
                     )
+                    if (prefs.quietHoursEnabled) {
+                        QuietHoursRow(
+                            startHour = prefs.quietStartHour,
+                            endHour = prefs.quietEndHour,
+                            onStartChange = {
+                                viewModel.setQuietHours(true, it, prefs.quietEndHour)
+                            },
+                            onEndChange = {
+                                viewModel.setQuietHours(true, prefs.quietStartHour, it)
+                            },
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            SettingsSection(title = stringResource(R.string.settings_section_data)) {
+                SettingActionRow(
+                    title = stringResource(R.string.settings_export),
+                    subtitle = stringResource(R.string.settings_export_desc),
+                    onClick = { exportLauncher.launch("eatbefore-backup.json") },
+                )
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.settings_import),
+                    subtitle = stringResource(R.string.settings_import_desc),
+                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                )
+            }
 
-            Text(
-                stringResource(R.string.settings_section_data),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            SettingActionRow(
-                title = stringResource(R.string.settings_export),
-                subtitle = stringResource(R.string.settings_export_desc),
-                onClick = { exportLauncher.launch("eatbefore-backup.json") },
-            )
-            SettingActionRow(
-                title = stringResource(R.string.settings_import),
-                subtitle = stringResource(R.string.settings_import_desc),
-                onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
-            )
+            SettingsSection(title = stringResource(R.string.settings_section_about)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(stringResource(R.string.settings_version))
+                    Text(
+                        BuildConfig.VERSION_NAME,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    stringResource(R.string.settings_about_privacy),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
+    }
+
+    if (showLocationPicker) {
+        AlertDialog(
+            onDismissRequest = { showLocationPicker = false },
+            title = { Text(stringResource(R.string.settings_default_location)) },
+            text = {
+                Column {
+                    locations.forEach { location ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = location.isDefault,
+                                    onClick = {
+                                        viewModel.setDefaultLocation(location.id)
+                                        showLocationPicker = false
+                                    },
+                                )
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = location.isDefault, onClick = null)
+                            Text(
+                                location.displayName(),
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLocationPicker = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 
     // Restoring replaces user data — never proceed without an explicit confirmation.
@@ -256,6 +355,41 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun themeModeLabel(mode: ThemeMode): String = stringResource(
+    when (mode) {
+        ThemeMode.SYSTEM -> R.string.settings_theme_system
+        ThemeMode.LIGHT -> R.string.settings_theme_light
+        ThemeMode.DARK -> R.string.settings_theme_dark
+    },
+)
+
+/** A titled tonal card grouping related settings rows. */
+@Composable
+private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 4.dp),
+        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingSwitchRow(
     title: String,
     subtitle: String,
@@ -296,10 +430,14 @@ private fun SettingActionRow(title: String, subtitle: String, onClick: () -> Uni
 private fun ClickableRow(title: String, value: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            title,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
         Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
     }
 }

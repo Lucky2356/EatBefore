@@ -1,8 +1,10 @@
 package com.eatbefore.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -14,7 +16,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.component.LoadingState
+import com.eatbefore.core.designsystem.theme.EatBeforeTheme
 import com.eatbefore.feature.addmanual.AddManualScreen
 import com.eatbefore.feature.history.HistoryScreen
 import com.eatbefore.feature.home.HomeScreen
@@ -38,11 +42,27 @@ fun EatBeforeApp(
 ) {
     val rootState by rootViewModel.state.collectAsStateWithLifecycle()
 
-    when (val s = rootState) {
-        is RootState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
-        is RootState.Ready -> MainNavigation(
-            startDestination = if (s.onboardingCompleted) Routes.HOME else Routes.ONBOARDING,
-        )
+    // The theme follows user settings, so it lives here rather than in the activity.
+    val darkTheme = when (val s = rootState) {
+        is RootState.Ready -> when (s.themeMode) {
+            ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            ThemeMode.LIGHT -> false
+            ThemeMode.DARK -> true
+        }
+
+        else -> isSystemInDarkTheme()
+    }
+    val dynamicColor = (rootState as? RootState.Ready)?.dynamicColors ?: true
+
+    EatBeforeTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            when (val s = rootState) {
+                is RootState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
+                is RootState.Ready -> MainNavigation(
+                    startDestination = if (s.onboardingCompleted) Routes.HOME else Routes.ONBOARDING,
+                )
+            }
+        }
     }
 }
 

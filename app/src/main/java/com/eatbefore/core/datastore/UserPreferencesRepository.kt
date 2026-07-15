@@ -5,17 +5,24 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** App-wide theme selection. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** User settings backed by Preferences DataStore. No sensitive data is stored here. */
 data class UserPreferences(
     val onboardingCompleted: Boolean = false,
     val soonThresholdDays: Int = DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
     val detailedQuantityMode: Boolean = false,
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Material You palette from the wallpaper (Android 12+). */
+    val dynamicColors: Boolean = true,
     val notificationsEnabled: Boolean = true,
     /** Local time of day for the daily expiry check (24h). */
     val notificationHour: Int = 9,
@@ -35,6 +42,10 @@ class UserPreferencesRepository @Inject constructor(
             soonThresholdDays = prefs[KEY_SOON_DAYS]
                 ?: DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
             detailedQuantityMode = prefs[KEY_DETAILED_QTY] ?: false,
+            themeMode = prefs[KEY_THEME_MODE]
+                ?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } }
+                ?: ThemeMode.SYSTEM,
+            dynamicColors = prefs[KEY_DYNAMIC_COLORS] ?: true,
             notificationsEnabled = prefs[KEY_NOTIF_ENABLED] ?: true,
             notificationHour = prefs[KEY_NOTIF_HOUR] ?: 9,
             notificationMinute = prefs[KEY_NOTIF_MINUTE] ?: 0,
@@ -54,6 +65,14 @@ class UserPreferencesRepository @Inject constructor(
 
     suspend fun setDetailedQuantityMode(enabled: Boolean) {
         dataStore.edit { it[KEY_DETAILED_QTY] = enabled }
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[KEY_THEME_MODE] = mode.name }
+    }
+
+    suspend fun setDynamicColors(enabled: Boolean) {
+        dataStore.edit { it[KEY_DYNAMIC_COLORS] = enabled }
     }
 
     suspend fun setNotificationsEnabled(enabled: Boolean) {
@@ -79,6 +98,8 @@ class UserPreferencesRepository @Inject constructor(
         val KEY_ONBOARDING = booleanPreferencesKey("onboarding_completed")
         val KEY_SOON_DAYS = intPreferencesKey("soon_threshold_days")
         val KEY_DETAILED_QTY = booleanPreferencesKey("detailed_quantity_mode")
+        val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+        val KEY_DYNAMIC_COLORS = booleanPreferencesKey("dynamic_colors")
         val KEY_NOTIF_ENABLED = booleanPreferencesKey("notifications_enabled")
         val KEY_NOTIF_HOUR = intPreferencesKey("notification_hour")
         val KEY_NOTIF_MINUTE = intPreferencesKey("notification_minute")

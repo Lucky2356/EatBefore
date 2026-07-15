@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.eatbefore.R
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.common.dispatcher.IoDispatcher
+import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.repository.StorageLocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,6 +28,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferences: UserPreferencesRepository,
+    private val storageLocations: StorageLocationRepository,
     private val backupManager: BackupManager,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -33,6 +37,13 @@ class SettingsViewModel @Inject constructor(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = UserPreferences(),
+    )
+
+    /** Active storage locations; the default one is the target of quick adds. */
+    val locations: StateFlow<List<StorageLocation>> = storageLocations.observeActive().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList(),
     )
 
     private val _message = MutableStateFlow<Int?>(null)
@@ -52,6 +63,22 @@ class SettingsViewModel @Inject constructor(
 
     fun setQuietHours(enabled: Boolean, startHour: Int, endHour: Int) {
         viewModelScope.launch { preferences.setQuietHours(enabled, startHour, endHour) }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
+
+    fun setDynamicColors(enabled: Boolean) {
+        viewModelScope.launch { preferences.setDynamicColors(enabled) }
+    }
+
+    fun setDetailedQuantityMode(enabled: Boolean) {
+        viewModelScope.launch { preferences.setDetailedQuantityMode(enabled) }
+    }
+
+    fun setDefaultLocation(id: Long) {
+        viewModelScope.launch { storageLocations.setDefault(id) }
     }
 
     /** Writes a backup to the user-chosen document. Explicit user action only. */

@@ -9,6 +9,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 class BuildAnalyticsUseCaseTest {
 
@@ -88,5 +90,35 @@ class BuildAnalyticsUseCaseTest {
         val summary = useCase(emptyList(), products, from)
         assertFalse(summary.hasData)
         assertNull(summary.usedInTimePercent)
+        assertTrue(summary.weeklyTrend.isEmpty())
+    }
+
+    @Test
+    fun weeklyTrend_groupsByIsoWeekAndFillsGaps() {
+        // 2026-07-06 and 2026-07-20 are Mondays; the week between them has no events.
+        val events = listOf(
+            event(EventType.ADDED, at = "2026-07-07T10:00:00Z"),
+            event(EventType.ADDED, at = "2026-07-12T10:00:00Z"), // Sunday, same ISO week
+            event(EventType.DISCARDED, at = "2026-07-21T10:00:00Z"),
+        )
+        val trend = useCase(events, products, from, ZoneOffset.UTC).weeklyTrend
+
+        assertEquals(3, trend.size)
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-06"), added = 2, wasted = 0), trend[0])
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-13"), added = 0, wasted = 0), trend[1])
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-20"), added = 0, wasted = 1), trend[2])
+    }
+
+    @Test
+    fun weeklyTrend_capsAtTrendWeeks() {
+        val events = (0 until 20).map { week ->
+            event(
+                EventType.ADDED,
+                at = Instant.parse("2026-01-05T10:00:00Z")
+                    .plusSeconds(week * 7L * 24 * 3600).toString(),
+            )
+        }
+        val trend = useCase(events, products, Instant.EPOCH, ZoneOffset.UTC).weeklyTrend
+        assertEquals(BuildAnalyticsUseCase.TREND_WEEKS, trend.size)
     }
 }

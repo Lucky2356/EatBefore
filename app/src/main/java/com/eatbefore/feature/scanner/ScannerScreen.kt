@@ -129,6 +129,8 @@ fun ScannerScreen(
                         viewModel.addOnePackage(product, resolution.expiryFromCode)
                     },
                     onGoManual = { barcode ->
+                        // Reset before navigating so the dialog is gone when the user returns.
+                        viewModel.resume()
                         onAddManual(barcode, resolution.expiryFromCode?.toEpochDay())
                     },
                     onDismiss = viewModel::resume,

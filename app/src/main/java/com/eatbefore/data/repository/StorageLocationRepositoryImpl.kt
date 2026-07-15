@@ -23,6 +23,8 @@ class StorageLocationRepositoryImpl @Inject constructor(
 
     override suspend fun getDefault(): StorageLocation? = dao.getDefault()?.toDomain()
 
+    override suspend fun setDefault(id: Long) = dao.setDefault(id)
+
     override suspend fun upsert(location: StorageLocation): Long {
         return if (location.id == 0L) {
             dao.insert(location.toEntity())

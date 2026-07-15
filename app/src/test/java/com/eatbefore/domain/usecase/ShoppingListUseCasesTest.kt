@@ -42,6 +42,7 @@ class ShoppingListUseCasesTest {
         override fun observeAll(): Flow<List<StorageLocation>> = flowOf(listOf(fridge))
         override suspend fun getById(id: Long): StorageLocation? = fridge.takeIf { it.id == id }
         override suspend fun getDefault(): StorageLocation = fridge
+        override suspend fun setDefault(id: Long) = Unit
         override suspend fun upsert(location: StorageLocation): Long = location.id
     }
 

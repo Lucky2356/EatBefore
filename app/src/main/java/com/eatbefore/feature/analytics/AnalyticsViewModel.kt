@@ -3,8 +3,11 @@ package com.eatbefore.feature.analytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
+import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.AnalyticsSummary
 import com.eatbefore.domain.usecase.BuildAnalyticsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,12 +31,16 @@ data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val period: AnalyticsPeriod = AnalyticsPeriod.MONTH,
     val summary: AnalyticsSummary? = null,
+    /** Current stock snapshot: batches per storage location, descending. */
+    val byLocation: List<Pair<StorageLocation, Int>> = emptyList(),
 )
 
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     historyRepository: HistoryRepository,
     productRepository: ProductRepository,
+    inventoryRepository: InventoryRepository,
+    storageLocationRepository: StorageLocationRepository,
     private val buildAnalytics: BuildAnalyticsUseCase,
     private val clock: AppClock,
 ) : ViewModel() {
@@ -43,15 +50,22 @@ class AnalyticsViewModel @Inject constructor(
     val uiState: StateFlow<AnalyticsUiState> = combine(
         historyRepository.observeAll(),
         productRepository.observeAll(),
+        inventoryRepository.observePresentByExpiry(),
+        storageLocationRepository.observeActive(),
         period,
-    ) { events, products, activePeriod ->
+    ) { events, products, items, locations, activePeriod ->
         val from = activePeriod.days
             ?.let { clock.now().minus(it, ChronoUnit.DAYS) }
             ?: Instant.EPOCH
+        val countByLocationId = items.groupingBy { it.location.id }.eachCount()
         AnalyticsUiState(
             isLoading = false,
             period = activePeriod,
-            summary = buildAnalytics(events, products.associateBy { it.id }, from),
+            summary = buildAnalytics(events, products.associateBy { it.id }, from, clock.zone()),
+            byLocation = locations
+                .map { it to (countByLocationId[it.id] ?: 0) }
+                .filter { it.second > 0 }
+                .sortedByDescending { it.second },
         )
     }.stateIn(
         scope = viewModelScope,

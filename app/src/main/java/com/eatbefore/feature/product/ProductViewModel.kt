@@ -49,6 +49,8 @@ data class ProductUiState(
     val offerShoppingList: Boolean = false,
     /** True once the batch no longer exists as present (e.g. add was undone). */
     val closed: Boolean = false,
+    /** Detailed quantity mode: "decrease" asks for the exact remaining amount. */
+    val detailedMode: Boolean = false,
 )
 
 /** Transient, screen-local signals kept in one flow so the state combine stays small. */
@@ -111,6 +113,7 @@ class ProductViewModel @Inject constructor(
                 locations = locations,
                 undoableActionAt = local.undoableActionAt,
                 offerShoppingList = local.offerShoppingList,
+                detailedMode = prefs.detailedQuantityMode,
             )
         }
     }.stateIn(
