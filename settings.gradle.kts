@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "EatBefore"
 include(":app")
+include(":baselineprofile")

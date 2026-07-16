@@ -7,7 +7,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
@@ -37,6 +40,7 @@ import com.eatbefore.navigation.Routes
 import com.eatbefore.navigation.TopLevelDestination
 import com.eatbefore.navigation.isTopLevelRoute
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EatBeforeApp(
     openInventory: Boolean = false,
@@ -58,7 +62,14 @@ fun EatBeforeApp(
     val dynamicColor = (rootState as? RootState.Ready)?.dynamicColors ?: false
 
     EatBeforeTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(
+            // Exposes Compose testTags as view resource ids. UI Automator (used by the
+            // Baseline Profile generator) cannot see semantics otherwise, and matching on
+            // visible text would break on the English locale.
+            modifier = Modifier
+                .fillMaxSize()
+                .semantics { testTagsAsResourceId = true },
+        ) {
             when (val s = rootState) {
                 is RootState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
                 is RootState.Ready -> MainNavigation(

@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eatbefore.R
@@ -44,6 +45,9 @@ fun EatBeforeBottomBar(
         bottomItems.forEach { item ->
             val isScanner = item.destination == TopLevelDestination.SCANNER
             NavigationBarItem(
+                // The tag is surfaced as a resource id (see EatBeforeApp) so the
+                // Baseline Profile generator can navigate regardless of device locale.
+                modifier = Modifier.testTag("nav_${item.destination.route}"),
                 selected = currentRoute == item.destination.route,
                 onClick = { onNavigate(item.destination) },
                 icon = {
