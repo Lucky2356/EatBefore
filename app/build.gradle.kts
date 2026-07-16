@@ -15,8 +15,8 @@ android {
         applicationId = "com.eatbefore"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.3.0"
 
         testInstrumentationRunner = "com.eatbefore.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -59,6 +59,11 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
         }
+    }
+
+    // MigrationTestHelper reads the exported schemas from the test APK's assets.
+    sourceSets.getByName("androidTest") {
+        assets.srcDir("$projectDir/schemas")
     }
 
     packaging {
@@ -107,6 +112,11 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+    // SAF folder access for automatic backups.
+    implementation(libs.androidx.documentfile)
+    // Home-screen widget.
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -150,5 +160,6 @@ dependencies {
     kspAndroidTest(libs.hilt.compiler)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.work.testing)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.rules)
 }

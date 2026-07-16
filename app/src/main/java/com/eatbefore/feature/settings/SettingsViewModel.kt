@@ -81,6 +81,28 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { storageLocations.setDefault(id) }
     }
 
+    /**
+     * Turns automatic backup on with the folder the user just granted access to. The
+     * permission must outlive this process, hence takePersistableUriPermission.
+     */
+    fun enableAutoBackup(folderUri: Uri) {
+        viewModelScope.launch {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    folderUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+            preferences.setAutoBackup(enabled = true, folderUri = folderUri.toString())
+            _message.value = R.string.settings_auto_backup_on
+        }
+    }
+
+    fun disableAutoBackup() {
+        viewModelScope.launch { preferences.setAutoBackup(enabled = false, folderUri = null) }
+    }
+
     /** Writes a backup to the user-chosen document. Explicit user action only. */
     fun exportTo(uri: Uri) {
         viewModelScope.launch {
@@ -98,18 +120,31 @@ class SettingsViewModel @Inject constructor(
     }
 
     /** Restores from a user-chosen document; caller confirms the overwrite beforehand. */
-    fun importFrom(uri: Uri) {
+    fun importFrom(uri: Uri, mode: BackupManager.ImportMode) {
         viewModelScope.launch {
             val result = withContext(ioDispatcher) {
                 runCatching {
                     val content = context.contentResolver.openInputStream(uri)?.use { stream ->
                         readLimited(stream)
                     } ?: error("Cannot open input")
-                    backupManager.import(content)
+                    // Import rewrites everything; keep an escape hatch on disk first.
+                    saveSafetyCopy()
+                    backupManager.import(content, mode)
                 }
             }
             _message.value =
                 if (result.isSuccess) R.string.backup_import_done else R.string.backup_import_error
+        }
+    }
+
+    /**
+     * Writes the current data to app storage before a destructive import, so a mistaken
+     * import is recoverable even though the user has no copy of their own.
+     */
+    private suspend fun saveSafetyCopy() {
+        runCatching {
+            val dir = java.io.File(context.filesDir, SAFETY_DIR).apply { mkdirs() }
+            java.io.File(dir, SAFETY_FILE).writeText(backupManager.export())
         }
     }
 
@@ -134,5 +169,7 @@ class SettingsViewModel @Inject constructor(
 
     private companion object {
         const val MAX_IMPORT_BYTES = 20L * 1024 * 1024
+        const val SAFETY_DIR = "safety"
+        const val SAFETY_FILE = "before-import.json"
     }
 }

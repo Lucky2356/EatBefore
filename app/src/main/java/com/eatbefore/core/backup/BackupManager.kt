@@ -30,6 +30,15 @@ data class ImportStats(val products: Int, val batches: Int, val events: Int)
 @Singleton
 class BackupManager @Inject constructor(private val db: EatBeforeDatabase, private val json: Json, private val clock: AppClock) {
 
+    /** How an import treats the data already on the device. */
+    enum class ImportMode {
+        /** Wipe local data and take the file as-is. */
+        REPLACE,
+
+        /** Keep local data and add the file's records to it. */
+        MERGE,
+    }
+
     suspend fun export(): String {
         val locations = db.storageLocationDao().getAll().map { it.toBackup() }
         val products = db.productDao().getAll().map { it.toBackup() }
@@ -61,7 +70,7 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
      * with a safe message when the file is invalid; the transaction guarantees the
      * database is untouched on failure.
      */
-    suspend fun import(content: String): ImportStats {
+    suspend fun import(content: String, mode: ImportMode = ImportMode.REPLACE): ImportStats {
         val file = try {
             json.decodeFromString(BackupFile.serializer(), content)
         } catch (e: Exception) {
@@ -78,19 +87,23 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
                 file.counts.shopping == file.shopping.size,
         ) { "Backup integrity check failed" }
 
-        db.withTransaction {
-            // Children first on delete; parents first on insert (FK constraints).
-            db.inventoryEventDao().deleteAll()
-            db.shoppingListDao().deleteAll()
-            db.inventoryBatchDao().deleteAll()
-            db.productDao().deleteAll()
-            db.storageLocationDao().deleteAll()
+        when (mode) {
+            ImportMode.REPLACE -> db.withTransaction {
+                // Children first on delete; parents first on insert (FK constraints).
+                db.inventoryEventDao().deleteAll()
+                db.shoppingListDao().deleteAll()
+                db.inventoryBatchDao().deleteAll()
+                db.productDao().deleteAll()
+                db.storageLocationDao().deleteAll()
 
-            db.storageLocationDao().insertAll(file.locations.map { it.toEntity() })
-            db.productDao().insertAll(file.products.map { it.toEntity() })
-            db.inventoryBatchDao().insertAll(file.batches.map { it.toEntity() })
-            db.inventoryEventDao().insertAll(file.events.map { it.toEntity() })
-            db.shoppingListDao().insertAll(file.shopping.map { it.toEntity() })
+                db.storageLocationDao().insertAll(file.locations.map { it.toEntity() })
+                db.productDao().insertAll(file.products.map { it.toEntity() })
+                db.inventoryBatchDao().insertAll(file.batches.map { it.toEntity() })
+                db.inventoryEventDao().insertAll(file.events.map { it.toEntity() })
+                db.shoppingListDao().insertAll(file.shopping.map { it.toEntity() })
+            }
+
+            ImportMode.MERGE -> db.withTransaction { mergeInto(file) }
         }
 
         return ImportStats(
@@ -98,6 +111,74 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
             batches = file.batches.size,
             events = file.events.size,
         )
+    }
+
+    /**
+     * Adds the file's contents alongside existing data instead of replacing it.
+     *
+     * Rows carry database-local ids, so every id is remapped: locations and products are
+     * matched to existing ones where possible (by type+name and barcode/name+brand) and
+     * inserted otherwise; batches, events and list entries are always inserted and
+     * re-pointed at the resolved parents.
+     *
+     * Known limitation: batches have no stable identity across devices, so importing the
+     * same file twice adds its batches twice. This is surfaced in the UI and goes away
+     * once records carry uuids (see docs/adr/0004-household-sharing.md).
+     */
+    private suspend fun mergeInto(file: BackupFile) {
+        val locationIds = mutableMapOf<Long, Long>()
+        val existingLocations = db.storageLocationDao().getAll()
+        file.locations.forEach { dto ->
+            val entity = dto.toEntity()
+            val match = existingLocations.firstOrNull {
+                it.name.equals(entity.name, ignoreCase = true) && it.type == entity.type
+            }
+            locationIds[dto.id] = match?.id
+                ?: db.storageLocationDao().insert(entity.copy(id = 0, isDefault = false))
+        }
+
+        val productIds = mutableMapOf<Long, Long>()
+        file.products.forEach { dto ->
+            val entity = dto.toEntity()
+            val match = entity.barcode?.let { db.productDao().getByBarcode(it) }
+                ?: db.productDao().findUserProductByNameAndBrand(entity.name, entity.brand)
+            productIds[dto.id] = match?.id ?: db.productDao().insert(entity.copy(id = 0))
+        }
+
+        val batchIds = mutableMapOf<Long, Long>()
+        file.batches.forEach { dto ->
+            val entity = dto.toEntity()
+            val productId = productIds[entity.productId] ?: return@forEach
+            val locationId = locationIds[entity.storageLocationId]
+                ?: db.storageLocationDao().getDefault()?.id
+                ?: return@forEach
+            batchIds[dto.id] = db.inventoryBatchDao().insert(
+                entity.copy(id = 0, productId = productId, storageLocationId = locationId),
+            )
+        }
+
+        file.events.forEach { dto ->
+            val entity = dto.toEntity()
+            val batchId = batchIds[entity.inventoryBatchId] ?: return@forEach
+            val productId = productIds[entity.productId] ?: return@forEach
+            db.inventoryEventDao().insert(
+                entity.copy(
+                    id = 0,
+                    inventoryBatchId = batchId,
+                    productId = productId,
+                    previousStorageLocationId = entity.previousStorageLocationId
+                        ?.let(locationIds::get),
+                    newStorageLocationId = entity.newStorageLocationId?.let(locationIds::get),
+                ),
+            )
+        }
+
+        file.shopping.forEach { dto ->
+            val entity = dto.toEntity()
+            db.shoppingListDao().insert(
+                entity.copy(id = 0, productId = entity.productId?.let(productIds::get)),
+            )
+        }
     }
 
     // --- entity <-> backup DTO mapping -------------------------------------------------

@@ -40,6 +40,24 @@
             </intent-filter>
         </activity>
 
+        <!-- Handles the notification's "not today" action. Not exported: only our own
+             PendingIntent triggers it. -->
+        <receiver
+            android:name=".core.notifications.SnoozeReceiver"
+            android:exported="false" />
+
+        <!-- Home-screen widget: what expires soonest. Exported so the launcher can host it. -->
+        <receiver
+            android:name=".feature.widget.ExpiringWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/expiring_widget_info" />
+        </receiver>
+
         <!-- Disable WorkManager's default initializer; the app provides its own
              HiltWorkerFactory-backed configuration (used from a later milestone). -->
         <provider

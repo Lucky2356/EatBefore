@@ -45,6 +45,22 @@ UI (Compose, ViewModel)  ->  Domain (use cases, интерфейсы)  ->  Data 
   общие состояния, форматтеры.
 - `core/common` — `AppClock` (тестируемое время), диспетчеры, `InputValidator`.
 
+### Миграции базы (обязательная процедура)
+
+Данные пользователя живут только на устройстве, поэтому **потеря схемы = потеря всего**.
+`fallbackToDestructiveMigration` намеренно не включён: несовместимая схема уронит
+приложение, но не сотрёт данные.
+
+Порядок при любом изменении схемы:
+1. Поменять entity и поднять `EatBeforeDatabase.VERSION` — KSP экспортирует
+   `app/schemas/<version>.json` (файл **коммитится**, это контракт).
+2. Добавить `Migration(n, n+1)` в `ALL_MIGRATIONS` (`core/database/Migrations.kt`).
+3. Добавить тест в `androidTest/.../MigrationTest.kt`: создать БД предыдущей версии,
+   прогнать миграцию, проверить, что данные на месте.
+
+Ближайшее изменение схемы — uuid и deviceId для совместного доступа
+([ADR-0004](docs/adr/0004-household-sharing.md)).
+
 ### feature / ui / navigation
 - Каждый экран = `Screen` (Compose) + `ViewModel` (Hilt, `StateFlow<UiState>`).
 - **Бизнес-логики в Compose нет** — только отрисовка состояния и вызовы intent-методов VM.

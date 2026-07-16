@@ -52,6 +52,12 @@ data class ScannerUiState(
     val resolution: ScanResolution? = null,
     val addedBatchId: Long? = null,
     val torchEnabled: Boolean = false,
+    /** "Just back from the shop": known codes are added without a dialog each time. */
+    val batchMode: Boolean = false,
+    /** How many packages the current batch-mode run has added. */
+    val batchAddedCount: Int = 0,
+    /** Codes scanned in batch mode that the catalog didn't know, kept for the end. */
+    val batchUnknownCodes: List<String> = emptyList(),
 )
 
 @HiltViewModel
@@ -88,6 +94,13 @@ class ScannerViewModel @Inject constructor(
         viewModelScope.launch {
             val result = runCatching { lookupProduct(lookupCode, scanned.type) }
                 .getOrElse { BarcodeLookupResult.Error(it.message ?: "lookup failed") }
+            // Batch mode keeps the camera live: a known product is added straight away and
+            // an unknown one is parked, so a full bag of shopping is one continuous scan.
+            if (_state.value.batchMode) {
+                handleInBatchMode(result, lookupCode, expiry)
+                return@launch
+            }
+
             val resolution = when (result) {
                 is BarcodeLookupResult.Found ->
                     ScanResolution.Found(lookupCode, result.product, result.fromNetwork, expiry)
@@ -100,6 +113,67 @@ class ScannerViewModel @Inject constructor(
             }
             _state.update { it.copy(isResolving = false, resolution = resolution) }
         }
+    }
+
+    private suspend fun handleInBatchMode(
+        result: BarcodeLookupResult,
+        code: String,
+        expiry: LocalDate?,
+    ) {
+        when (result) {
+            is BarcodeLookupResult.Found -> {
+                val locationId = storageLocationRepository.getDefault()?.id
+                if (locationId != null) {
+                    runCatching {
+                        addBatch(
+                            AddBatchUseCase.Params(
+                                productId = result.product.id,
+                                storageLocationId = locationId,
+                                quantity = 1.0,
+                                expirationDate = expiry,
+                            ),
+                        )
+                    }.onSuccess {
+                        _state.update {
+                            it.copy(
+                                isResolving = false,
+                                isScanning = true,
+                                batchAddedCount = it.batchAddedCount + 1,
+                            )
+                        }
+                        return
+                    }
+                }
+                _state.update { it.copy(isResolving = false, isScanning = true) }
+            }
+
+            // Unknown or unreachable: remember the code, keep scanning, ask at the end.
+            else -> _state.update {
+                it.copy(
+                    isResolving = false,
+                    isScanning = true,
+                    batchUnknownCodes = (it.batchUnknownCodes + code).distinct(),
+                )
+            }
+        }
+    }
+
+    fun setBatchMode(enabled: Boolean) {
+        lastCode = null
+        _state.update {
+            it.copy(
+                batchMode = enabled,
+                isScanning = true,
+                resolution = null,
+                batchAddedCount = 0,
+                batchUnknownCodes = emptyList(),
+            )
+        }
+    }
+
+    /** Drops one parked code once the user has dealt with it (or chose to skip it). */
+    fun consumeUnknownCode(code: String) {
+        _state.update { it.copy(batchUnknownCodes = it.batchUnknownCodes - code) }
     }
 
     /** Handle a code typed manually when the camera can't read it. */

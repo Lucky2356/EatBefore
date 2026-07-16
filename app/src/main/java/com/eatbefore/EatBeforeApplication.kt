@@ -3,6 +3,7 @@ package com.eatbefore
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.eatbefore.core.backup.AutoBackupScheduler
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.core.notifications.NotificationScheduler
@@ -30,6 +31,8 @@ class EatBeforeApplication :
 
     @Inject lateinit var notificationScheduler: NotificationScheduler
 
+    @Inject lateinit var autoBackupScheduler: AutoBackupScheduler
+
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
 
     @Inject lateinit var expiryNotifier: ExpiryNotifier
@@ -53,6 +56,16 @@ class EatBeforeApplication :
                         old.notificationMinute == new.notificationMinute
                 }
                 .onEach { notificationScheduler.apply(it) }
+                .collect {}
+        }
+
+        appScope.launch {
+            userPreferencesRepository.preferences
+                .distinctUntilChanged { old, new ->
+                    old.autoBackupEnabled == new.autoBackupEnabled &&
+                        old.autoBackupFolderUri == new.autoBackupFolderUri
+                }
+                .onEach { autoBackupScheduler.apply(it) }
                 .collect {}
         }
     }

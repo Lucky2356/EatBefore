@@ -53,8 +53,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.BuildConfig
 import com.eatbefore.R
+import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.format.displayName
+import com.eatbefore.core.designsystem.format.formatDateTime
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -80,6 +82,9 @@ fun SettingsScreen(
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { pendingImportUri = it } }
+    val folderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri -> uri?.let(viewModel::enableAutoBackup) }
 
     val messageText = message?.let { stringResource(it) }
     LaunchedEffect(message) {
@@ -251,6 +256,23 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = stringResource(R.string.settings_section_data)) {
+                SettingSwitchRow(
+                    title = stringResource(R.string.settings_auto_backup),
+                    subtitle = if (prefs.lastAutoBackupAt > 0) {
+                        stringResource(
+                            R.string.settings_auto_backup_last,
+                            formatDateTime(java.time.Instant.ofEpochMilli(prefs.lastAutoBackupAt)),
+                        )
+                    } else {
+                        stringResource(R.string.settings_auto_backup_desc)
+                    },
+                    checked = prefs.autoBackupEnabled,
+                    onCheckedChange = { enabled ->
+                        // Enabling needs a folder the app may keep writing to.
+                        if (enabled) folderLauncher.launch(null) else viewModel.disableAutoBackup()
+                    },
+                )
+                HorizontalDivider()
                 SettingActionRow(
                     title = stringResource(R.string.settings_export),
                     subtitle = stringResource(R.string.settings_export_desc),
@@ -321,22 +343,37 @@ fun SettingsScreen(
         )
     }
 
-    // Restoring replaces user data — never proceed without an explicit confirmation.
+    // Importing rewrites user data — always ask, and let them add instead of replace.
     pendingImportUri?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingImportUri = null },
             title = { Text(stringResource(R.string.backup_import_confirm_title)) },
-            text = { Text(stringResource(R.string.backup_import_confirm_body)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.backup_import_confirm_body))
+                    Text(
+                        stringResource(R.string.backup_import_merge_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        stringResource(R.string.backup_import_safety_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.importFrom(uri)
+                    viewModel.importFrom(uri, BackupManager.ImportMode.MERGE)
                     pendingImportUri = null
-                }) { Text(stringResource(R.string.backup_import_confirm_yes)) }
+                }) { Text(stringResource(R.string.backup_import_merge)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingImportUri = null }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                TextButton(onClick = {
+                    viewModel.importFrom(uri, BackupManager.ImportMode.REPLACE)
+                    pendingImportUri = null
+                }) { Text(stringResource(R.string.backup_import_confirm_yes)) }
             },
         )
     }

@@ -181,6 +181,10 @@
 
     <!-- Backup -->
     <string name="settings_section_data">Данные</string>
+    <string name="settings_auto_backup">Автоматические копии</string>
+    <string name="settings_auto_backup_desc">Ежедневно сохранять данные в выбранную папку</string>
+    <string name="settings_auto_backup_last">Последняя копия: %1$s</string>
+    <string name="settings_auto_backup_on">Автокопии включены</string>
     <string name="settings_export">Экспорт резервной копии</string>
     <string name="settings_export_desc">Сохранить все данные в файл</string>
     <string name="settings_import">Импорт из файла</string>
@@ -192,6 +196,9 @@
     <string name="backup_import_confirm_title">Заменить данные?</string>
     <string name="backup_import_confirm_body">Текущие продукты, история и список покупок будут заменены данными из файла. Это действие нельзя отменить.</string>
     <string name="backup_import_confirm_yes">Заменить</string>
+    <string name="backup_import_merge">Добавить к моим</string>
+    <string name="backup_import_merge_note">«Добавить» сохранит текущие данные и допишет продукты из файла. Повторный импорт того же файла продублирует партии.</string>
+    <string name="backup_import_safety_note">Перед импортом автоматически сохраняется копия текущих данных.</string>
 
     <!-- More tab -->
     <string name="more_history_desc">Все действия с продуктами, отмена и восстановление</string>
@@ -221,6 +228,22 @@
     <string name="scanner_add_manual">Добавить вручную</string>
     <string name="scanner_added">Упаковка добавлена</string>
     <string name="scanner_open_added">Открыть</string>
+    <string name="scanner_batch_mode">Режим «из магазина»</string>
+    <string name="scanner_batch_hint">Сканируйте товары подряд — известные добавятся сами</string>
+    <string name="scanner_batch_done">Готово</string>
+    <string name="scanner_batch_name_them">Назвать</string>
+    <plurals name="scanner_batch_added">
+        <item quantity="one">Добавлен %1$d товар</item>
+        <item quantity="few">Добавлено %1$d товара</item>
+        <item quantity="many">Добавлено %1$d товаров</item>
+        <item quantity="other">Добавлено %1$d товара</item>
+    </plurals>
+    <plurals name="scanner_batch_unknown">
+        <item quantity="one">%1$d код без названия</item>
+        <item quantity="few">%1$d кода без названия</item>
+        <item quantity="many">%1$d кодов без названия</item>
+        <item quantity="other">%1$d кода без названия</item>
+    </plurals>
     <string name="scanner_scan_again">Сканировать ещё</string>
     <string name="scanner_expiry_from_code">Срок из кода: %1$s</string>
 
@@ -248,9 +271,24 @@
         <item quantity="many">Сегодня стоит проверить %1$d продуктов</item>
         <item quantity="other">Сегодня стоит проверить %1$d продукта</item>
     </plurals>
+    <string name="notif_action_open_list">Открыть список</string>
+    <string name="notif_action_snooze">Не сегодня</string>
     <string name="notif_line_expired">Просрочено: %1$d</string>
     <string name="notif_line_today">Истекает сегодня: %1$d</string>
     <string name="notif_line_soon">Скоро истекает: %1$d</string>
+
+    <!-- Widget -->
+    <string name="widget_title">Скоро испортится</string>
+    <string name="widget_description">Продукты с истекающим сроком на рабочем столе</string>
+    <string name="widget_empty">Всё в порядке — ничего не истекает</string>
+    <string name="widget_today">сегодня</string>
+    <string name="widget_expired">просрочен</string>
+    <plurals name="widget_days_left">
+        <item quantity="one">%1$d дн.</item>
+        <item quantity="few">%1$d дн.</item>
+        <item quantity="many">%1$d дн.</item>
+        <item quantity="other">%1$d дн.</item>
+    </plurals>
 
     <!-- Settings -->
     <string name="settings_title">Настройки</string>

@@ -132,4 +132,57 @@ class BackupManagerTest {
             // ok
         }
     }
+
+    /** Merging a file exported from this very device must not duplicate the product. */
+    @Test
+    fun merge_reusesExistingProductByBarcode() = runTest {
+        seed()
+        val json = manager.export()
+
+        manager.import(json, BackupManager.ImportMode.MERGE)
+
+        val products = db.productDao().getAll()
+        assertEquals(1, products.size)
+        assertEquals("Кефир", products.first().name)
+        // The batch has no stable identity yet, so it is appended — documented behaviour.
+        assertEquals(2, db.inventoryBatchDao().getAll().size)
+    }
+
+    @Test
+    fun merge_keepsLocalDataAndAddsNewProducts() = runTest {
+        seed()
+        val json = manager.export()
+
+        // Local data the file knows nothing about must survive the merge.
+        db.productDao().deleteAll()
+        db.productDao().insert(
+            ProductEntity(
+                id = 0, barcode = "4601662000016", barcodeType = BarcodeType.EAN_13,
+                name = "Молоко", brand = "Parmalat", category = null, description = null,
+                packageSize = null, measurementUnit = MeasurementUnit.LITER, imageUri = null,
+                source = ProductSource.USER, isUserCreated = true, createdAt = 2L, updatedAt = 2L,
+            ),
+        )
+
+        manager.import(json, BackupManager.ImportMode.MERGE)
+
+        val names = db.productDao().getAll().map { it.name }
+        assertTrue(names.contains("Молоко"))
+        assertTrue(names.contains("Кефир"))
+    }
+
+    /** Merged batches must point at the merged parents, not the file's original ids. */
+    @Test
+    fun merge_remapsBatchParents() = runTest {
+        seed()
+        val json = manager.export()
+        manager.import(json, BackupManager.ImportMode.MERGE)
+
+        val productIds = db.productDao().getAll().map { it.id }.toSet()
+        val locationIds = db.storageLocationDao().getAll().map { it.id }.toSet()
+        db.inventoryBatchDao().getAll().forEach { batch ->
+            assertTrue(batch.productId in productIds)
+            assertTrue(batch.storageLocationId in locationIds)
+        }
+    }
 }

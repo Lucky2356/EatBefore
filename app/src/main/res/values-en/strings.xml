@@ -178,6 +178,10 @@
 
     <!-- Backup -->
     <string name="settings_section_data">Data</string>
+    <string name="settings_auto_backup">Automatic backups</string>
+    <string name="settings_auto_backup_desc">Save your data to a chosen folder every day</string>
+    <string name="settings_auto_backup_last">Last backup: %1$s</string>
+    <string name="settings_auto_backup_on">Automatic backups are on</string>
     <string name="settings_export">Export backup</string>
     <string name="settings_export_desc">Save all data to a file</string>
     <string name="settings_import">Import from file</string>
@@ -189,6 +193,9 @@
     <string name="backup_import_confirm_title">Replace data?</string>
     <string name="backup_import_confirm_body">Your current products, history and shopping list will be replaced with the file contents. This cannot be undone.</string>
     <string name="backup_import_confirm_yes">Replace</string>
+    <string name="backup_import_merge">Add to mine</string>
+    <string name="backup_import_merge_note">“Add” keeps your current data and appends the products from the file. Importing the same file twice duplicates its batches.</string>
+    <string name="backup_import_safety_note">A copy of your current data is saved automatically before the import.</string>
 
     <!-- More tab -->
     <string name="more_history_desc">All actions on products, undo and restore</string>
@@ -218,6 +225,18 @@
     <string name="scanner_add_manual">Add manually</string>
     <string name="scanner_added">Package added</string>
     <string name="scanner_open_added">Open</string>
+    <string name="scanner_batch_mode">Back-from-the-shop mode</string>
+    <string name="scanner_batch_hint">Scan items one after another — known ones add themselves</string>
+    <string name="scanner_batch_done">Done</string>
+    <string name="scanner_batch_name_them">Name them</string>
+    <plurals name="scanner_batch_added">
+        <item quantity="one">%1$d item added</item>
+        <item quantity="other">%1$d items added</item>
+    </plurals>
+    <plurals name="scanner_batch_unknown">
+        <item quantity="one">%1$d code needs a name</item>
+        <item quantity="other">%1$d codes need a name</item>
+    </plurals>
     <string name="scanner_scan_again">Scan again</string>
     <string name="scanner_expiry_from_code">Expiry from code: %1$s</string>
 
@@ -243,9 +262,22 @@
         <item quantity="one">%1$d product needs your attention today</item>
         <item quantity="other">%1$d products need your attention today</item>
     </plurals>
+    <string name="notif_action_open_list">Open list</string>
+    <string name="notif_action_snooze">Not today</string>
     <string name="notif_line_expired">Expired: %1$d</string>
     <string name="notif_line_today">Expiring today: %1$d</string>
     <string name="notif_line_soon">Expiring soon: %1$d</string>
+
+    <!-- Widget -->
+    <string name="widget_title">Expiring soon</string>
+    <string name="widget_description">Products about to expire, on your home screen</string>
+    <string name="widget_empty">All good — nothing is expiring</string>
+    <string name="widget_today">today</string>
+    <string name="widget_expired">expired</string>
+    <plurals name="widget_days_left">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

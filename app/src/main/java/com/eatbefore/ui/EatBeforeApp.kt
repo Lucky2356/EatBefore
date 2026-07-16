@@ -39,6 +39,8 @@ import com.eatbefore.navigation.isTopLevelRoute
 
 @Composable
 fun EatBeforeApp(
+    openInventory: Boolean = false,
+    onOpenInventoryHandled: () -> Unit = {},
     rootViewModel: RootViewModel = hiltViewModel(),
 ) {
     val rootState by rootViewModel.state.collectAsStateWithLifecycle()
@@ -61,6 +63,9 @@ fun EatBeforeApp(
                 is RootState.Loading -> LoadingState(modifier = Modifier.fillMaxSize())
                 is RootState.Ready -> MainNavigation(
                     startDestination = if (s.onboardingCompleted) Routes.HOME else Routes.ONBOARDING,
+                    // Only honour the deep link once onboarding is done.
+                    openInventory = openInventory && s.onboardingCompleted,
+                    onOpenInventoryHandled = onOpenInventoryHandled,
                 )
             }
         }
@@ -68,7 +73,11 @@ fun EatBeforeApp(
 }
 
 @Composable
-private fun MainNavigation(startDestination: String) {
+private fun MainNavigation(
+    startDestination: String,
+    openInventory: Boolean = false,
+    onOpenInventoryHandled: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -78,6 +87,14 @@ private fun MainNavigation(startDestination: String) {
             popUpTo(Routes.HOME) { saveState = true }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    // "Open list" in the expiry notification lands directly on Inventory.
+    androidx.compose.runtime.LaunchedEffect(openInventory) {
+        if (openInventory) {
+            navigateTopLevel(TopLevelDestination.INVENTORY)
+            onOpenInventoryHandled()
         }
     }
 

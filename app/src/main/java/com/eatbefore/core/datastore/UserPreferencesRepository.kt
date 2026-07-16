@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import kotlinx.coroutines.flow.Flow
@@ -33,7 +34,20 @@ data class UserPreferences(
     val quietHoursEnabled: Boolean = false,
     val quietStartHour: Int = 22,
     val quietEndHour: Int = 8,
+    /**
+     * Automatic backup. The database lives only on this device (allowBackup=false), so
+     * losing the phone loses everything unless copies land in a folder the user controls.
+     */
+    val autoBackupEnabled: Boolean = false,
+    /** Tree URI of the user-picked folder (SAF), null until they choose one. */
+    val autoBackupFolderUri: String? = null,
+    val autoBackupKeepCount: Int = DEFAULT_BACKUP_KEEP_COUNT,
+    /** Epoch millis of the last successful automatic backup, 0 when never run. */
+    val lastAutoBackupAt: Long = 0,
 )
+
+/** How many automatic copies to keep before deleting the oldest. */
+const val DEFAULT_BACKUP_KEEP_COUNT = 7
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(private val dataStore: DataStore<Preferences>) {
@@ -53,7 +67,23 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             quietHoursEnabled = prefs[KEY_QUIET_ENABLED] ?: false,
             quietStartHour = prefs[KEY_QUIET_START] ?: 22,
             quietEndHour = prefs[KEY_QUIET_END] ?: 8,
+            autoBackupEnabled = prefs[KEY_AUTO_BACKUP] ?: false,
+            autoBackupFolderUri = prefs[KEY_AUTO_BACKUP_FOLDER],
+            autoBackupKeepCount = prefs[KEY_AUTO_BACKUP_KEEP] ?: DEFAULT_BACKUP_KEEP_COUNT,
+            lastAutoBackupAt = prefs[KEY_LAST_AUTO_BACKUP] ?: 0L,
         )
+    }
+
+    /** Enabling requires a folder; the caller picks it via SAF first. */
+    suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) {
+        dataStore.edit {
+            it[KEY_AUTO_BACKUP] = enabled
+            if (folderUri != null) it[KEY_AUTO_BACKUP_FOLDER] = folderUri
+        }
+    }
+
+    suspend fun setLastAutoBackupAt(epochMillis: Long) {
+        dataStore.edit { it[KEY_LAST_AUTO_BACKUP] = epochMillis }
     }
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
@@ -107,5 +137,9 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         val KEY_QUIET_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
         val KEY_QUIET_START = intPreferencesKey("quiet_start_hour")
         val KEY_QUIET_END = intPreferencesKey("quiet_end_hour")
+        val KEY_AUTO_BACKUP = booleanPreferencesKey("auto_backup_enabled")
+        val KEY_AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder_uri")
+        val KEY_AUTO_BACKUP_KEEP = intPreferencesKey("auto_backup_keep_count")
+        val KEY_LAST_AUTO_BACKUP = longPreferencesKey("last_auto_backup_at")
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,18 +19,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FlashlightOff
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.Keyboard
+import androidx.compose.material.icons.outlined.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -81,6 +86,17 @@ fun ScannerScreen(
                 title = { Text(stringResource(R.string.scanner_title)) },
                 actions = {
                     if (cameraPermission.status.isGranted) {
+                        IconButton(onClick = { viewModel.setBatchMode(!state.batchMode) }) {
+                            Icon(
+                                Icons.Outlined.ShoppingBag,
+                                contentDescription = stringResource(R.string.scanner_batch_mode),
+                                tint = if (state.batchMode) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    LocalContentColor.current
+                                },
+                            )
+                        }
                         IconButton(onClick = viewModel::toggleTorch) {
                             Icon(
                                 if (state.torchEnabled) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff,
@@ -105,7 +121,30 @@ fun ScannerScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                ScanOverlay(hint = stringResource(R.string.scanner_hint))
+                ScanOverlay(
+                    hint = if (state.batchMode) {
+                        stringResource(R.string.scanner_batch_hint)
+                    } else {
+                        stringResource(R.string.scanner_hint)
+                    },
+                )
+                if (state.batchMode) {
+                    BatchModeBar(
+                        addedCount = state.batchAddedCount,
+                        unknownCount = state.batchUnknownCodes.size,
+                        onFinish = {
+                            // Unknown codes are dealt with one at a time, newest first.
+                            val next = state.batchUnknownCodes.firstOrNull()
+                            if (next != null) {
+                                viewModel.consumeUnknownCode(next)
+                                onAddManual(next, null)
+                            } else {
+                                viewModel.setBatchMode(false)
+                            }
+                        },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             } else {
                 CameraPermissionRequest(
                     onGrant = { cameraPermission.launchPermissionRequest() },
@@ -175,6 +214,54 @@ private fun ScanOverlay(hint: String) {
                 .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         )
+    }
+}
+
+/**
+ * Batch-mode status: how much has gone in, and what still needs a name. Stays out of the
+ * scan area so the camera keeps working while it is shown.
+ */
+@Composable
+private fun BatchModeBar(
+    addedCount: Int,
+    unknownCount: Int,
+    onFinish: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth().padding(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    pluralStringResource(R.plurals.scanner_batch_added, addedCount, addedCount),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                if (unknownCount > 0) {
+                    Text(
+                        pluralStringResource(R.plurals.scanner_batch_unknown, unknownCount, unknownCount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Button(onClick = onFinish) {
+                Text(
+                    if (unknownCount > 0) {
+                        stringResource(R.string.scanner_batch_name_them)
+                    } else {
+                        stringResource(R.string.scanner_batch_done)
+                    },
+                )
+            }
+        }
     }
 }
 

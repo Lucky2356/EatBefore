@@ -76,12 +76,41 @@ class ExpiryNotifier @Inject constructor(@ApplicationContext private val context
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        // Acting straight from the shade: open the list, or skip today's reminder.
+        val inventoryPendingIntent = PendingIntent.getActivity(
+            context,
+            REQUEST_OPEN_INVENTORY,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra(EXTRA_OPEN_INVENTORY, true)
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val snoozePendingIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_SNOOZE,
+            Intent(context, SnoozeReceiver::class.java).apply {
+                action = SnoozeReceiver.ACTION_SNOOZE
+            },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(summary)
             .setContentText(details.replace("\n", " · "))
             .setStyle(NotificationCompat.BigTextStyle().bigText(details))
             .setContentIntent(pendingIntent)
+            .addAction(
+                0,
+                context.getString(R.string.notif_action_open_list),
+                inventoryPendingIntent,
+            )
+            .addAction(
+                0,
+                context.getString(R.string.notif_action_snooze),
+                snoozePendingIntent,
+            )
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
@@ -90,8 +119,14 @@ class ExpiryNotifier @Inject constructor(@ApplicationContext private val context
         runCatching { NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification) }
     }
 
-    private companion object {
-        const val CHANNEL_ID = "expiry_reminders"
+    companion object {
         const val NOTIFICATION_ID = 1001
+
+        /** Set when the user taps "open list", so the app lands on Inventory. */
+        const val EXTRA_OPEN_INVENTORY = "com.eatbefore.extra.OPEN_INVENTORY"
+
+        private const val CHANNEL_ID = "expiry_reminders"
+        private const val REQUEST_OPEN_INVENTORY = 1
+        private const val REQUEST_SNOOZE = 2
     }
 }

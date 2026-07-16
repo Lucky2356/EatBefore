@@ -1,0 +1,30 @@
+version: 2
+updates:
+  # Library and plugin versions live in gradle/libs.versions.toml; Dependabot updates
+  # the catalog directly. Grouped so one PR covers a family instead of five.
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      androidx-compose:
+        patterns:
+          - "androidx.compose*"
+      androidx:
+        patterns:
+          - "androidx.*"
+        exclude-patterns:
+          - "androidx.compose*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp"
+      hilt:
+        patterns:
+          - "com.google.dagger*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

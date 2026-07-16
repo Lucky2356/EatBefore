@@ -60,6 +60,9 @@ style:
     excludes: ['**/test/**', '**/androidTest/**']
   ReturnCount:
     max: 5
+    # Workers are a chain of "nothing to do → success" guards; early returns are the
+    # clearest way to express them.
+    excludes: ['**/core/backup/**', '**/core/notifications/**']
   UnusedPrivateMember:
     ignoreAnnotated: ['Preview']
   ForbiddenComment:
@@ -69,7 +72,7 @@ style:
 performance:
   SpreadOperator:
     # Room's addMigrations() takes a vararg; the array is tiny and built once.
-    excludes: ['**/di/**']
+    excludes: ['**/di/**', '**/androidTest/**']
 
 exceptions:
   TooGenericExceptionCaught:
