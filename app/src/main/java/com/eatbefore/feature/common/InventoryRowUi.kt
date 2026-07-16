@@ -23,6 +23,8 @@ data class InventoryRowUi(
     val expiryStatus: ExpiryStatus,
     val remainingDays: Long?,
     val isOpened: Boolean,
+    /** Catalog photo (https), when the product has one. */
+    val imageUri: String? = null,
 )
 
 /** Maps a domain [InventoryItem] to its row UI model given today and the "soon" window. */
@@ -43,5 +45,6 @@ fun InventoryItem.toRowUi(
         expiryStatus = determineExpiryStatus.forDate(effective, today, soonThresholdDays),
         remainingDays = effective?.let { ChronoUnit.DAYS.between(today, it) },
         isOpened = batch.openedAt != null,
+        imageUri = product.imageUri,
     )
 }

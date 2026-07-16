@@ -66,7 +66,14 @@ fun ScannerScreen(
     val addedMessage = stringResource(R.string.scanner_added)
     var showManualDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffectAdded(state.addedBatchId, snackbarHost, addedMessage) { viewModel.resume() }
+    LaunchedEffectAdded(
+        addedBatchId = state.addedBatchId,
+        snackbarHost = snackbarHost,
+        message = addedMessage,
+        actionLabel = stringResource(R.string.scanner_open_added),
+        onOpenBatch = onOpenBatch,
+        onShown = { viewModel.resume() },
+    )
 
     Scaffold(
         topBar = {
@@ -324,17 +331,30 @@ private fun ScanResultDialog(
     }
 }
 
+/**
+ * Confirms a quick-add with a snackbar offering to open the batch that was just created,
+ * then hands control back to live scanning.
+ */
 @Composable
 private fun LaunchedEffectAdded(
     addedBatchId: Long?,
     snackbarHost: SnackbarHostState,
     message: String,
+    actionLabel: String,
+    onOpenBatch: (Long) -> Unit,
     onShown: () -> Unit,
 ) {
     androidx.compose.runtime.LaunchedEffect(addedBatchId) {
         if (addedBatchId != null) {
-            snackbarHost.showSnackbar(message)
+            val result = snackbarHost.showSnackbar(
+                message = message,
+                actionLabel = actionLabel,
+                withDismissAction = true,
+            )
             onShown()
+            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                onOpenBatch(addedBatchId)
+            }
         }
     }
 }

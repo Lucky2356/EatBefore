@@ -15,10 +15,7 @@ data class ScannedCode(val value: String, val type: BarcodeType)
  * reports the first non-blank code via [onDetected]. Everything is on-device; frames never
  * leave the process. The image proxy is always closed so the pipeline keeps flowing.
  */
-class BarcodeAnalyzer(
-    private val scanner: BarcodeScanner,
-    private val onDetected: (ScannedCode) -> Unit,
-) : ImageAnalysis.Analyzer {
+class BarcodeAnalyzer(private val scanner: BarcodeScanner, private val onDetected: (ScannedCode) -> Unit) : ImageAnalysis.Analyzer {
 
     @SuppressLint("UnsafeOptInUsageError")
     override fun analyze(imageProxy: ImageProxy) {

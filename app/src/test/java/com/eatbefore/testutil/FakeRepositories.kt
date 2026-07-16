@@ -19,9 +19,7 @@ import kotlinx.coroutines.flow.flowOf
  * behavior; observe* streams return static values since these tests assert on state and
  * recorded events, not on reactive emissions.
  */
-class FakeProductRepository(
-    private val products: MutableMap<Long, Product> = mutableMapOf(),
-) : ProductRepository {
+class FakeProductRepository(private val products: MutableMap<Long, Product> = mutableMapOf()) : ProductRepository {
     private var nextId = 1L
 
     override suspend fun getById(id: Long): Product? = products[id]
@@ -31,7 +29,8 @@ class FakeProductRepository(
 
     override suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product? =
         products.values.firstOrNull {
-            it.isUserCreated && it.barcode == null &&
+            it.isUserCreated &&
+                it.barcode == null &&
                 it.name.equals(name, ignoreCase = true) &&
                 (it.brand?.equals(brand, ignoreCase = true) ?: (brand == null))
         }
@@ -65,7 +64,9 @@ class FakeInventoryRepository(
     override suspend fun getBatch(id: Long): InventoryBatch? = batches[id]
 
     override suspend fun getPresentForProduct(productId: Long): List<InventoryBatch> =
-        batches.values.filter { it.productId == productId && it.status.isPresent && it.deletedAt == null }
+        batches.values.filter {
+            it.productId == productId && it.status.isPresent && it.deletedAt == null
+        }
 
     override suspend fun addBatchWithEvent(
         batch: InventoryBatch,
@@ -86,32 +87,38 @@ class FakeInventoryRepository(
     fun eventTypes(): List<EventType> = events.map { it.eventType }
 }
 
-class FakeHistoryRepository(
-    private val backing: FakeInventoryRepository,
-) : HistoryRepository {
+class FakeHistoryRepository(private val backing: FakeInventoryRepository) : HistoryRepository {
     override fun observeAll(): Flow<List<InventoryEvent>> = flowOf(backing.events.toList())
+
+    // Newest-first page, mirroring the DAO ordering.
+    override fun observeRecent(limit: Int, type: EventType?): Flow<List<InventoryEvent>> = flowOf(
+        backing.events
+            .filter { type == null || it.eventType == type }
+            .asReversed()
+            .take(limit),
+    )
+
     override fun observeForProduct(productId: Long): Flow<List<InventoryEvent>> =
         flowOf(backing.events.filter { it.productId == productId })
 
     override fun observeByType(type: EventType): Flow<List<InventoryEvent>> =
         flowOf(backing.events.filter { it.eventType == type })
 
-    override suspend fun getLastEvent(): InventoryEvent? = backing.events.lastOrNull()
+    // Mirrors the real DAO: undo's own compensating events are not undo targets.
+    override suspend fun getLastEvent(): InventoryEvent? =
+        backing.events.lastOrNull { it.reason?.startsWith("undo") != true }
 
     override suspend fun record(event: InventoryEvent) {
         backing.events += event
     }
 }
 
-class FakeShoppingListRepository(
-    val items: MutableMap<Long, ShoppingListItem> = mutableMapOf(),
-) : ShoppingListRepository {
+class FakeShoppingListRepository(val items: MutableMap<Long, ShoppingListItem> = mutableMapOf()) : ShoppingListRepository {
     private var nextId = 1L
 
     override fun observeAll(): Flow<List<ShoppingListItem>> = flowOf(items.values.toList())
 
-    override fun observeOpenCount(): Flow<Int> =
-        flowOf(items.values.count { !it.isCompleted })
+    override fun observeOpenCount(): Flow<Int> = flowOf(items.values.count { !it.isCompleted })
 
     override suspend fun getById(id: Long): ShoppingListItem? = items[id]
 

@@ -10,12 +10,10 @@ import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
+private const val PERCENT = 100
+
 /** Added vs wasted counts for one ISO week (Monday-based). */
-data class WeeklyStat(
-    val weekStart: LocalDate,
-    val added: Int,
-    val wasted: Int,
-)
+data class WeeklyStat(val weekStart: LocalDate, val added: Int, val wasted: Int)
 
 /** Aggregated user-facing analytics over the append-only event history. */
 data class AnalyticsSummary(
@@ -37,7 +35,7 @@ data class AnalyticsSummary(
     val usedInTimePercent: Int?
         get() {
             val closed = consumedCount + discardedCount + expiredCount
-            return if (closed == 0) null else (consumedCount * 100) / closed
+            return if (closed == 0) null else (consumedCount * PERCENT) / closed
         }
 }
 

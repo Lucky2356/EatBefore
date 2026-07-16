@@ -21,9 +21,7 @@ import javax.inject.Inject
  * Builds and posts the single, batched expiry notification. Tapping it opens the app. One
  * fixed id is reused so repeated checks replace (not stack) the notification — no spam.
  */
-class ExpiryNotifier @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class ExpiryNotifier @Inject constructor(@ApplicationContext private val context: Context) {
 
     fun ensureChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -55,19 +53,12 @@ class ExpiryNotifier @Inject constructor(
         if (!plan.hasContent || !hasPermission()) return
         ensureChannel()
 
-        val summary = when (plan.total % 10) {
-            1 -> if (plan.total % 100 == 11) {
-                context.getString(R.string.notif_summary_many, plan.total)
-            } else {
-                context.getString(R.string.notif_summary_one)
-            }
-            in 2..4 -> if (plan.total % 100 in 12..14) {
-                context.getString(R.string.notif_summary_many, plan.total)
-            } else {
-                context.getString(R.string.notif_summary_few, plan.total)
-            }
-            else -> context.getString(R.string.notif_summary_many, plan.total)
-        }
+        // Plural rules differ per language; let the resource framework pick the form.
+        val summary = context.resources.getQuantityString(
+            R.plurals.notif_summary,
+            plan.total,
+            plan.total,
+        )
 
         val details = buildString {
             if (plan.expiredCount > 0) appendLine(context.getString(R.string.notif_line_expired, plan.expiredCount))

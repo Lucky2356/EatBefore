@@ -13,9 +13,7 @@ import javax.inject.Inject
  * Barcode match takes priority; otherwise a case-insensitive name+brand match among
  * user-created products is used. Returns null when nothing matches.
  */
-class MergeSameProductUseCase @Inject constructor(
-    private val productRepository: ProductRepository,
-) {
+class MergeSameProductUseCase @Inject constructor(private val productRepository: ProductRepository) {
 
     suspend fun findDuplicate(name: String, brand: String?, barcode: String? = null): Product? {
         val cleanBarcode = InputValidator.sanitizeBarcode(barcode)

@@ -55,7 +55,7 @@ class AddBatchUseCase @Inject constructor(
             status = BatchStatus.ACTIVE,
             note = InputValidator.sanitizeText(params.note, InputValidator.MAX_NOTE_LENGTH),
             price = params.price,
-            currency = InputValidator.sanitizeText(params.currency, 8),
+            currency = InputValidator.sanitizeText(params.currency, InputValidator.MAX_CURRENCY_LENGTH),
             updatedAt = now,
         )
 

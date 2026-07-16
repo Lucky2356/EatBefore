@@ -1,0 +1,27 @@
+# Shared code style for ktlint (via spotless), detekt and IDEs.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+# 140 is ktlint_official's default; detekt's MaxLineLength matches it so the two
+# tools never disagree about the same line.
+max_line_length = 140
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+# @Composable functions are PascalCase by Compose convention.
+ktlint_standard_function-naming = disabled
+# Multiline expression bodies are wrapped by hand where they read better.
+ktlint_standard_function-signature = disabled
+
+[*.{xml,yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

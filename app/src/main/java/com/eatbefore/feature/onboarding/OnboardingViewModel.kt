@@ -8,9 +8,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class OnboardingViewModel @Inject constructor(
-    private val preferences: UserPreferencesRepository,
-) : ViewModel() {
+class OnboardingViewModel @Inject constructor(private val preferences: UserPreferencesRepository) : ViewModel() {
 
     /** Persists that onboarding is done; the root observer then routes to Home. */
     fun complete() {

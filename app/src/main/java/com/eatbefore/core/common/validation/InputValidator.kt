@@ -15,6 +15,9 @@ object InputValidator {
     const val MAX_BARCODE_LENGTH = 128
     const val MAX_QUANTITY = 1_000_000.0
 
+    /** ISO 4217 codes are 3 chars; a little slack for informal entries like "руб.". */
+    const val MAX_CURRENCY_LENGTH = 8
+
     /** Trims, strips control characters, and clamps length. Returns null if blank. */
     fun sanitizeText(input: String?, maxLength: Int): String? {
         if (input == null) return null
@@ -26,10 +29,9 @@ object InputValidator {
     }
 
     /** Sanitizes a required text field, throwing if it ends up blank. */
-    fun requireText(input: String?, maxLength: Int, field: String): String {
-        return sanitizeText(input, maxLength)
+    fun requireText(input: String?, maxLength: Int, field: String): String =
+        sanitizeText(input, maxLength)
             ?: throw IllegalArgumentException("Field '$field' must not be blank")
-    }
 
     /** Clamps a quantity to the valid non-negative range. */
     fun clampQuantity(value: Double): Double = value.coerceIn(0.0, MAX_QUANTITY)

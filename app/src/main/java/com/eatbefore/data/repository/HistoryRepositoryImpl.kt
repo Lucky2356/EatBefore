@@ -10,12 +10,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class HistoryRepositoryImpl @Inject constructor(
-    private val eventDao: InventoryEventDao,
-) : HistoryRepository {
+class HistoryRepositoryImpl @Inject constructor(private val eventDao: InventoryEventDao) : HistoryRepository {
 
     override fun observeAll(): Flow<List<InventoryEvent>> =
         eventDao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeRecent(limit: Int, type: EventType?): Flow<List<InventoryEvent>> {
+        val source = if (type == null) {
+            eventDao.observeRecent(limit)
+        } else {
+            eventDao.observeRecentByType(type.name, limit)
+        }
+        return source.map { list -> list.map { it.toDomain() } }
+    }
 
     override fun observeForProduct(productId: Long): Flow<List<InventoryEvent>> =
         eventDao.observeForProduct(productId).map { list -> list.map { it.toDomain() } }

@@ -28,11 +28,7 @@ data class ImportStats(val products: Int, val batches: Int, val events: Int)
  * all data atomically inside one Room transaction — a corrupt file changes nothing.
  */
 @Singleton
-class BackupManager @Inject constructor(
-    private val db: EatBeforeDatabase,
-    private val json: Json,
-    private val clock: AppClock,
-) {
+class BackupManager @Inject constructor(private val db: EatBeforeDatabase, private val json: Json, private val clock: AppClock) {
 
     suspend fun export(): String {
         val locations = db.storageLocationDao().getAll().map { it.toBackup() }
@@ -107,7 +103,13 @@ class BackupManager @Inject constructor(
     // --- entity <-> backup DTO mapping -------------------------------------------------
 
     private fun StorageLocationEntity.toBackup() = BackupLocation(
-        id, name, type.name, icon, sortOrder, isDefault, isArchived,
+        id,
+        name,
+        type.name,
+        icon,
+        sortOrder,
+        isDefault,
+        isArchived,
     )
 
     private fun BackupLocation.toEntity() = StorageLocationEntity(

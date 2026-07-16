@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
@@ -32,11 +32,7 @@ import com.eatbefore.domain.model.ExpiryStatus
  * always carried by icon + text so the badge remains understandable without color
  * (accessibility / prompt requirement).
  */
-data class StatusVisual(
-    val icon: ImageVector,
-    val labelResId: Int,
-    val color: Color,
-)
+data class StatusVisual(val icon: ImageVector, val labelResId: Int, val color: Color)
 
 @Composable
 fun ExpiryStatus.toVisual(): StatusVisual {
@@ -44,9 +40,12 @@ fun ExpiryStatus.toVisual(): StatusVisual {
     return when (this) {
         ExpiryStatus.FRESH -> StatusVisual(Icons.Filled.CheckCircle, R.string.status_fresh, colors.fresh)
         ExpiryStatus.EXPIRING_SOON -> StatusVisual(Icons.Filled.Schedule, R.string.status_expiring_soon, colors.soon)
-        ExpiryStatus.EXPIRES_TODAY -> StatusVisual(Icons.Filled.HourglassBottom, R.string.status_expires_today, colors.today)
-        ExpiryStatus.EXPIRED -> StatusVisual(Icons.Filled.Warning, R.string.status_expired, colors.expired)
-        ExpiryStatus.NO_DATE -> StatusVisual(Icons.AutoMirrored.Filled.HelpOutline, R.string.status_no_date, colors.opened)
+        ExpiryStatus.EXPIRES_TODAY ->
+            StatusVisual(Icons.Filled.HourglassBottom, R.string.status_expires_today, colors.today)
+        ExpiryStatus.EXPIRED ->
+            StatusVisual(Icons.Filled.Warning, R.string.status_expired, colors.expired)
+        ExpiryStatus.NO_DATE ->
+            StatusVisual(Icons.AutoMirrored.Filled.HelpOutline, R.string.status_no_date, colors.opened)
     }
 }
 

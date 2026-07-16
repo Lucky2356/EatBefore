@@ -87,11 +87,10 @@ fun takePhoto(
     )
 }
 
-private suspend fun Context.awaitCameraProvider(): ProcessCameraProvider =
-    suspendCoroutine { continuation ->
-        val future = ProcessCameraProvider.getInstance(this)
-        future.addListener(
-            { continuation.resume(future.get()) },
-            ContextCompat.getMainExecutor(this),
-        )
-    }
+private suspend fun Context.awaitCameraProvider(): ProcessCameraProvider = suspendCoroutine { continuation ->
+    val future = ProcessCameraProvider.getInstance(this)
+    future.addListener(
+        { continuation.resume(future.get()) },
+        ContextCompat.getMainExecutor(this),
+    )
+}

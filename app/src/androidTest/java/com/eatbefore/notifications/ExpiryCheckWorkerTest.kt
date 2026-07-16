@@ -3,12 +3,12 @@ package com.eatbefore.notifications
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import androidx.hilt.work.HiltWorkerFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
-import androidx.hilt.work.HiltWorkerFactory
 import com.eatbefore.core.notifications.ExpiryCheckWorker
 import com.eatbefore.domain.usecase.AddManualProductUseCase
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -33,6 +33,7 @@ class ExpiryCheckWorkerTest {
     val hiltRule = HiltAndroidRule(this)
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
     @Inject lateinit var addManualProduct: AddManualProductUseCase
 
     private val context: Context = ApplicationProvider.getApplicationContext()

@@ -20,17 +20,18 @@ import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.component.LoadingState
 import com.eatbefore.core.designsystem.theme.EatBeforeTheme
 import com.eatbefore.feature.addmanual.AddManualScreen
+import com.eatbefore.feature.analytics.AnalyticsScreen
 import com.eatbefore.feature.history.HistoryScreen
 import com.eatbefore.feature.home.HomeScreen
 import com.eatbefore.feature.inventory.InventoryScreen
+import com.eatbefore.feature.locations.LocationsScreen
+import com.eatbefore.feature.more.MoreScreen
 import com.eatbefore.feature.ocr.OcrScreen
 import com.eatbefore.feature.onboarding.OnboardingScreen
-import com.eatbefore.feature.analytics.AnalyticsScreen
-import com.eatbefore.feature.more.MoreScreen
 import com.eatbefore.feature.product.ProductScreen
-import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.feature.scanner.ScannerScreen
 import com.eatbefore.feature.settings.SettingsScreen
+import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.navigation.EatBeforeBottomBar
 import com.eatbefore.navigation.Routes
 import com.eatbefore.navigation.TopLevelDestination
@@ -135,7 +136,14 @@ private fun MainNavigation(startDestination: String) {
             }
 
             composable(Routes.SETTINGS) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenLocations = { navController.navigate(Routes.SETTINGS_LOCATIONS) },
+                )
+            }
+
+            composable(Routes.SETTINGS_LOCATIONS) {
+                LocationsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.ANALYTICS) {

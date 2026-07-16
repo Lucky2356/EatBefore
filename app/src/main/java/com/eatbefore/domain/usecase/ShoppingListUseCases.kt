@@ -104,9 +104,7 @@ class ToggleShoppingItemUseCase @Inject constructor(
 }
 
 /** Removes an item from the shopping list. */
-class DeleteShoppingItemUseCase @Inject constructor(
-    private val shoppingListRepository: ShoppingListRepository,
-) {
+class DeleteShoppingItemUseCase @Inject constructor(private val shoppingListRepository: ShoppingListRepository) {
     suspend operator fun invoke(itemId: Long) {
         val item = shoppingListRepository.getById(itemId) ?: return
         shoppingListRepository.delete(item)

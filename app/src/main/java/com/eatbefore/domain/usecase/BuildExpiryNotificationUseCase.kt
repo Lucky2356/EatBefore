@@ -10,9 +10,7 @@ import javax.inject.Inject
  * Turns the set of soon-to-expire/expired batches into a batched [ExpiryNotificationPlan].
  * Pure and testable: callers pass the item snapshot, today, and the "soon" window.
  */
-class BuildExpiryNotificationUseCase @Inject constructor(
-    private val determineExpiryStatus: DetermineExpiryStatusUseCase,
-) {
+class BuildExpiryNotificationUseCase @Inject constructor(private val determineExpiryStatus: DetermineExpiryStatusUseCase) {
 
     operator fun invoke(
         items: List<InventoryItem>,

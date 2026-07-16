@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">EatBefore</string>
+    <!-- Brand name: identical in every locale. -->
+    <string name="app_name" translatable="false">EatBefore</string>
 
     <!-- Bottom navigation -->
     <string name="nav_home">Главная</string>
@@ -28,10 +29,21 @@
     <string name="empty_generic_title">Пока пусто</string>
     <string name="error_generic_title">Что-то пошло не так</string>
     <string name="action_retry">Повторить</string>
+    <string name="action_back">Назад</string>
+    <string name="inventory_sort">Сортировка</string>
     <string name="action_undo">Отменить</string>
     <string name="action_cancel">Отмена</string>
     <string name="action_save">Сохранить</string>
     <string name="action_add">Добавить</string>
+
+    <!-- Measurement units (short labels) -->
+    <string name="unit_piece">шт</string>
+    <string name="unit_gram">г</string>
+    <string name="unit_kilogram">кг</string>
+    <string name="unit_milliliter">мл</string>
+    <string name="unit_liter">л</string>
+    <string name="unit_package">уп</string>
+    <string name="unit_percent">%</string>
 
     <!-- Storage location types -->
     <string name="storage_fridge">Холодильник</string>
@@ -199,6 +211,7 @@
     <string name="scanner_details">Подробнее</string>
     <string name="scanner_add_manual">Добавить вручную</string>
     <string name="scanner_added">Упаковка добавлена</string>
+    <string name="scanner_open_added">Открыть</string>
     <string name="scanner_scan_again">Сканировать ещё</string>
     <string name="scanner_expiry_from_code">Срок из кода: %1$s</string>
 
@@ -220,9 +233,12 @@
     <string name="notif_channel_name">Сроки годности</string>
     <string name="notif_channel_desc">Напоминания о продуктах с истекающим сроком</string>
     <string name="notif_title">Проверьте продукты</string>
-    <string name="notif_summary_one">Сегодня стоит проверить 1 продукт</string>
-    <string name="notif_summary_few">Сегодня стоит проверить %1$d продукта</string>
-    <string name="notif_summary_many">Сегодня стоит проверить %1$d продуктов</string>
+    <plurals name="notif_summary">
+        <item quantity="one">Сегодня стоит проверить %1$d продукт</item>
+        <item quantity="few">Сегодня стоит проверить %1$d продукта</item>
+        <item quantity="many">Сегодня стоит проверить %1$d продуктов</item>
+        <item quantity="other">Сегодня стоит проверить %1$d продукта</item>
+    </plurals>
     <string name="notif_line_expired">Просрочено: %1$d</string>
     <string name="notif_line_today">Истекает сегодня: %1$d</string>
     <string name="notif_line_soon">Скоро истекает: %1$d</string>
@@ -256,6 +272,21 @@
     <string name="settings_default_location">Место хранения по умолчанию</string>
     <string name="settings_detailed_quantity">Точный режим количества</string>
     <string name="settings_detailed_quantity_desc">«Уменьшить» открывает ввод точного остатка вместо −1</string>
+
+    <!-- Storage locations management -->
+    <string name="locations_title">Места хранения</string>
+    <string name="locations_manage_desc">Добавить своё место, переименовать, скрыть</string>
+    <string name="locations_add">Добавить место</string>
+    <string name="locations_name">Название</string>
+    <string name="locations_rename">Переименовать</string>
+    <string name="locations_archive">Скрыть</string>
+    <string name="locations_make_default">Сделать основным</string>
+    <string name="locations_default_badge">Основное</string>
+    <string name="locations_actions">Действия с местом</string>
+
+    <!-- Product edit -->
+    <string name="product_edit_title">Изменить продукт</string>
+    <string name="product_edit_pick_date">Выбрать дату</string>
 
     <!-- Settings: about -->
     <string name="settings_section_about">О приложении</string>

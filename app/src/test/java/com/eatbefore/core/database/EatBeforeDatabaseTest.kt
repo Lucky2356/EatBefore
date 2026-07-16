@@ -41,8 +41,12 @@ class EatBeforeDatabaseTest {
                                 "(name, type, icon, sort_order, is_default, is_archived) " +
                                 "VALUES (?, ?, ?, ?, ?, ?)",
                             arrayOf<Any?>(
-                                loc.name, loc.type.name, loc.icon, loc.sortOrder,
-                                if (loc.isDefault) 1 else 0, if (loc.isArchived) 1 else 0,
+                                loc.name,
+                                loc.type.name,
+                                loc.icon,
+                                loc.sortOrder,
+                                if (loc.isDefault) 1 else 0,
+                                if (loc.isArchived) 1 else 0,
                             ),
                         )
                     }

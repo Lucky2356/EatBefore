@@ -26,16 +26,14 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
-    ): EatBeforeDatabase {
-        return Room.databaseBuilder(
-            context,
-            EatBeforeDatabase::class.java,
-            EatBeforeDatabase.NAME,
-        )
-            .addMigrations(*ALL_MIGRATIONS)
-            .addCallback(SeedCallback)
-            .build()
-    }
+    ): EatBeforeDatabase = Room.databaseBuilder(
+        context,
+        EatBeforeDatabase::class.java,
+        EatBeforeDatabase.NAME,
+    )
+        .addMigrations(*ALL_MIGRATIONS)
+        .addCallback(SeedCallback)
+        .build()
 
     /**
      * Seeds preset storage locations on first creation using raw inserts, avoiding a DAO
@@ -64,16 +62,13 @@ object DatabaseModule {
     @Provides fun provideProductDao(db: EatBeforeDatabase): ProductDao = db.productDao()
 
     @Provides
-    fun provideStorageLocationDao(db: EatBeforeDatabase): StorageLocationDao =
-        db.storageLocationDao()
+    fun provideStorageLocationDao(db: EatBeforeDatabase): StorageLocationDao = db.storageLocationDao()
 
     @Provides
-    fun provideInventoryBatchDao(db: EatBeforeDatabase): InventoryBatchDao =
-        db.inventoryBatchDao()
+    fun provideInventoryBatchDao(db: EatBeforeDatabase): InventoryBatchDao = db.inventoryBatchDao()
 
     @Provides
-    fun provideInventoryEventDao(db: EatBeforeDatabase): InventoryEventDao =
-        db.inventoryEventDao()
+    fun provideInventoryEventDao(db: EatBeforeDatabase): InventoryEventDao = db.inventoryEventDao()
 
     @Provides
     fun provideShoppingListDao(db: EatBeforeDatabase): ShoppingListDao = db.shoppingListDao()

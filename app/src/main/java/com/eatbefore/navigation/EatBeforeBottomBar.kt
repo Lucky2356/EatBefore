@@ -24,11 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eatbefore.R
 
-private data class BottomItem(
-    val destination: TopLevelDestination,
-    val icon: ImageVector,
-    val labelRes: Int,
-)
+private data class BottomItem(val destination: TopLevelDestination, val icon: ImageVector, val labelRes: Int)
 
 private val bottomItems = listOf(
     BottomItem(TopLevelDestination.HOME, Icons.Filled.Home, R.string.nav_home),
@@ -83,5 +79,4 @@ fun EatBeforeBottomBar(
 }
 
 /** Routes that show the bottom navigation bar. */
-fun isTopLevelRoute(route: String?): Boolean =
-    TopLevelDestination.entries.any { it.route == route }
+fun isTopLevelRoute(route: String?): Boolean = TopLevelDestination.entries.any { it.route == route }

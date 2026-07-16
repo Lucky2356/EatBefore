@@ -75,6 +75,7 @@ class OpenFoodFactsCatalogProvider @Inject constructor(
     )
 
     private companion object {
-        const val USER_AGENT = "EatBefore/0.1 (local household inventory app)"
+        val USER_AGENT =
+            "EatBefore/${com.eatbefore.BuildConfig.VERSION_NAME} (local household inventory app)"
     }
 }

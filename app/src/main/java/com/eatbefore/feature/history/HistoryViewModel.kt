@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,6 +21,8 @@ import javax.inject.Inject
 data class HistoryUiState(
     val events: List<InventoryEvent> = emptyList(),
     val filter: EventType? = null,
+    /** True while more rows exist beyond the current page. */
+    val canLoadMore: Boolean = false,
 )
 
 /** Event types that removed stock and can therefore be restored from the list. */
@@ -28,28 +31,47 @@ private val RESTORABLE = setOf(EventType.CONSUMED, EventType.DISCARDED, EventTyp
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
-    historyRepository: HistoryRepository,
+    private val historyRepository: HistoryRepository,
     private val restoreBatch: RestoreBatchUseCase,
     private val undoLastAction: UndoLastActionUseCase,
 ) : ViewModel() {
 
     private val filter = MutableStateFlow<EventType?>(null)
+    private val limit = MutableStateFlow(PAGE_SIZE)
 
-    val uiState: StateFlow<HistoryUiState> = combine(
-        historyRepository.observeAll(),
-        filter,
-    ) { events, activeFilter ->
-        HistoryUiState(
-            events = if (activeFilter == null) events else events.filter { it.eventType == activeFilter },
-            filter = activeFilter,
+    private val query = combine(filter, limit) { activeFilter, activeLimit ->
+        activeFilter to activeLimit
+    }
+
+    val uiState: StateFlow<HistoryUiState> = query
+        .flatMapLatest { (activeFilter, activeLimit) ->
+            // Fetch one extra row to learn whether another page exists.
+            historyRepository.observeRecent(activeLimit + 1, activeFilter)
+                .let { flow ->
+                    combine(flow, filter) { events, currentFilter ->
+                        HistoryUiState(
+                            events = events.take(activeLimit),
+                            filter = currentFilter,
+                            canLoadMore = events.size > activeLimit,
+                        )
+                    }
+                }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = HistoryUiState(),
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HistoryUiState(),
-    )
 
-    fun setFilter(type: EventType?) { filter.value = type }
+    fun setFilter(type: EventType?) {
+        filter.value = type
+        limit.value = PAGE_SIZE
+    }
+
+    /** Called when the list reaches its end; grows the page by [PAGE_SIZE]. */
+    fun loadMore() {
+        if (uiState.value.canLoadMore) limit.value += PAGE_SIZE
+    }
 
     fun isRestorable(event: InventoryEvent): Boolean = event.eventType in RESTORABLE
 
@@ -59,5 +81,9 @@ class HistoryViewModel @Inject constructor(
 
     fun undoLast() {
         viewModelScope.launch { runCatching { undoLastAction() } }
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 100
     }
 }

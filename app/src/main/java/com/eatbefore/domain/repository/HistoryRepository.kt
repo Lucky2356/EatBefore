@@ -6,6 +6,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface HistoryRepository {
     fun observeAll(): Flow<List<InventoryEvent>>
+
+    /**
+     * Newest-first history capped at [limit], optionally filtered by [type]. The history
+     * screen grows this limit as the user scrolls instead of loading the whole table.
+     */
+    fun observeRecent(limit: Int, type: EventType? = null): Flow<List<InventoryEvent>>
+
     fun observeForProduct(productId: Long): Flow<List<InventoryEvent>>
     fun observeByType(type: EventType): Flow<List<InventoryEvent>>
     suspend fun getLastEvent(): InventoryEvent?

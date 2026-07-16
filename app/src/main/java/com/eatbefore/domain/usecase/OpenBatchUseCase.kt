@@ -4,8 +4,8 @@ import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
-import javax.inject.Inject
 import com.eatbefore.domain.repository.InventoryRepository
+import javax.inject.Inject
 
 /**
  * Marks a batch as opened, stamping openedAt and recomputing the use-by-after-opening

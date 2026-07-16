@@ -1,0 +1,97 @@
+# Detekt configuration for EatBefore.
+# Built upon the default config (buildUponDefaultConfig = true) — only deviations
+# are listed here, with the reason for each.
+
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    # Compose screen composables are declarative trees; splitting them purely to
+    # satisfy a line count hurts readability more than it helps.
+    excludes: ['**/feature/**', '**/ui/**', '**/core/designsystem/**']
+    threshold: 80
+  LongParameterList:
+    # ViewModels take their collaborators via constructor injection.
+    excludes: ['**/feature/**/*ViewModel.kt', '**/ui/**']
+    functionThreshold: 8
+    constructorThreshold: 14
+  TooManyFunctions:
+    # DAOs and repository interfaces are flat lists of queries by design; test classes
+    # are a flat list of cases plus their helpers.
+    excludes:
+      - '**/feature/**'
+      - '**/core/database/dao/**'
+      - '**/domain/repository/**'
+      - '**/test/**'
+      - '**/androidTest/**'
+    thresholdInClasses: 20
+    thresholdInFiles: 25
+    thresholdInInterfaces: 15
+  CyclomaticComplexMethod:
+    # Screen composables and spec parsers branch a lot by nature.
+    excludes: ['**/feature/**', '**/ui/**', '**/domain/gs1/**', '**/domain/ocr/**']
+    threshold: 20
+  NestedBlockDepth:
+    excludes: ['**/feature/**', '**/ui/**']
+
+style:
+  MagicNumber:
+    # UI code is full of dp/percent literals that are clearer inline. Parsers encode
+    # fixed-position offsets from the GS1/date specs — naming each one obscures the
+    # spec rather than clarifying it. Config/DI numbers are self-describing timeouts.
+    excludes:
+      - '**/feature/**'
+      - '**/ui/**'
+      - '**/core/designsystem/**'
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/domain/gs1/**'
+      - '**/domain/ocr/**'
+      - '**/di/**'
+      - '**/core/datastore/**'
+      - '**/data/catalog/**'
+  LoopWithTooManyJumpStatements:
+    excludes: ['**/domain/gs1/**']
+  MaxLineLength:
+    # Matches max_line_length in .editorconfig (ktlint's default for its official style).
+    maxLineLength: 140
+    excludes: ['**/test/**', '**/androidTest/**']
+  ReturnCount:
+    max: 5
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+  ForbiddenComment:
+    # TODO markers are tracked in TODO.md, not enforced by the linter.
+    active: false
+
+performance:
+  SpreadOperator:
+    # Room's addMigrations() takes a vararg; the array is tiny and built once.
+    excludes: ['**/di/**']
+
+exceptions:
+  TooGenericExceptionCaught:
+    # Provider boundaries deliberately catch broadly so untrusted input can never
+    # crash the app; each site documents why.
+    excludes: ['**/data/catalog/**', '**/data/ocr/**', '**/core/backup/**']
+  SwallowedException:
+    # Parsers treat unparseable input as "no result", which is the whole point;
+    # the exception carries no extra information for the user.
+    excludes:
+      - '**/data/catalog/**'
+      - '**/data/ocr/**'
+      - '**/feature/ocr/**'
+      - '**/domain/gs1/**'
+      - '**/domain/ocr/**'
+      - '**/core/backup/**'
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    excludes: ['**/core/designsystem/theme/**']
+  MatchingDeclarationName:
+    # Some design-system files group a component with its small helper types.
+    excludes: ['**/core/designsystem/**']

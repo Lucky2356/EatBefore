@@ -36,11 +36,7 @@ sealed interface ScanResolution {
         override val expiryFromCode: LocalDate? = null,
     ) : ScanResolution
 
-    data class NotFound(
-        override val code: String,
-        val type: BarcodeType,
-        override val expiryFromCode: LocalDate? = null,
-    ) : ScanResolution
+    data class NotFound(override val code: String, val type: BarcodeType, override val expiryFromCode: LocalDate? = null) : ScanResolution
 
     data class Error(
         override val code: String,

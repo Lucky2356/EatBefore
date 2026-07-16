@@ -9,11 +9,7 @@ import kotlinx.serialization.Serializable
  * These types live in the data layer and never leak into the domain.
  */
 @Serializable
-data class OffResponse(
-    val status: Int = 0,
-    val code: String? = null,
-    val product: OffProduct? = null,
-)
+data class OffResponse(val status: Int = 0, val code: String? = null, val product: OffProduct? = null)
 
 @Serializable
 data class OffProduct(

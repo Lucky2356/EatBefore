@@ -63,6 +63,7 @@ import com.google.accompanist.permissions.rememberPermissionState
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenLocations: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val prefs by viewModel.state.collectAsStateWithLifecycle()
@@ -95,7 +96,8 @@ fun SettingsScreen(
         null
     }
     val permissionMissing = prefs.notificationsEnabled &&
-        notifPermission != null && !notifPermission.status.isGranted
+        notifPermission != null &&
+        !notifPermission.status.isGranted
 
     Scaffold(
         topBar = {
@@ -103,7 +105,10 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
@@ -169,6 +174,12 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_default_location),
                     value = locations.firstOrNull { it.isDefault }?.displayName() ?: "—",
                     onClick = { showLocationPicker = true },
+                )
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.locations_title),
+                    subtitle = stringResource(R.string.locations_manage_desc),
+                    onClick = onOpenLocations,
                 )
                 HorizontalDivider()
                 SettingSwitchRow(
@@ -470,5 +481,4 @@ private fun HourStepper(hour: Int, onChange: (Int) -> Unit) {
     }
 }
 
-private fun formatTime(hour: Int, minute: Int): String =
-    "%02d:%02d".format(hour, minute)
+private fun formatTime(hour: Int, minute: Int): String = "%02d:%02d".format(hour, minute)

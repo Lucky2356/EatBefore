@@ -16,6 +16,19 @@ interface InventoryEventDao {
     @Query("SELECT * FROM inventory_events ORDER BY created_at DESC, id DESC")
     fun observeAll(): Flow<List<InventoryEventEntity>>
 
+    /**
+     * Newest-first page of history. The screen loads incrementally so a long-lived
+     * household database never has to materialize the whole table to draw one screen.
+     */
+    @Query("SELECT * FROM inventory_events ORDER BY created_at DESC, id DESC LIMIT :limit")
+    fun observeRecent(limit: Int): Flow<List<InventoryEventEntity>>
+
+    @Query(
+        "SELECT * FROM inventory_events WHERE event_type = :eventType " +
+            "ORDER BY created_at DESC, id DESC LIMIT :limit",
+    )
+    fun observeRecentByType(eventType: String, limit: Int): Flow<List<InventoryEventEntity>>
+
     @Query("SELECT * FROM inventory_events WHERE product_id = :productId ORDER BY created_at DESC, id DESC")
     fun observeForProduct(productId: Long): Flow<List<InventoryEventEntity>>
 
@@ -25,8 +38,16 @@ interface InventoryEventDao {
     @Query("SELECT * FROM inventory_events WHERE event_type = :eventType ORDER BY created_at DESC, id DESC")
     fun observeByType(eventType: String): Flow<List<InventoryEventEntity>>
 
-    /** Most recent event overall — backs the global "undo last action" affordance. */
-    @Query("SELECT * FROM inventory_events ORDER BY created_at DESC, id DESC LIMIT 1")
+    /**
+     * Most recent event overall — backs the global "undo last action" affordance.
+     * Compensating events written by undo itself (reason 'undo…') are skipped so a
+     * repeated undo does not ping-pong by reverting the previous revert.
+     */
+    @Query(
+        "SELECT * FROM inventory_events " +
+            "WHERE reason IS NULL OR reason NOT LIKE 'undo%' " +
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
+    )
     suspend fun getLast(): InventoryEventEntity?
 
     // Backup/export support (bulk restore only; history stays append-only otherwise).

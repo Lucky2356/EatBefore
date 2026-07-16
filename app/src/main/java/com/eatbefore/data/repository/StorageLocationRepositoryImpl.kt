@@ -9,15 +9,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class StorageLocationRepositoryImpl @Inject constructor(
-    private val dao: StorageLocationDao,
-) : StorageLocationRepository {
+class StorageLocationRepositoryImpl @Inject constructor(private val dao: StorageLocationDao) : StorageLocationRepository {
 
     override fun observeActive(): Flow<List<StorageLocation>> =
         dao.observeActive().map { list -> list.map { it.toDomain() } }
 
-    override fun observeAll(): Flow<List<StorageLocation>> =
-        dao.observeAll().map { list -> list.map { it.toDomain() } }
+    override fun observeAll(): Flow<List<StorageLocation>> = dao.observeAll().map { list -> list.map { it.toDomain() } }
 
     override suspend fun getById(id: Long): StorageLocation? = dao.getById(id)?.toDomain()
 
@@ -25,12 +22,10 @@ class StorageLocationRepositoryImpl @Inject constructor(
 
     override suspend fun setDefault(id: Long) = dao.setDefault(id)
 
-    override suspend fun upsert(location: StorageLocation): Long {
-        return if (location.id == 0L) {
-            dao.insert(location.toEntity())
-        } else {
-            dao.update(location.toEntity())
-            location.id
-        }
+    override suspend fun upsert(location: StorageLocation): Long = if (location.id == 0L) {
+        dao.insert(location.toEntity())
+    } else {
+        dao.update(location.toEntity())
+        location.id
     }
 }

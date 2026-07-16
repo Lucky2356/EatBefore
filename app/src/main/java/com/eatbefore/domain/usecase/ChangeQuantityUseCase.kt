@@ -4,7 +4,6 @@ import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.common.validation.InputValidator
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
-import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.repository.InventoryRepository
 import javax.inject.Inject
@@ -14,10 +13,7 @@ import javax.inject.Inject
  * history); a partial amount marks it PARTIALLY_USED (unless already OPENED). Emits a
  * QUANTITY_CHANGED event, or CONSUMED when it hits zero.
  */
-class ChangeQuantityUseCase @Inject constructor(
-    private val inventoryRepository: InventoryRepository,
-    private val clock: AppClock,
-) {
+class ChangeQuantityUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
 
     suspend operator fun invoke(batchId: Long, newQuantity: Double, reason: String? = null) {
         val batch = inventoryRepository.getBatch(batchId)

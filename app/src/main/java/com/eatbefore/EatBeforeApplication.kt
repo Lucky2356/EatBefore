@@ -22,11 +22,16 @@ import javax.inject.Inject
  * user settings.
  */
 @HiltAndroidApp
-class EatBeforeApplication : Application(), Configuration.Provider {
+class EatBeforeApplication :
+    Application(),
+    Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
     @Inject lateinit var notificationScheduler: NotificationScheduler
+
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
+
     @Inject lateinit var expiryNotifier: ExpiryNotifier
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

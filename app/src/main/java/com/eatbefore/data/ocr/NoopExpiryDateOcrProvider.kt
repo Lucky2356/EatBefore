@@ -9,6 +9,5 @@ import javax.inject.Inject
  * milestone. Returns no candidates so callers fall back to manual date entry.
  */
 class NoopExpiryDateOcrProvider @Inject constructor() : ExpiryDateOcrProvider {
-    override suspend fun recognize(imageUri: String): OcrResult =
-        OcrResult(rawText = "", candidates = emptyList())
+    override suspend fun recognize(imageUri: String): OcrResult = OcrResult(rawText = "", candidates = emptyList())
 }

@@ -3,9 +3,9 @@ package com.eatbefore.feature.inventory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.InventoryItem
 import com.eatbefore.domain.model.StorageLocation
-import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
@@ -17,6 +17,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
@@ -30,7 +31,6 @@ data class InventoryUiState(
     val rows: List<InventoryRowUi> = emptyList(),
     val locations: List<StorageLocation> = emptyList(),
     val selectedLocationId: Long? = null,
-    val query: String = "",
     val sort: InventorySort = InventorySort.EXPIRY,
 )
 
@@ -47,6 +47,13 @@ class InventoryViewModel @Inject constructor(
     private val selectedLocationId = MutableStateFlow<Long?>(null)
     private val query = MutableStateFlow("")
     private val sort = MutableStateFlow(InventorySort.EXPIRY)
+
+    /**
+     * What the search field shows. It must reflect every keystroke immediately — driving
+     * the field from the debounced flow instead would blank out characters as they are
+     * typed. Only the filtering below is debounced.
+     */
+    val queryText: StateFlow<String> = query.asStateFlow()
 
     private val itemsFlow = selectedLocationId.flatMapLatest { locationId ->
         if (locationId == null) {
@@ -71,7 +78,6 @@ class InventoryViewModel @Inject constructor(
             rows = sorted.map { it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus) },
             locations = locations,
             selectedLocationId = selectedLocationId.value,
-            query = q,
             sort = sortOrder,
         )
     }.stateIn(
@@ -80,9 +86,15 @@ class InventoryViewModel @Inject constructor(
         initialValue = InventoryUiState(),
     )
 
-    fun setQuery(value: String) { query.value = value }
-    fun setLocation(id: Long?) { selectedLocationId.value = id }
-    fun setSort(value: InventorySort) { sort.value = value }
+    fun setQuery(value: String) {
+        query.value = value
+    }
+    fun setLocation(id: Long?) {
+        selectedLocationId.value = id
+    }
+    fun setSort(value: InventorySort) {
+        sort.value = value
+    }
 
     private fun InventoryItem.matches(q: String): Boolean {
         if (q.isBlank()) return true

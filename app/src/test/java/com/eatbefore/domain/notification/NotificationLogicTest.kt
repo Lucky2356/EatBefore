@@ -19,8 +19,12 @@ class NotificationLogicTest {
 
     private fun item(expiration: LocalDate?): InventoryItem = InventoryItem(
         batch = InventoryBatch(
-            id = 1, productId = 1, storageLocationId = 1,
-            quantity = 1.0, initialQuantity = 1.0, expirationDate = expiration,
+            id = 1,
+            productId = 1,
+            storageLocationId = 1,
+            quantity = 1.0,
+            initialQuantity = 1.0,
+            expirationDate = expiration,
         ),
         product = Product(name = "x"),
         location = StorageLocation(name = "Fridge"),
@@ -30,11 +34,11 @@ class NotificationLogicTest {
     fun countsExpiredTodayAndSoonSeparately() {
         val items = listOf(
             item(today.minusDays(2)), // expired
-            item(today),              // today
-            item(today.plusDays(1)),  // soon (threshold 3)
-            item(today.plusDays(2)),  // soon
+            item(today), // today
+            item(today.plusDays(1)), // soon (threshold 3)
+            item(today.plusDays(2)), // soon
             item(today.plusDays(10)), // fresh (ignored)
-            item(null),               // no date (ignored)
+            item(null), // no date (ignored)
         )
         val plan = build(items, today, soonThresholdDays = 3)
         assertEquals(1, plan.expiredCount)

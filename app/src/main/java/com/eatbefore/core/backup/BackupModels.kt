@@ -24,13 +24,7 @@ data class BackupFile(
 }
 
 @Serializable
-data class BackupCounts(
-    val locations: Int,
-    val products: Int,
-    val batches: Int,
-    val events: Int,
-    val shopping: Int,
-)
+data class BackupCounts(val locations: Int, val products: Int, val batches: Int, val events: Int, val shopping: Int)
 
 @Serializable
 data class BackupLocation(

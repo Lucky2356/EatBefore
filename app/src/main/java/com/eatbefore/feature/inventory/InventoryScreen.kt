@@ -1,5 +1,6 @@
 package com.eatbefore.feature.inventory
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -45,6 +45,8 @@ fun InventoryScreen(
     viewModel: InventoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Separate from uiState: the field must echo keystrokes without the search debounce.
+    val queryText by viewModel.queryText.collectAsStateWithLifecycle()
     var sortMenuOpen by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -53,17 +55,23 @@ fun InventoryScreen(
                 title = { Text(stringResource(R.string.inventory_title)) },
                 actions = {
                     IconButton(onClick = { sortMenuOpen = true }) {
-                        Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = stringResource(R.string.inventory_sort_expiry))
+                        Icon(
+                            Icons.AutoMirrored.Outlined.Sort,
+                            contentDescription = stringResource(R.string.inventory_sort),
+                        )
                     }
                     DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
                         SortItem(R.string.inventory_sort_expiry, InventorySort.EXPIRY, state.sort) {
-                            viewModel.setSort(it); sortMenuOpen = false
+                            viewModel.setSort(it)
+                            sortMenuOpen = false
                         }
                         SortItem(R.string.inventory_sort_name, InventorySort.NAME, state.sort) {
-                            viewModel.setSort(it); sortMenuOpen = false
+                            viewModel.setSort(it)
+                            sortMenuOpen = false
                         }
                         SortItem(R.string.inventory_sort_added, InventorySort.ADDED, state.sort) {
-                            viewModel.setSort(it); sortMenuOpen = false
+                            viewModel.setSort(it)
+                            sortMenuOpen = false
                         }
                     }
                 },
@@ -72,7 +80,7 @@ fun InventoryScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             OutlinedTextField(
-                value = state.query,
+                value = queryText,
                 onValueChange = viewModel::setQuery,
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
@@ -130,6 +138,7 @@ private fun SortItem(
         onClick = { onSelected(value) },
         trailingIcon = {
             if (value == current) {
+                // Decorative: the menu item's own text already names the sort order.
                 Icon(Icons.AutoMirrored.Outlined.Sort, contentDescription = null)
             }
         },

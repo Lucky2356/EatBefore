@@ -1,5 +1,6 @@
 package com.eatbefore.feature.onboarding
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +12,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,11 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.eatbefore.R
 import kotlinx.coroutines.launch
 
-private data class OnboardingPage(
-    val icon: ImageVector,
-    val titleRes: Int,
-    val bodyRes: Int,
-)
+private data class OnboardingPage(val icon: ImageVector, val titleRes: Int, val bodyRes: Int)
 
 private val pages = listOf(
     OnboardingPage(Icons.Outlined.Lock, R.string.onboarding_local_title, R.string.onboarding_local_body),
@@ -83,8 +79,11 @@ fun OnboardingScreen(
                         .padding(4.dp)
                         .size(if (selected) 10.dp else 8.dp)
                         .background(
-                            if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.outline,
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.outline
+                            },
                             CircleShape,
                         ),
                 )

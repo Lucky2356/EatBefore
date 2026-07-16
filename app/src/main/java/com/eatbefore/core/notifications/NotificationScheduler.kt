@@ -21,10 +21,7 @@ import javax.inject.Singleton
  * policy so re-scheduling on settings change adjusts the existing job rather than stacking.
  */
 @Singleton
-class NotificationScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val clock: AppClock,
-) {
+class NotificationScheduler @Inject constructor(@ApplicationContext private val context: Context, private val clock: AppClock) {
 
     fun apply(prefs: UserPreferences) {
         val workManager = WorkManager.getInstance(context)
@@ -34,7 +31,7 @@ class NotificationScheduler @Inject constructor(
         }
 
         val delayMinutes = minutesUntilNext(prefs.notificationHour, prefs.notificationMinute)
-        val request = PeriodicWorkRequestBuilder<ExpiryCheckWorker>(24, TimeUnit.HOURS)
+        val request = PeriodicWorkRequestBuilder<ExpiryCheckWorker>(REPEAT_INTERVAL_HOURS, TimeUnit.HOURS)
             .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
             .build()
 
@@ -51,5 +48,10 @@ class NotificationScheduler @Inject constructor(
         val todayTarget = LocalDateTime.of(LocalDate.from(now), LocalTime.of(hour, minute))
         val target = if (todayTarget.isAfter(now)) todayTarget else todayTarget.plusDays(1)
         return Duration.between(now, target).toMinutes().coerceAtLeast(0)
+    }
+
+    private companion object {
+        /** The reminder is a once-a-day digest. */
+        const val REPEAT_INTERVAL_HOURS = 24L
     }
 }

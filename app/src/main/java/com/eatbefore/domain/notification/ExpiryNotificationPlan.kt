@@ -5,11 +5,7 @@ package com.eatbefore.domain.notification
  * notification ("Сегодня стоит проверить N продуктов") rather than one per item, to avoid
  * spam (prompt: combine notifications, no daily spam).
  */
-data class ExpiryNotificationPlan(
-    val expiredCount: Int,
-    val todayCount: Int,
-    val soonCount: Int,
-) {
+data class ExpiryNotificationPlan(val expiredCount: Int, val todayCount: Int, val soonCount: Int) {
     val total: Int get() = expiredCount + todayCount + soonCount
     val hasContent: Boolean get() = total > 0
 

@@ -41,8 +41,8 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val today = androidx.compose.runtime.remember {
-        java.time.LocalDate.now().format(
-            java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", java.util.Locale.forLanguageTag("ru")),
+        viewModel.today.format(
+            java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", java.util.Locale.getDefault()),
         ).replaceFirstChar { it.uppercase() }
     }
 
@@ -72,9 +72,21 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                 ) {
-                    QuickActionButton(Icons.Outlined.QrCodeScanner, stringResource(R.string.home_quick_scan), onScan)
-                    QuickActionButton(Icons.Outlined.AddCircleOutline, stringResource(R.string.home_quick_add_manual), onAddManual)
-                    QuickActionButton(Icons.Outlined.ShoppingCart, stringResource(R.string.home_quick_shopping), onOpenShopping)
+                    QuickActionButton(
+                        Icons.Outlined.QrCodeScanner,
+                        stringResource(R.string.home_quick_scan),
+                        onScan,
+                    )
+                    QuickActionButton(
+                        Icons.Outlined.AddCircleOutline,
+                        stringResource(R.string.home_quick_add_manual),
+                        onAddManual,
+                    )
+                    QuickActionButton(
+                        Icons.Outlined.ShoppingCart,
+                        stringResource(R.string.home_quick_shopping),
+                        onOpenShopping,
+                    )
                 }
             }
 

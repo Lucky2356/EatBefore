@@ -13,17 +13,11 @@ import javax.inject.Inject
 
 sealed interface RootState {
     data object Loading : RootState
-    data class Ready(
-        val onboardingCompleted: Boolean,
-        val themeMode: ThemeMode,
-        val dynamicColors: Boolean,
-    ) : RootState
+    data class Ready(val onboardingCompleted: Boolean, val themeMode: ThemeMode, val dynamicColors: Boolean) : RootState
 }
 
 @HiltViewModel
-class RootViewModel @Inject constructor(
-    preferences: UserPreferencesRepository,
-) : ViewModel() {
+class RootViewModel @Inject constructor(preferences: UserPreferencesRepository) : ViewModel() {
     val state: StateFlow<RootState> = preferences.preferences
         .map {
             RootState.Ready(

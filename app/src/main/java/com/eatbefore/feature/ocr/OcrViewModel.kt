@@ -21,9 +21,7 @@ data class OcrUiState(
 )
 
 @HiltViewModel
-class OcrViewModel @Inject constructor(
-    private val ocrProvider: ExpiryDateOcrProvider,
-) : ViewModel() {
+class OcrViewModel @Inject constructor(private val ocrProvider: ExpiryDateOcrProvider) : ViewModel() {
 
     private val _state = MutableStateFlow(OcrUiState())
     val state: StateFlow<OcrUiState> = _state.asStateFlow()

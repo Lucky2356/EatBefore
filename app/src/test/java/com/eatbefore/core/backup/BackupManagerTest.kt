@@ -43,8 +43,13 @@ class BackupManagerTest {
     private suspend fun seed() {
         db.storageLocationDao().insert(
             StorageLocationEntity(
-                id = 1, name = "Fridge", type = StorageType.FRIDGE, icon = null,
-                sortOrder = 0, isDefault = true, isArchived = false,
+                id = 1,
+                name = "Fridge",
+                type = StorageType.FRIDGE,
+                icon = null,
+                sortOrder = 0,
+                isDefault = true,
+                isArchived = false,
             ),
         )
         db.productDao().insert(

@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -16,9 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.ErrorOutline
 import com.eatbefore.R
 
 /** Centered empty state with an icon, message, and optional call to action. */
@@ -106,5 +106,4 @@ fun LoadingState(modifier: Modifier = Modifier) {
 
 // Small indirection so ErrorState can read a string without importing at call sites.
 @Composable
-private fun stringResourceCompat(id: Int): String =
-    androidx.compose.ui.res.stringResource(id)
+private fun stringResourceCompat(id: Int): String = androidx.compose.ui.res.stringResource(id)

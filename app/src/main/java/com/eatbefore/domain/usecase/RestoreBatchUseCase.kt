@@ -13,10 +13,7 @@ import javax.inject.Inject
  * write-off). Clears the soft-delete marker and derives a sensible present status from
  * the remaining quantity and open state. Emits a RESTORED event.
  */
-class RestoreBatchUseCase @Inject constructor(
-    private val inventoryRepository: InventoryRepository,
-    private val clock: AppClock,
-) {
+class RestoreBatchUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
 
     suspend operator fun invoke(batchId: Long) {
         val batch = inventoryRepository.getBatch(batchId)

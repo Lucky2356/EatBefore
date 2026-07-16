@@ -17,13 +17,12 @@ class BuildAnalyticsUseCaseTest {
     private val useCase = BuildAnalyticsUseCase()
     private val from: Instant = Instant.parse("2026-07-01T00:00:00Z")
 
-    private fun event(type: EventType, productId: Long = 1, at: String = "2026-07-10T10:00:00Z") =
-        InventoryEvent(
-            inventoryBatchId = 1,
-            productId = productId,
-            eventType = type,
-            createdAt = Instant.parse(at),
-        )
+    private fun event(type: EventType, productId: Long = 1, at: String = "2026-07-10T10:00:00Z") = InventoryEvent(
+        inventoryBatchId = 1,
+        productId = productId,
+        eventType = type,
+        createdAt = Instant.parse(at),
+    )
 
     private val products = mapOf(
         1L to Product(id = 1, name = "Milk", category = "Dairy"),

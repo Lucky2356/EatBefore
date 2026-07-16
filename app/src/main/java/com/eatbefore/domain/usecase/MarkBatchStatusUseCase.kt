@@ -13,10 +13,7 @@ import javax.inject.Inject
  * row is never physically deleted — terminal statuses are soft-deleted so history and
  * "restore" keep working. Emits the matching history event.
  */
-class MarkBatchStatusUseCase @Inject constructor(
-    private val inventoryRepository: InventoryRepository,
-    private val clock: AppClock,
-) {
+class MarkBatchStatusUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
 
     suspend operator fun invoke(
         batchId: Long,

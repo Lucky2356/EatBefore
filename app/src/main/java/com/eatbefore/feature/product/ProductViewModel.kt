@@ -3,6 +3,7 @@ package com.eatbefore.feature.product
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eatbefore.R
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.BatchStatus
@@ -20,6 +21,7 @@ import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
 import com.eatbefore.domain.usecase.MoveBatchUseCase
 import com.eatbefore.domain.usecase.OpenBatchUseCase
 import com.eatbefore.domain.usecase.UndoLastActionUseCase
+import com.eatbefore.domain.usecase.UpdateItemDetailsUseCase
 import com.eatbefore.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +47,8 @@ data class ProductUiState(
     val locations: List<StorageLocation> = emptyList(),
     /** Timestamp of the last undoable action; drives a one-shot Undo snackbar. */
     val undoableActionAt: Long? = null,
+    /** What the last action did, shown in the undo snackbar. */
+    val actionMessageRes: Int? = null,
     /** Set after the item is used up: offer to put it on the shopping list. */
     val offerShoppingList: Boolean = false,
     /** True once the batch no longer exists as present (e.g. add was undone). */
@@ -56,6 +60,7 @@ data class ProductUiState(
 /** Transient, screen-local signals kept in one flow so the state combine stays small. */
 private data class ProductLocalState(
     val undoableActionAt: Long? = null,
+    val actionMessageRes: Int? = null,
     val offerShoppingList: Boolean = false,
 )
 
@@ -73,6 +78,7 @@ class ProductViewModel @Inject constructor(
     private val markStatus: MarkBatchStatusUseCase,
     private val moveBatch: MoveBatchUseCase,
     private val undoLastAction: UndoLastActionUseCase,
+    private val updateItemDetails: UpdateItemDetailsUseCase,
     private val addToShoppingList: AddToShoppingListUseCase,
     private val clock: AppClock,
 ) : ViewModel() {
@@ -112,6 +118,7 @@ class ProductViewModel @Inject constructor(
                 history = history,
                 locations = locations,
                 undoableActionAt = local.undoableActionAt,
+                actionMessageRes = local.actionMessageRes,
                 offerShoppingList = local.offerShoppingList,
                 detailedMode = prefs.detailedQuantityMode,
             )
@@ -122,24 +129,57 @@ class ProductViewModel @Inject constructor(
         initialValue = ProductUiState(),
     )
 
-    fun open() = runAction { openBatch(batchId) }
+    fun open() = runAction(messageRes = R.string.event_opened) { openBatch(batchId) }
 
-    fun decrement() = runAction {
+    fun decrement() = runAction(messageRes = R.string.event_quantity_changed) {
         val batch = inventoryRepository.getBatch(batchId) ?: return@runAction
         changeQuantity(batchId, batch.quantity - 1)
     }
 
     /** Detailed mode: set an exact remaining amount (grams, percent, pieces, …). */
-    fun setQuantity(value: Double) = runAction(offerShopping = value <= 0.0) {
+    fun setQuantity(value: Double) = runAction(
+        offerShopping = value <= 0.0,
+        messageRes = R.string.event_quantity_changed,
+    ) {
         changeQuantity(batchId, value)
     }
 
     /** Using it up offers to put the product straight onto the shopping list. */
-    fun markFinished() = runAction(offerShopping = true) { changeQuantity(batchId, 0.0) }
+    fun markFinished() = runAction(offerShopping = true, messageRes = R.string.event_consumed) {
+        changeQuantity(batchId, 0.0)
+    }
 
-    fun discard() = runAction(offerShopping = true) { markStatus(batchId, BatchStatus.DISCARDED) }
-    fun markExpired() = runAction { markStatus(batchId, BatchStatus.EXPIRED) }
-    fun moveTo(locationId: Long) = runAction { moveBatch(batchId, locationId) }
+    fun discard() = runAction(offerShopping = true, messageRes = R.string.event_discarded) {
+        markStatus(batchId, BatchStatus.DISCARDED)
+    }
+
+    fun markExpired() = runAction(messageRes = R.string.event_expired) {
+        markStatus(batchId, BatchStatus.EXPIRED)
+    }
+
+    fun moveTo(locationId: Long) = runAction(messageRes = R.string.event_moved) {
+        moveBatch(batchId, locationId)
+    }
+
+    /** Edits card + batch details (name, brand, category, expiry, note). */
+    fun updateDetails(
+        name: String,
+        brand: String?,
+        category: String?,
+        expirationDate: java.time.LocalDate?,
+        note: String?,
+    ) = runAction(messageRes = R.string.event_updated) {
+        updateItemDetails(
+            UpdateItemDetailsUseCase.Params(
+                batchId = batchId,
+                name = name,
+                brand = brand,
+                category = category,
+                expirationDate = expirationDate,
+                note = note,
+            ),
+        )
+    }
 
     /** Quick action: put this product on the shopping list without writing it off. */
     fun addToShopping() {
@@ -189,13 +229,18 @@ class ProductViewModel @Inject constructor(
         localState.update { it.copy(undoableActionAt = null) }
     }
 
-    private fun runAction(offerShopping: Boolean = false, block: suspend () -> Unit) {
+    private fun runAction(
+        offerShopping: Boolean = false,
+        messageRes: Int? = null,
+        block: suspend () -> Unit,
+    ) {
         viewModelScope.launch {
             runCatching { block() }
                 .onSuccess {
                     localState.update {
                         it.copy(
                             undoableActionAt = clock.now().toEpochMilli(),
+                            actionMessageRes = messageRes,
                             offerShoppingList = offerShopping,
                         )
                     }

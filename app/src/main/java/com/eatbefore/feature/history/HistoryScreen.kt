@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.format.formatDateTime
 import com.eatbefore.domain.model.EventType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,12 +50,18 @@ fun HistoryScreen(
                 title = { Text(stringResource(R.string.history_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = viewModel::undoLast) {
-                        Icon(Icons.AutoMirrored.Outlined.Undo, contentDescription = stringResource(R.string.history_undo_last))
+                        Icon(
+                            Icons.AutoMirrored.Outlined.Undo,
+                            contentDescription = stringResource(R.string.history_undo_last),
+                        )
                     }
                 },
             )
@@ -74,8 +81,12 @@ fun HistoryScreen(
                     label = { Text(stringResource(R.string.history_filter_all)) },
                 )
                 listOf(
-                    EventType.ADDED, EventType.CONSUMED, EventType.DISCARDED,
-                    EventType.MOVED, EventType.OPENED, EventType.RESTORED,
+                    EventType.ADDED,
+                    EventType.CONSUMED,
+                    EventType.DISCARDED,
+                    EventType.MOVED,
+                    EventType.OPENED,
+                    EventType.RESTORED,
                 ).forEach { type ->
                     FilterChip(
                         selected = state.filter == type,
@@ -88,7 +99,21 @@ fun HistoryScreen(
             if (state.events.isEmpty()) {
                 EmptyState(message = stringResource(R.string.history_empty))
             } else {
+                val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+                // Grow the page once the user is within a few rows of the end.
+                val shouldLoadMore by androidx.compose.runtime.remember {
+                    androidx.compose.runtime.derivedStateOf {
+                        val lastVisible = listState.layoutInfo.visibleItemsInfo
+                            .lastOrNull()?.index ?: 0
+                        lastVisible >= listState.layoutInfo.totalItemsCount - 5
+                    }
+                }
+                androidx.compose.runtime.LaunchedEffect(shouldLoadMore) {
+                    if (shouldLoadMore) viewModel.loadMore()
+                }
+
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -103,7 +128,7 @@ fun HistoryScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(eventLabel(event.eventType), style = MaterialTheme.typography.titleMedium)
                                     Text(
-                                        event.createdAt.toString().replace("T", " ").take(16),
+                                        formatDateTime(event.createdAt),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

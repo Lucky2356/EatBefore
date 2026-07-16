@@ -84,7 +84,7 @@ class AddManualProductUseCase @Inject constructor(
             status = BatchStatus.ACTIVE,
             note = note,
             price = params.price,
-            currency = InputValidator.sanitizeText(params.currency, 8),
+            currency = InputValidator.sanitizeText(params.currency, InputValidator.MAX_CURRENCY_LENGTH),
             updatedAt = now,
         )
 

@@ -129,8 +129,14 @@ class ExpiryDateParser @Inject constructor() {
             "best before", "use by", "exp", "bb", "best by", "до",
         )
         val PRODUCTION_LABELS = listOf(
-            "дата изготовления", "изготовлен", "дата производства", "произведено",
-            "mfg", "manufactured", "prod", "packed",
+            "дата изготовления",
+            "изготовлен",
+            "дата производства",
+            "произведено",
+            "mfg",
+            "manufactured",
+            "prod",
+            "packed",
         )
 
         val MONTHS: Map<String, Int> = mapOf(

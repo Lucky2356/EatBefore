@@ -23,12 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.eatbefore.core.designsystem.component.StatusBadge
 import com.eatbefore.core.designsystem.format.formatQuantity
-import com.eatbefore.core.designsystem.format.label
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.domain.model.StorageType
 
@@ -69,11 +70,23 @@ fun InventoryRowCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = row.locationType.icon(),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
+                if (row.imageUri != null) {
+                    // Catalog photo thumbnail; the location icon is the fallback.
+                    coil.compose.AsyncImage(
+                        model = row.imageUri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(14.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                } else {
+                    Icon(
+                        imageVector = row.locationType.icon(),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -82,11 +95,11 @@ fun InventoryRowCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val locationLabel = if (row.locationType == StorageType.OTHER) {
-                    row.locationName
-                } else {
-                    row.locationType.label()
-                }
+                val locationLabel =
+                    com.eatbefore.core.designsystem.format.storageDisplayName(
+                        row.locationName,
+                        row.locationType,
+                    )
                 Text(
                     text = "${formatQuantity(row.quantity, row.unit)} · $locationLabel",
                     style = MaterialTheme.typography.bodyMedium,

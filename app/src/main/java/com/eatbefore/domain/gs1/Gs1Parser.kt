@@ -38,7 +38,8 @@ object Gs1Parser {
     /** Cheap pre-check so plain EAN scans skip GS1 parsing entirely. */
     fun looksLikeGs1(raw: String): Boolean {
         val s = stripPrefix(raw)
-        return s.length >= 16 && s.startsWith("01") &&
+        return s.length >= 16 &&
+            s.startsWith("01") &&
             s.regionMatchesDigits(2, 14) &&
             // A bare 16..18-digit string is more likely a long numeric code than GS1;
             // require either more payload after the GTIN or a known following AI.

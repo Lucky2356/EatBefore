@@ -33,6 +33,9 @@ class HomeViewModel @Inject constructor(
     private val clock: AppClock,
 ) : ViewModel() {
 
+    /** Today per the app clock, for the header date (display-only). */
+    val today: java.time.LocalDate get() = clock.today()
+
     private val expiringFlow = preferences.preferences.flatMapLatest { prefs ->
         val threshold = clock.today().plusDays(prefs.soonThresholdDays.toLong()).toEpochDay()
         inventoryRepository.observeExpiringBefore(threshold)

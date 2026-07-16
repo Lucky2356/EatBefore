@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- English translation. The base (values/) locale is Russian. -->
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_inventory">Inventory</string>
+    <string name="nav_scanner">Scan</string>
+    <string name="nav_shopping">Shopping</string>
+    <string name="nav_more">More</string>
+
+    <!-- Expiry status badges (icon + text; never color alone) -->
+    <string name="status_fresh">Fresh</string>
+    <string name="status_expiring_soon">Expiring soon</string>
+    <string name="status_expires_today">Expires today</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_no_date">No date</string>
+    <string name="status_opened">Opened</string>
+    <string name="status_low_quantity">Running low</string>
+
+    <!-- Remaining time -->
+    <string name="expires_in_days">%1$d days left</string>
+    <string name="expires_today">Expires today</string>
+    <string name="expires_tomorrow">Expires tomorrow</string>
+    <string name="expired_days_ago">Expired %1$d days ago</string>
+
+    <!-- Common states -->
+    <string name="empty_generic_title">Nothing here yet</string>
+    <string name="error_generic_title">Something went wrong</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_back">Back</string>
+    <string name="inventory_sort">Sort</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_add">Add</string>
+
+    <!-- Measurement units (short labels) -->
+    <string name="unit_piece">pcs</string>
+    <string name="unit_gram">g</string>
+    <string name="unit_kilogram">kg</string>
+    <string name="unit_milliliter">ml</string>
+    <string name="unit_liter">l</string>
+    <string name="unit_package">pack</string>
+    <string name="unit_percent">%</string>
+
+    <!-- Storage location types -->
+    <string name="storage_fridge">Fridge</string>
+    <string name="storage_freezer">Freezer</string>
+    <string name="storage_cupboard">Cupboard</string>
+    <string name="storage_pantry">Pantry</string>
+    <string name="storage_other">Other</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_local_title">Your data stays on your device</string>
+    <string name="onboarding_local_body">EatBefore works offline and needs no account. Your food list never leaves your phone.</string>
+    <string name="onboarding_add_title">Scan or add by hand</string>
+    <string name="onboarding_add_body">Scan a barcode or add a product manually in a couple of taps.</string>
+    <string name="onboarding_notify_title">Use it in time</string>
+    <string name="onboarding_notify_body">Reminders tell you what to use first, so you throw away less.</string>
+
+    <!-- Home -->
+    <string name="home_title">Home</string>
+    <string name="home_expiring_section">Expiring soon</string>
+    <string name="home_recent_section">Recently added</string>
+    <string name="home_total_products">Products total: %1$d</string>
+    <string name="home_stat_total">Products at home</string>
+    <string name="home_stat_expiring">Expiring soon</string>
+    <string name="home_quick_scan">Scan</string>
+    <string name="home_quick_add_manual">Add manually</string>
+    <string name="home_quick_shopping">Shopping list</string>
+    <string name="home_quick_expiring">Expiring</string>
+    <string name="home_empty">Add your first product to start tracking.</string>
+
+    <!-- Inventory -->
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_search_hint">Search by name or brand</string>
+    <string name="inventory_all_locations">All places</string>
+    <string name="inventory_empty">Your products will show up here.</string>
+    <string name="inventory_sort_expiry">By expiry</string>
+    <string name="inventory_sort_name">By name</string>
+    <string name="inventory_sort_added">By date added</string>
+
+    <!-- Add manual -->
+    <string name="add_title">Add product</string>
+    <string name="add_name">Name</string>
+    <string name="add_brand">Brand</string>
+    <string name="add_category">Category</string>
+    <string name="add_quantity">Quantity</string>
+    <string name="add_unit">Unit</string>
+    <string name="add_location">Storage place</string>
+    <string name="add_expiration">Expiry date</string>
+    <string name="add_note">Note</string>
+    <string name="add_expiry_today">Today</string>
+    <string name="add_expiry_tomorrow">Tomorrow</string>
+    <string name="add_expiry_3_days">In 3 days</string>
+    <string name="add_expiry_week">In a week</string>
+    <string name="add_expiry_month">In a month</string>
+    <string name="add_expiry_none">No date</string>
+    <string name="add_saved">Product added</string>
+    <string name="add_error_name_required">Enter a name</string>
+
+    <!-- Product card -->
+    <string name="product_quantity">Quantity</string>
+    <string name="product_location">Place</string>
+    <string name="product_expiration">Expiry date</string>
+    <string name="product_opened_at">Opened</string>
+    <string name="product_history">History</string>
+    <string name="product_action_open">Open</string>
+    <string name="product_action_decrement">Use some</string>
+    <string name="product_action_finished">Used up</string>
+    <string name="product_action_discard">Throw away</string>
+    <string name="product_action_move">Move</string>
+    <string name="product_action_edit">Edit</string>
+    <string name="product_action_shopping">To shopping</string>
+    <string name="product_edit_quantity">Change quantity</string>
+
+    <!-- History -->
+    <string name="history_title">History</string>
+    <string name="history_empty">Actions on your products will appear here.</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_action_restore">Restore</string>
+    <string name="history_undo_last">Undo last action</string>
+
+    <!-- Event types (history labels) -->
+    <string name="event_added">Added</string>
+    <string name="event_updated">Edited</string>
+    <string name="event_opened">Opened</string>
+    <string name="event_quantity_changed">Quantity changed</string>
+    <string name="event_moved">Moved</string>
+    <string name="event_consumed">Used</string>
+    <string name="event_discarded">Thrown away</string>
+    <string name="event_expired">Expired</string>
+    <string name="event_restored">Restored</string>
+    <string name="event_added_to_shopping">To shopping list</string>
+    <string name="event_removed_from_shopping">Removed from shopping</string>
+
+    <!-- Shopping list -->
+    <string name="shopping_title">Shopping list</string>
+    <string name="shopping_empty">The list is empty. Add an item or mark a product as used up.</string>
+    <string name="shopping_add">Add to list</string>
+    <string name="shopping_item_name">What to buy</string>
+    <string name="shopping_quantity">Quantity</string>
+    <string name="shopping_no_category">No category</string>
+    <string name="shopping_to_inventory">To inventory</string>
+    <string name="shopping_delete">Delete</string>
+    <string name="shopping_moved">Added to inventory</string>
+    <string name="shopping_added">Added to shopping list</string>
+    <string name="shopping_offer_title">Add to shopping list?</string>
+    <string name="shopping_offer_body">You ran out of “%1$s”. Add it to the shopping list?</string>
+    <string name="shopping_offer_yes">Add</string>
+    <string name="shopping_offer_no">No thanks</string>
+
+    <!-- Analytics -->
+    <string name="analytics_title">Analytics</string>
+    <string name="analytics_period_week">7 days</string>
+    <string name="analytics_period_month">30 days</string>
+    <string name="analytics_period_year">Year</string>
+    <string name="analytics_period_all">All time</string>
+    <string name="analytics_added">Added</string>
+    <string name="analytics_consumed">Used</string>
+    <string name="analytics_discarded">Thrown away</string>
+    <string name="analytics_expired">Expired</string>
+    <string name="analytics_used_in_time">Used in time: %1$d%%</string>
+    <string name="analytics_wasted_by_category">Most wasted categories</string>
+    <string name="analytics_top_products">Regular purchases</string>
+    <string name="analytics_no_category">No category</string>
+    <string name="analytics_empty">No data yet. Add and use products — statistics will show up here.</string>
+
+    <!-- Backup -->
+    <string name="settings_section_data">Data</string>
+    <string name="settings_export">Export backup</string>
+    <string name="settings_export_desc">Save all data to a file</string>
+    <string name="settings_import">Import from file</string>
+    <string name="settings_import_desc">Replace data with the backup contents</string>
+    <string name="backup_export_done">Backup saved</string>
+    <string name="backup_export_error">Could not save the backup</string>
+    <string name="backup_import_done">Data restored</string>
+    <string name="backup_import_error">The file is damaged or unsupported</string>
+    <string name="backup_import_confirm_title">Replace data?</string>
+    <string name="backup_import_confirm_body">Your current products, history and shopping list will be replaced with the file contents. This cannot be undone.</string>
+    <string name="backup_import_confirm_yes">Replace</string>
+
+    <!-- More tab -->
+    <string name="more_history_desc">All actions on products, undo and restore</string>
+    <string name="more_analytics_desc">Statistics, reports and weekly trend</string>
+    <string name="more_settings_desc">Theme, notifications, backups</string>
+
+    <!-- Scanner -->
+    <string name="scanner_title">Scanning</string>
+    <string name="scanner_hint">Point the camera at a barcode or QR code</string>
+    <string name="scanner_torch">Flashlight</string>
+    <string name="scanner_manual">Enter code manually</string>
+    <string name="scanner_manual_hint">Barcode</string>
+    <string name="scanner_permission_rationale">Scanning needs camera access. It is only used to read codes on your device.</string>
+    <string name="scanner_permission_grant">Allow camera</string>
+    <string name="scanner_permission_denied">Camera access is denied. Allow it in settings or add the product manually.</string>
+    <string name="scanner_open_settings">Open settings</string>
+    <string name="scanner_looking">Looking up the product…</string>
+    <string name="scanner_found_title">Product found</string>
+    <string name="scanner_found_network">Data from an external catalog — check it before saving.</string>
+    <string name="scanner_not_found_title">Product not found</string>
+    <string name="scanner_not_found_body">Code %1$s was not found. Add the product manually?</string>
+    <string name="scanner_error_title">Could not fetch data</string>
+    <string name="scanner_error_body">No connection to the catalog. You can add the product manually.</string>
+    <string name="scanner_add_one">Add a package</string>
+    <string name="scanner_details">Details</string>
+    <string name="scanner_add_manual">Add manually</string>
+    <string name="scanner_added">Package added</string>
+    <string name="scanner_open_added">Open</string>
+    <string name="scanner_scan_again">Scan again</string>
+    <string name="scanner_expiry_from_code">Expiry from code: %1$s</string>
+
+    <!-- OCR -->
+    <string name="ocr_title">Scan expiry date</string>
+    <string name="ocr_hint">Point the camera at the date on the package and take a photo</string>
+    <string name="ocr_capture">Take a photo</string>
+    <string name="ocr_recognizing">Recognizing…</string>
+    <string name="ocr_recognized_text">Recognized text</string>
+    <string name="ocr_pick_date">Pick the recognized date:</string>
+    <string name="ocr_confidence">confidence %1$d%%</string>
+    <string name="ocr_none_title">No date recognized</string>
+    <string name="ocr_none_body">Could not read a date. Take another photo or enter it manually.</string>
+    <string name="ocr_retry">Take another photo</string>
+    <string name="ocr_enter_manually">Enter manually</string>
+    <string name="ocr_from_photo">Scan from photo</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Expiry dates</string>
+    <string name="notif_channel_desc">Reminders about products that are about to expire</string>
+    <string name="notif_title">Check your products</string>
+    <plurals name="notif_summary">
+        <item quantity="one">%1$d product needs your attention today</item>
+        <item quantity="other">%1$d products need your attention today</item>
+    </plurals>
+    <string name="notif_line_expired">Expired: %1$d</string>
+    <string name="notif_line_today">Expiring today: %1$d</string>
+    <string name="notif_line_soon">Expiring soon: %1$d</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_enabled">Expiry reminders</string>
+    <string name="settings_notifications_desc">A daily reminder about products that are about to expire</string>
+    <string name="settings_notification_time">Reminder time</string>
+    <string name="settings_soon_days">Warn this many days ahead</string>
+    <string name="settings_soon_days_value">%1$d days</string>
+    <string name="settings_quiet_hours">Quiet hours</string>
+    <string name="settings_quiet_hours_desc">Do not notify during this interval</string>
+    <string name="settings_quiet_from">From</string>
+    <string name="settings_quiet_to">to</string>
+    <string name="settings_permission_needed">Allow notifications to get reminders</string>
+    <string name="settings_grant_permission">Allow</string>
+
+    <!-- Settings: appearance -->
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_colors">Dynamic colors</string>
+    <string name="settings_dynamic_colors_desc">Palette from your wallpaper (Material You)</string>
+
+    <!-- Settings: inventory -->
+    <string name="settings_section_inventory">Inventory</string>
+    <string name="settings_default_location">Default storage place</string>
+    <string name="settings_detailed_quantity">Precise quantity mode</string>
+    <string name="settings_detailed_quantity_desc">“Use some” asks for the exact amount left instead of −1</string>
+
+    <!-- Storage locations management -->
+    <string name="locations_title">Storage places</string>
+    <string name="locations_manage_desc">Add your own place, rename, hide</string>
+    <string name="locations_add">Add place</string>
+    <string name="locations_name">Name</string>
+    <string name="locations_rename">Rename</string>
+    <string name="locations_archive">Hide</string>
+    <string name="locations_make_default">Make default</string>
+    <string name="locations_default_badge">Default</string>
+    <string name="locations_actions">Place actions</string>
+
+    <!-- Product edit -->
+    <string name="product_edit_title">Edit product</string>
+    <string name="product_edit_pick_date">Pick a date</string>
+
+    <!-- Settings: about -->
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_about_privacy">Data is stored on your device only. No ads, no trackers.</string>
+
+    <!-- Analytics: report extensions -->
+    <string name="analytics_share">Share report</string>
+    <string name="analytics_trend">Weekly trend</string>
+    <string name="analytics_trend_added">Added</string>
+    <string name="analytics_trend_wasted">Wasted</string>
+    <string name="analytics_by_location">Currently in stock</string>
+    <string name="analytics_report_title">EatBefore report</string>
+    <string name="analytics_report_period">Period: %1$s</string>
+</resources>

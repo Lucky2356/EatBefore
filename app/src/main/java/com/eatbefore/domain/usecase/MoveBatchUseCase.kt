@@ -10,10 +10,7 @@ import javax.inject.Inject
  * Moves a batch to a different storage location, recording the previous and new location
  * in a MOVED event. No-op if the location is unchanged.
  */
-class MoveBatchUseCase @Inject constructor(
-    private val inventoryRepository: InventoryRepository,
-    private val clock: AppClock,
-) {
+class MoveBatchUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
 
     suspend operator fun invoke(batchId: Long, newStorageLocationId: Long) {
         require(newStorageLocationId > 0) { "newStorageLocationId is required" }

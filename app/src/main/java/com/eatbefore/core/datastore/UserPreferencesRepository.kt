@@ -33,9 +33,7 @@ data class UserPreferences(
 )
 
 @Singleton
-class UserPreferencesRepository @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-) {
+class UserPreferencesRepository @Inject constructor(private val dataStore: DataStore<Preferences>) {
     val preferences: Flow<UserPreferences> = dataStore.data.map { prefs ->
         UserPreferences(
             onboardingCompleted = prefs[KEY_ONBOARDING] ?: false,

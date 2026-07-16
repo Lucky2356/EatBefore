@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class ProductRepositoryImpl @Inject constructor(
-    private val productDao: ProductDao,
-) : ProductRepository {
+class ProductRepositoryImpl @Inject constructor(private val productDao: ProductDao) : ProductRepository {
 
     override suspend fun getById(id: Long): Product? = productDao.getById(id)?.toDomain()
 
@@ -24,13 +22,11 @@ class ProductRepositoryImpl @Inject constructor(
     override suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product? =
         productDao.findUserProductByNameAndBrand(name, brand)?.toDomain()
 
-    override suspend fun upsert(product: Product): Long {
-        return if (product.id == 0L) {
-            productDao.insert(product.toEntity())
-        } else {
-            productDao.update(product.toEntity())
-            product.id
-        }
+    override suspend fun upsert(product: Product): Long = if (product.id == 0L) {
+        productDao.insert(product.toEntity())
+    } else {
+        productDao.update(product.toEntity())
+        product.id
     }
 
     override fun observeAll(): Flow<List<Product>> =
