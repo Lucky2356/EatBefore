@@ -30,10 +30,15 @@ data class ShoppingRowUi(
     val isCompleted: Boolean,
 )
 
+/** A product the household buys regularly, offered for one-tap re-adding. */
+data class FrequentProductUi(val productId: Long, val name: String)
+
 data class ShoppingUiState(
     val isLoading: Boolean = true,
     /** Rows grouped by category, categories sorted, unbought items first inside a group. */
     val groups: List<Pair<String?, List<ShoppingRowUi>>> = emptyList(),
+    /** Repeat purchases not already on the list. */
+    val frequent: List<FrequentProductUi> = emptyList(),
 )
 
 @HiltViewModel
@@ -52,7 +57,8 @@ class ShoppingViewModel @Inject constructor(
     val uiState: StateFlow<ShoppingUiState> = combine(
         shoppingListRepository.observeAll(),
         productRepository.observeAll(),
-    ) { items, products ->
+        productRepository.observeFrequent(),
+    ) { items, products, frequent ->
         val byId = products.associateBy { it.id }
         val rows = items.map { item ->
             val product = item.productId?.let(byId::get)
@@ -74,7 +80,15 @@ class ShoppingViewModel @Inject constructor(
                     compareBy<ShoppingRowUi> { it.isCompleted }.thenBy { it.title.lowercase() },
                 )
             }
-        ShoppingUiState(isLoading = false, groups = groups)
+        // Don't suggest what is already on the list.
+        val onList = items.filter { !it.isCompleted }.mapNotNull { it.productId }.toSet()
+        ShoppingUiState(
+            isLoading = false,
+            groups = groups,
+            frequent = frequent
+                .filter { it.id !in onList }
+                .map { FrequentProductUi(productId = it.id, name = it.name) },
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -93,6 +107,14 @@ class ShoppingViewModel @Inject constructor(
                     ),
                 )
             }
+        }
+    }
+
+    /** One-tap re-add of a regular purchase. */
+    fun addFrequent(productId: Long) {
+        viewModelScope.launch {
+            runCatching { addToShoppingList(AddToShoppingListUseCase.Params(productId = productId)) }
+                .onSuccess { _message.value = com.eatbefore.R.string.shopping_added }
         }
     }
 

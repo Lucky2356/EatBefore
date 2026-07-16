@@ -37,7 +37,7 @@ class UpdateItemDetailsUseCase @Inject constructor(
             ?: throw IllegalArgumentException("Unknown product ${batch.productId}")
         val now = clock.now()
 
-        val name = InputValidator.requireText(params.name, InputValidator.MAX_NAME_LENGTH, "name")
+        val name = InputValidator.normalizeProductName(params.name)
         val brand = InputValidator.sanitizeText(params.brand, InputValidator.MAX_BRAND_LENGTH)
         val category = InputValidator.sanitizeText(params.category, InputValidator.MAX_CATEGORY_LENGTH)
         val note = InputValidator.sanitizeText(params.note, InputValidator.MAX_NOTE_LENGTH)

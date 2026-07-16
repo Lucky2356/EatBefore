@@ -2,10 +2,13 @@ package com.eatbefore.feature.shopping
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -14,6 +17,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -72,7 +76,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
         },
     ) { padding ->
         val isEmpty = state.groups.isEmpty()
-        if (!state.isLoading && isEmpty) {
+        if (!state.isLoading && isEmpty && state.frequent.isEmpty()) {
             EmptyState(
                 message = stringResource(R.string.shopping_empty),
                 modifier = Modifier.padding(padding),
@@ -83,6 +87,26 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                if (state.frequent.isNotEmpty()) {
+                    item(key = "frequent") {
+                        FrequentSection(
+                            frequent = state.frequent,
+                            onAdd = viewModel::addFrequent,
+                        )
+                    }
+                }
+
+                if (isEmpty) {
+                    item(key = "empty") {
+                        Text(
+                            stringResource(R.string.shopping_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 24.dp),
+                        )
+                    }
+                }
+
                 state.groups.forEach { (category, rows) ->
                     item(key = "header-${category ?: "none"}") {
                         Text(
@@ -153,6 +177,41 @@ private fun ShoppingRow(
     }
 }
 
+/**
+ * Regular purchases as one-tap chips. The data already exists in history — this just
+ * saves the user from retyping "молоко" every week.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FrequentSection(
+    frequent: List<FrequentProductUi>,
+    onAdd: (Long) -> Unit,
+) {
+    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+        Text(
+            stringResource(R.string.shopping_frequent),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            frequent.forEach { product ->
+                AssistChip(
+                    onClick = { onAdd(product.productId) },
+                    label = { Text(product.name, maxLines = 1) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun AddItemDialog(
     onAdd: (String, Double, MeasurementUnit) -> Unit,
@@ -170,6 +229,9 @@ private fun AddItemDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.shopping_item_name)) },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+                    ),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )

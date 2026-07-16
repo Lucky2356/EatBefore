@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -95,6 +96,8 @@ fun AddManualScreen(
                     null
                 },
                 singleLine = true,
+                // Product names read as sentences ("Молоко 3,5 %"), so start capitalized.
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -102,6 +105,7 @@ fun AddManualScreen(
                 onValueChange = viewModel::onBrand,
                 label = { Text(stringResource(R.string.add_brand)) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
             )
 

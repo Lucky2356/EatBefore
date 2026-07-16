@@ -36,6 +36,20 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = md_light_surfaceVariant,
     onSurfaceVariant = md_light_onSurfaceVariant,
     outline = md_light_outline,
+    outlineVariant = md_light_outlineVariant,
+    // Container roles must be set explicitly, otherwise cards render in Material's
+    // baseline purple on top of these green surfaces.
+    surfaceDim = md_light_surfaceDim,
+    surfaceBright = md_light_surfaceBright,
+    surfaceContainerLowest = md_light_surfaceContainerLowest,
+    surfaceContainerLow = md_light_surfaceContainerLow,
+    surfaceContainer = md_light_surfaceContainer,
+    surfaceContainerHigh = md_light_surfaceContainerHigh,
+    surfaceContainerHighest = md_light_surfaceContainerHighest,
+    inverseSurface = md_light_inverseSurface,
+    inverseOnSurface = md_light_inverseOnSurface,
+    inversePrimary = md_light_inversePrimary,
+    scrim = md_light_scrim,
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -62,6 +76,18 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = md_dark_surfaceVariant,
     onSurfaceVariant = md_dark_onSurfaceVariant,
     outline = md_dark_outline,
+    outlineVariant = md_dark_outlineVariant,
+    surfaceDim = md_dark_surfaceDim,
+    surfaceBright = md_dark_surfaceBright,
+    surfaceContainerLowest = md_dark_surfaceContainerLowest,
+    surfaceContainerLow = md_dark_surfaceContainerLow,
+    surfaceContainer = md_dark_surfaceContainer,
+    surfaceContainerHigh = md_dark_surfaceContainerHigh,
+    surfaceContainerHighest = md_dark_surfaceContainerHighest,
+    inverseSurface = md_dark_inverseSurface,
+    inverseOnSurface = md_dark_inverseOnSurface,
+    inversePrimary = md_dark_inversePrimary,
+    scrim = md_dark_scrim,
 )
 
 /** Provides semantic expiry-status colors to the composition tree. */

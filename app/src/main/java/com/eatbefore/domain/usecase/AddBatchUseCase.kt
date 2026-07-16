@@ -9,6 +9,7 @@ import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.shelflife.OpeningShelfLife
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -43,6 +44,10 @@ class AddBatchUseCase @Inject constructor(
 
         val now = clock.now()
         val unit = params.measurementUnit ?: product.measurementUnit
+        // Fall back to a rule of thumb for the product group ("opened milk — 3 days");
+        // it only ever shortens shelf life and stays editable on the batch.
+        val afterOpeningDays = params.recommendedUseAfterOpeningDays
+            ?: OpeningShelfLife.suggestDays(product.name, product.category)
         val batch = InventoryBatch(
             productId = params.productId,
             storageLocationId = params.storageLocationId,
@@ -51,7 +56,7 @@ class AddBatchUseCase @Inject constructor(
             measurementUnit = unit,
             addedAt = now,
             expirationDate = params.expirationDate,
-            recommendedUseAfterOpeningDays = params.recommendedUseAfterOpeningDays,
+            recommendedUseAfterOpeningDays = afterOpeningDays,
             status = BatchStatus.ACTIVE,
             note = InputValidator.sanitizeText(params.note, InputValidator.MAX_NOTE_LENGTH),
             price = params.price,

@@ -41,7 +41,9 @@ class AddToShoppingListUseCase @Inject constructor(
         require(params.productId != null || !params.customName.isNullOrBlank()) {
             "Either productId or customName is required"
         }
-        val name = InputValidator.sanitizeText(params.customName, InputValidator.MAX_NAME_LENGTH)
+        // Free-typed entries become product names when moved to stock, so capitalize here too.
+        val name = params.customName
+            ?.let { InputValidator.normalizeProductName(it, field = "customName") }
         val quantity = InputValidator.clampQuantity(params.quantity).coerceAtLeast(1.0)
         val now = clock.now()
 

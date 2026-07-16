@@ -39,4 +39,14 @@ object InputValidator {
     /** A barcode is treated purely as opaque data — never executed or interpreted. */
     fun sanitizeBarcode(input: String?): String? =
         sanitizeText(input, MAX_BARCODE_LENGTH)?.filterNot { it.isWhitespace() }
+
+    /**
+     * Sanitizes a user-entered product name and capitalizes its first letter, so "молоко"
+     * is stored as "Молоко". Only the first character is touched — uppercasing more would
+     * mangle names like "iPhone" or "eggs (M)". Catalog names are *not* passed through
+     * here: they are stored as published.
+     */
+    fun normalizeProductName(input: String?, field: String = "name"): String =
+        requireText(input, MAX_NAME_LENGTH, field)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 }

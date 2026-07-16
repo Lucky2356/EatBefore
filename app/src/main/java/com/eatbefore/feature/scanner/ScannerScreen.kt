@@ -303,6 +303,13 @@ private fun ScanResultDialog(
                             modifier = Modifier.padding(top = 8.dp),
                         )
                     }
+                    // The manual entry is not wasted work — say so up front.
+                    Text(
+                        stringResource(R.string.scanner_remembered_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
                 }
             },
             confirmButton = {

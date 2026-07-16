@@ -10,4 +10,10 @@ interface ProductRepository {
     suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product?
     suspend fun upsert(product: Product): Long
     fun observeAll(): Flow<List<Product>>
+
+    /**
+     * Most frequently added products (repeat purchases), most frequent first. Only
+     * products added at least [minTimes] times qualify, so one-off buys don't show up.
+     */
+    fun observeFrequent(limit: Int = 6, minTimes: Int = 2): Flow<List<Product>>
 }

@@ -21,8 +21,11 @@ data class UserPreferences(
     val soonThresholdDays: Int = DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
     val detailedQuantityMode: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    /** Material You palette from the wallpaper (Android 12+). */
-    val dynamicColors: Boolean = true,
+    /**
+     * Material You palette from the wallpaper (Android 12+). Off by default so the app
+     * shows its own food-themed green identity; users can opt into Material You.
+     */
+    val dynamicColors: Boolean = false,
     val notificationsEnabled: Boolean = true,
     /** Local time of day for the daily expiry check (24h). */
     val notificationHour: Int = 9,
@@ -43,7 +46,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             themeMode = prefs[KEY_THEME_MODE]
                 ?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } }
                 ?: ThemeMode.SYSTEM,
-            dynamicColors = prefs[KEY_DYNAMIC_COLORS] ?: true,
+            dynamicColors = prefs[KEY_DYNAMIC_COLORS] ?: false,
             notificationsEnabled = prefs[KEY_NOTIF_ENABLED] ?: true,
             notificationHour = prefs[KEY_NOTIF_HOUR] ?: 9,
             notificationMinute = prefs[KEY_NOTIF_MINUTE] ?: 0,

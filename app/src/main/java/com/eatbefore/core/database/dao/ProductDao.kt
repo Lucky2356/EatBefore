@@ -37,6 +37,18 @@ interface ProductDao {
     @Query("SELECT * FROM products ORDER BY name COLLATE NOCASE ASC")
     fun observeAll(): Flow<List<ProductEntity>>
 
+    /**
+     * Products the household buys most often, by how many times they were added.
+     * Backs one-tap repeat purchases, so it counts history rather than current stock.
+     */
+    @Query(
+        "SELECT p.* FROM products p " +
+            "JOIN inventory_events e ON e.product_id = p.id AND e.event_type = 'ADDED' " +
+            "GROUP BY p.id HAVING COUNT(e.id) >= :minTimes " +
+            "ORDER BY COUNT(e.id) DESC, MAX(e.created_at) DESC LIMIT :limit",
+    )
+    fun observeFrequent(limit: Int, minTimes: Int): Flow<List<ProductEntity>>
+
     // Backup/export support.
     @Query("SELECT * FROM products")
     suspend fun getAll(): List<ProductEntity>

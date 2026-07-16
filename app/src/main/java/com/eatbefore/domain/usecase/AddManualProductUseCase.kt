@@ -12,6 +12,7 @@ import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.shelflife.OpeningShelfLife
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -44,7 +45,7 @@ class AddManualProductUseCase @Inject constructor(
     )
 
     suspend operator fun invoke(params: Params): Long {
-        val name = InputValidator.requireText(params.name, InputValidator.MAX_NAME_LENGTH, "name")
+        val name = InputValidator.normalizeProductName(params.name)
         val brand = InputValidator.sanitizeText(params.brand, InputValidator.MAX_BRAND_LENGTH)
         val category =
             InputValidator.sanitizeText(params.category, InputValidator.MAX_CATEGORY_LENGTH)
@@ -80,7 +81,9 @@ class AddManualProductUseCase @Inject constructor(
             measurementUnit = params.measurementUnit,
             addedAt = now,
             expirationDate = params.expirationDate,
-            recommendedUseAfterOpeningDays = params.recommendedUseAfterOpeningDays,
+            // Rule of thumb for the product group when the caller has nothing better.
+            recommendedUseAfterOpeningDays = params.recommendedUseAfterOpeningDays
+                ?: OpeningShelfLife.suggestDays(name, category),
             status = BatchStatus.ACTIVE,
             note = note,
             price = params.price,

@@ -31,4 +31,7 @@ class ProductRepositoryImpl @Inject constructor(private val productDao: ProductD
 
     override fun observeAll(): Flow<List<Product>> =
         productDao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
+        productDao.observeFrequent(limit, minTimes).map { list -> list.map { it.toDomain() } }
 }

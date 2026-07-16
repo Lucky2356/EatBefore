@@ -43,6 +43,9 @@ class FakeProductRepository(private val products: MutableMap<Long, Product> = mu
 
     override fun observeAll(): Flow<List<Product>> = flowOf(products.values.toList())
 
+    override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
+        flowOf(products.values.take(limit))
+
     fun observeAllCount(): Int = products.size
 }
 

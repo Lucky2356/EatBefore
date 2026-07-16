@@ -28,6 +28,21 @@ internal val md_light_onSurface = Color(0xFF181D19)
 internal val md_light_surfaceVariant = Color(0xFFDCE5DC)
 internal val md_light_onSurfaceVariant = Color(0xFF404943)
 internal val md_light_outline = Color(0xFF707973)
+internal val md_light_outlineVariant = Color(0xFFC0C9C0)
+
+// Tonal container roles (cards, sheets, bars). Without these, Material falls back to its
+// baseline purple set, which clashes badly with the green surfaces above.
+internal val md_light_surfaceDim = Color(0xFFD7DBD5)
+internal val md_light_surfaceBright = Color(0xFFF6FBF4)
+internal val md_light_surfaceContainerLowest = Color(0xFFFFFFFF)
+internal val md_light_surfaceContainerLow = Color(0xFFF0F5EE)
+internal val md_light_surfaceContainer = Color(0xFFEAF0E8)
+internal val md_light_surfaceContainerHigh = Color(0xFFE5EAE3)
+internal val md_light_surfaceContainerHighest = Color(0xFFDFE4DD)
+internal val md_light_inverseSurface = Color(0xFF2D322D)
+internal val md_light_inverseOnSurface = Color(0xFFEEF2EB)
+internal val md_light_inversePrimary = Color(0xFF99D5B3)
+internal val md_light_scrim = Color(0xFF000000)
 
 internal val md_dark_primary = Color(0xFF99D5B3)
 internal val md_dark_onPrimary = Color(0xFF00391D)
@@ -52,6 +67,19 @@ internal val md_dark_onSurface = Color(0xFFDFE4DD)
 internal val md_dark_surfaceVariant = Color(0xFF404943)
 internal val md_dark_onSurfaceVariant = Color(0xFFC0C9C1)
 internal val md_dark_outline = Color(0xFF8A938C)
+internal val md_dark_outlineVariant = Color(0xFF404943)
+
+internal val md_dark_surfaceDim = Color(0xFF101511)
+internal val md_dark_surfaceBright = Color(0xFF353B36)
+internal val md_dark_surfaceContainerLowest = Color(0xFF0B0F0C)
+internal val md_dark_surfaceContainerLow = Color(0xFF181D19)
+internal val md_dark_surfaceContainer = Color(0xFF1C211D)
+internal val md_dark_surfaceContainerHigh = Color(0xFF262B27)
+internal val md_dark_surfaceContainerHighest = Color(0xFF313632)
+internal val md_dark_inverseSurface = Color(0xFFDFE4DD)
+internal val md_dark_inverseOnSurface = Color(0xFF2D322D)
+internal val md_dark_inversePrimary = Color(0xFF2E7D5B)
+internal val md_dark_scrim = Color(0xFF000000)
 
 // Semantic status colors for expiry states, used by StatusBadge. Each status is also
 // paired with an icon + label so meaning is never conveyed by color alone.

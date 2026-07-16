@@ -118,6 +118,13 @@
     <string name="product_action_edit">Изменить</string>
     <string name="product_action_shopping">В покупки</string>
     <string name="product_edit_quantity">Изменить количество</string>
+    <string name="product_more_actions">Ещё действия</string>
+    <plurals name="product_after_opening_hint">
+        <item quantity="one">После вскрытия — использовать за %1$d день</item>
+        <item quantity="few">После вскрытия — использовать за %1$d дня</item>
+        <item quantity="many">После вскрытия — использовать за %1$d дней</item>
+        <item quantity="other">После вскрытия — использовать за %1$d дня</item>
+    </plurals>
 
     <!-- History -->
     <string name="history_title">История</string>
@@ -146,6 +153,7 @@
     <string name="shopping_item_name">Что купить</string>
     <string name="shopping_quantity">Количество</string>
     <string name="shopping_no_category">Без категории</string>
+    <string name="shopping_frequent">Частые покупки</string>
     <string name="shopping_to_inventory">В запасы</string>
     <string name="shopping_delete">Удалить</string>
     <string name="shopping_moved">Добавлено в запасы</string>
@@ -203,10 +211,11 @@
     <string name="scanner_looking">Ищем товар…</string>
     <string name="scanner_found_title">Товар найден</string>
     <string name="scanner_found_network">Данные из внешнего каталога — проверьте перед сохранением.</string>
-    <string name="scanner_not_found_title">Товар не найден</string>
-    <string name="scanner_not_found_body">Код %1$s не найден. Добавить продукт вручную?</string>
-    <string name="scanner_error_title">Не удалось получить данные</string>
-    <string name="scanner_error_body">Нет связи с каталогом. Можно добавить продукт вручную.</string>
+    <string name="scanner_not_found_title">Товара нет в каталоге</string>
+    <string name="scanner_not_found_body">Код %1$s не найден. Каталог знает не все российские товары.</string>
+    <string name="scanner_remembered_hint">Добавьте название один раз — при следующем сканировании товар подставится сам, даже без интернета.</string>
+    <string name="scanner_error_title">Нет связи с каталогом</string>
+    <string name="scanner_error_body">Не удалось получить данные. Можно добавить продукт вручную — код уже подставлен.</string>
     <string name="scanner_add_one">Добавить упаковку</string>
     <string name="scanner_details">Подробнее</string>
     <string name="scanner_add_manual">Добавить вручную</string>

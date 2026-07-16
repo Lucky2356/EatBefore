@@ -48,6 +48,7 @@ style:
       - '**/androidTest/**'
       - '**/domain/gs1/**'
       - '**/domain/ocr/**'
+      - '**/domain/shelflife/**'
       - '**/di/**'
       - '**/core/datastore/**'
       - '**/data/catalog/**'

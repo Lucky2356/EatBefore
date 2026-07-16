@@ -53,7 +53,7 @@ fun EatBeforeApp(
 
         else -> isSystemInDarkTheme()
     }
-    val dynamicColor = (rootState as? RootState.Ready)?.dynamicColors ?: true
+    val dynamicColor = (rootState as? RootState.Ready)?.dynamicColors ?: false
 
     EatBeforeTheme(darkTheme = darkTheme, dynamicColor = dynamicColor) {
         Surface(modifier = Modifier.fillMaxSize()) {
