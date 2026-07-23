@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.ocr.camera.OcrCameraView
 import com.eatbefore.feature.ocr.camera.takePhoto
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -87,7 +88,7 @@ fun OcrScreen(
 
                 state.isRecognizing -> Centered {
                     CircularProgressIndicator()
-                    Text(stringResource(R.string.ocr_recognizing), modifier = Modifier.padding(top = 12.dp))
+                    Text(stringResource(R.string.ocr_recognizing), modifier = Modifier.padding(top = Dimens.spaceMd))
                 }
 
                 state.hasResult -> OcrResultContent(
@@ -126,12 +127,12 @@ private fun CaptureContent(onCaptureReady: (ImageCapture) -> Unit, onShutter: ()
                 text = stringResource(R.string.ocr_hint),
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
             )
         }
         FloatingActionButton(
             onClick = onShutter,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(24.dp).size(72.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(Dimens.spaceXl).size(72.dp),
             shape = CircleShape,
         ) {
             Icon(Icons.Filled.CameraAlt, contentDescription = stringResource(R.string.ocr_capture))
@@ -148,8 +149,8 @@ private fun OcrResultContent(
     onManual: () -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Dimens.spaceLg),
+        verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
     ) {
         if (state.candidates.isEmpty()) {
             Text(stringResource(R.string.ocr_none_title), style = MaterialTheme.typography.titleLarge)
@@ -159,7 +160,7 @@ private fun OcrResultContent(
             )
         } else {
             Text(stringResource(R.string.ocr_pick_date), style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
                 state.candidates.forEach { candidate ->
                     AssistChip(
                         onClick = { onPick(candidate.date) },
@@ -190,7 +191,7 @@ private fun OcrResultContent(
                 Text(
                     state.rawText,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(Dimens.spaceMd),
                 )
             }
         }
@@ -207,7 +208,7 @@ private fun OcrResultContent(
 @Composable
 private fun PermissionPrompt(onGrant: () -> Unit, onManual: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier.fillMaxSize().padding(Dimens.spaceXxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -215,10 +216,10 @@ private fun PermissionPrompt(onGrant: () -> Unit, onManual: () -> Unit) {
             stringResource(R.string.scanner_permission_rationale),
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onGrant, modifier = Modifier.padding(top = 16.dp)) {
+        Button(onClick = onGrant, modifier = Modifier.padding(top = Dimens.spaceLg)) {
             Text(stringResource(R.string.scanner_permission_grant))
         }
-        OutlinedButton(onClick = onManual, modifier = Modifier.padding(top = 8.dp)) {
+        OutlinedButton(onClick = onManual, modifier = Modifier.padding(top = Dimens.spaceSm)) {
             Text(stringResource(R.string.ocr_enter_manually))
         }
     }

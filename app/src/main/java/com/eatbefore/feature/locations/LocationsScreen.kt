@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -26,10 +25,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,12 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.label
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.model.StorageType
 
@@ -58,20 +56,9 @@ fun LocationsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<StorageLocation?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.locations_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-            )
-        },
+    ScreenScaffold(
+        title = stringResource(R.string.locations_title),
+        onBack = onBack,
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.locations_add))
@@ -80,8 +67,8 @@ fun LocationsScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             items(locations, key = { it.id }) { location ->
                 LocationCard(
@@ -133,7 +120,7 @@ private fun LocationCard(
         ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -206,7 +193,7 @@ private fun AddLocationDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.locations_add)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -218,7 +205,7 @@ private fun AddLocationDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     StorageType.entries.forEach { candidate ->
                         FilterChip(

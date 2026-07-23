@@ -336,6 +336,32 @@
     <string name="product_edit_pick_date">Выбрать дату</string>
 
     <!-- Settings: about -->
+    <string name="product_discard_confirm_title">Выбросить продукт?</string>
+    <string name="product_discard_confirm_message">Партия будет списана как выброшенная и попадёт в статистику потерь. Действие можно отменить в истории.</string>
+
+    <string name="settings_section_catalog">Каталог товаров</string>
+    <string name="settings_catalog_desc">Поиск идёт по открытым базам Open Food Facts: продукты, косметика, бытовая химия и корма. Российских товаров там мало — если вы добавите неизвестный товар и отправите его в базу, он появится у всех.</string>
+    <string name="settings_off_account">Аккаунт Open Food Facts</string>
+    <string name="settings_off_account_none">Не привязан — отправка товаров недоступна</string>
+    <string name="settings_off_account_linked">Привязан: %1$s</string>
+    <string name="settings_off_account_unlink">Отвязать</string>
+    <string name="settings_off_account_help">Нужен бесплатный аккаунт на openfoodfacts.org: база не принимает анонимные записи. Пароль хранится в зашифрованном виде на устройстве.</string>
+    <string name="settings_off_username">Имя пользователя</string>
+    <string name="settings_off_password">Пароль</string>
+    <string name="settings_off_password_show">Показать пароль</string>
+    <string name="settings_off_password_hide">Скрыть пароль</string>
+    <string name="settings_off_saved">Аккаунт сохранён</string>
+    <string name="settings_off_removed">Аккаунт отвязан</string>
+
+    <string name="contribute_title">Отправить товар в общую базу?</string>
+    <string name="contribute_message">Товара «%1$s» нет в открытом каталоге. Если отправить его, штрихкод начнёт распознаваться у всех — и у вас на другом телефоне.\n\nУйдут только штрихкод, название, бренд и объём. Ваши запасы, сроки и места хранения не отправляются.</string>
+    <string name="contribute_action">Отправить</string>
+    <string name="contribute_skip">Не отправлять</string>
+    <string name="contribute_setup">Товар можно отправить в общую базу — привяжите аккаунт Open Food Facts в настройках</string>
+    <string name="contribute_success">Спасибо! Товар отправлен в общую базу</string>
+    <string name="contribute_auth_failed">Каталог не принял логин или пароль — проверьте их в настройках</string>
+    <string name="contribute_failed">Не удалось отправить товар. Попробуйте позже</string>
+
     <string name="settings_section_about">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_about_privacy">Данные хранятся только на устройстве. Без рекламы и трекеров.</string>

@@ -1,17 +1,26 @@
 package com.eatbefore.core.backup
 
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.eatbefore.core.database.EatBeforeDatabase
 import com.eatbefore.core.database.entity.InventoryBatchEntity
 import com.eatbefore.core.database.entity.ProductEntity
 import com.eatbefore.core.database.entity.StorageLocationEntity
+import com.eatbefore.core.datastore.ThemeMode
+import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.security.SecretCipher
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.StorageType
 import com.eatbefore.testutil.FakeAppClock
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.After
@@ -21,12 +30,16 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class BackupManagerTest {
 
     private lateinit var db: EatBeforeDatabase
     private lateinit var manager: BackupManager
+    private lateinit var preferences: UserPreferencesRepository
+    private lateinit var prefsFile: File
+    private val prefsScope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
 
     @Before
     fun setUp() {
@@ -34,11 +47,22 @@ class BackupManagerTest {
         db = Room.inMemoryDatabaseBuilder(context, EatBeforeDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        manager = BackupManager(db, Json { ignoreUnknownKeys = true }, FakeAppClock())
+        // A real repository over a throwaway DataStore file: the backup carries settings,
+        // so a stub would not exercise the round-trip.
+        prefsFile = File.createTempFile("prefs", ".preferences_pb").also { it.delete() }
+        preferences = UserPreferencesRepository(
+            dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile },
+            secretCipher = SecretCipher(),
+        )
+        manager = BackupManager(db, Json { ignoreUnknownKeys = true }, FakeAppClock(), preferences)
     }
 
     @After
-    fun tearDown() = db.close()
+    fun tearDown() {
+        db.close()
+        prefsScope.cancel()
+        prefsFile.delete()
+    }
 
     private suspend fun seed() {
         db.storageLocationDao().insert(
@@ -124,13 +148,66 @@ class BackupManagerTest {
     @Test
     fun unsupportedVersion_isRejected() = runTest {
         seed()
-        val json = manager.export().replaceFirst("\"schemaVersion\":1", "\"schemaVersion\":99")
+        val json = manager.export().replaceFirst(
+            "\"schemaVersion\":${BackupFile.CURRENT_SCHEMA_VERSION}",
+            "\"schemaVersion\":99",
+        )
         try {
             manager.import(json)
             throw AssertionError("Expected IllegalArgumentException")
         } catch (expected: IllegalArgumentException) {
             // ok
         }
+    }
+
+    @Test
+    fun exportThenImport_restoresSettings() = runTest {
+        seed()
+        preferences.setThemeMode(ThemeMode.DARK)
+        preferences.setSoonThresholdDays(5)
+        preferences.setNotificationTime(hour = 21, minute = 30)
+        val json = manager.export()
+
+        // Drift away from the exported values, then restore.
+        preferences.setThemeMode(ThemeMode.LIGHT)
+        preferences.setSoonThresholdDays(1)
+        manager.import(json)
+
+        val restored = preferences.preferences.first()
+        assertEquals(ThemeMode.DARK, restored.themeMode)
+        assertEquals(5, restored.soonThresholdDays)
+        assertEquals(21, restored.notificationHour)
+        assertEquals(30, restored.notificationMinute)
+    }
+
+    /** Files written by v1.3.0 carry no settings block and must still import. */
+    @Test
+    fun v1FileWithoutSettings_stillImportsAndKeepsCurrentSettings() = runTest {
+        seed()
+        val json = manager.export()
+        val v1 = json
+            .replaceFirst("\"schemaVersion\":${BackupFile.CURRENT_SCHEMA_VERSION}", "\"schemaVersion\":1")
+            .replace(Regex(""",\"settings\":\{[^}]*}"""), "")
+        preferences.setThemeMode(ThemeMode.DARK)
+
+        val stats = manager.import(v1)
+
+        assertEquals(1, stats.products)
+        // No settings in the file means the user's current ones are left alone.
+        assertEquals(ThemeMode.DARK, preferences.preferences.first().themeMode)
+    }
+
+    /** The OFF password is bound to this device's Keystore and must never travel. */
+    @Test
+    fun export_neverContainsTheCatalogPassword() = runTest {
+        seed()
+        preferences.setOffAccount("tester", "s3cret-password")
+
+        val json = manager.export()
+
+        assertTrue(!json.contains("s3cret-password"))
+        assertTrue(!json.contains("off_password"))
+        assertTrue(!json.contains("tester"))
     }
 
     /** Merging a file exported from this very device must not duplicate the product. */

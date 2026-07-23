@@ -12,8 +12,9 @@ complexity:
     excludes: ['**/feature/**', '**/ui/**', '**/core/designsystem/**']
     threshold: 80
   LongParameterList:
-    # ViewModels take their collaborators via constructor injection.
-    excludes: ['**/feature/**/*ViewModel.kt', '**/ui/**']
+    # ViewModels take their collaborators via constructor injection. Design-system
+    # composables mirror the Material APIs they wrap (Scaffold takes this many slots).
+    excludes: ['**/feature/**/*ViewModel.kt', '**/ui/**', '**/core/designsystem/**']
     functionThreshold: 8
     constructorThreshold: 14
   TooManyFunctions:

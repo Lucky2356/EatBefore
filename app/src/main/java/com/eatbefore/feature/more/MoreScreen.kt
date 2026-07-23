@@ -21,9 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +31,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eatbefore.BuildConfig
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.theme.Dimens
 
 /** "More" tab: entry points to history, analytics, and settings (incl. backup). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,13 +42,13 @@ fun MoreScreen(
     onOpenAnalytics: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.nav_more)) }) }) { padding ->
+    ScreenScaffold(title = stringResource(R.string.nav_more)) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             MoreCard(
                 icon = Icons.Outlined.History,
@@ -76,7 +76,7 @@ fun MoreScreen(
             )
 
             Column(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = Dimens.spaceLg),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -105,9 +105,9 @@ private fun MoreCard(
         ),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             Box(
                 modifier = Modifier

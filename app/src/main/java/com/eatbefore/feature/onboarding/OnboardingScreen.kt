@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.theme.Dimens
 import kotlinx.coroutines.launch
 
 private data class OnboardingPage(val icon: ImageVector, val titleRes: Int, val bodyRes: Int)
@@ -55,7 +56,7 @@ fun OnboardingScreen(
         onFinished()
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(Dimens.spaceXl)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = ::finish) { Text(stringResource(R.string.onboarding_skip)) }
         }
@@ -68,7 +69,7 @@ fun OnboardingScreen(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceLg),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -76,7 +77,7 @@ fun OnboardingScreen(
                 val selected = index == pagerState.currentPage
                 Box(
                     modifier = Modifier
-                        .padding(4.dp)
+                        .padding(Dimens.spaceXs)
                         .size(if (selected) 10.dp else 8.dp)
                         .background(
                             if (selected) {
@@ -113,7 +114,7 @@ fun OnboardingScreen(
 @Composable
 private fun OnboardingPageContent(page: OnboardingPage) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(Dimens.spaceXl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -127,14 +128,14 @@ private fun OnboardingPageContent(page: OnboardingPage) {
             text = stringResource(page.titleRes),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 32.dp),
+            modifier = Modifier.padding(top = Dimens.spaceXxl),
         )
         Text(
             text = stringResource(page.bodyRes),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = Dimens.spaceLg),
         )
     }
 }

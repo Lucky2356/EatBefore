@@ -18,4 +18,6 @@ data class OffProduct(
     val categories: String? = null,
     @SerialName("image_url") val imageUrl: String? = null,
     val quantity: String? = null,
+    /** Which Open*Facts database answered: food, beauty, petfood or product. */
+    @SerialName("product_type") val productType: String? = null,
 )

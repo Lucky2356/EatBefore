@@ -17,11 +17,33 @@ data class BackupFile(
     val batches: List<BackupBatch>,
     val events: List<BackupEvent>,
     val shopping: List<BackupShoppingItem>,
+    /**
+     * App settings. Added in schema v2 and nullable so v1 files still import — a missing
+     * block simply leaves the current settings alone. Never contains the Open Food Facts
+     * password: that secret is bound to this device's Keystore and must not travel.
+     */
+    val settings: BackupSettings? = null,
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 1
+        /** v2 added [settings]; v1 files remain importable. */
+        const val CURRENT_SCHEMA_VERSION = 2
     }
 }
+
+/** User preferences worth carrying to a new device. */
+@Serializable
+data class BackupSettings(
+    val soonThresholdDays: Int,
+    val detailedQuantityMode: Boolean,
+    val themeMode: String,
+    val dynamicColors: Boolean,
+    val notificationsEnabled: Boolean,
+    val notificationHour: Int,
+    val notificationMinute: Int,
+    val quietHoursEnabled: Boolean,
+    val quietStartHour: Int,
+    val quietEndHour: Int,
+)
 
 @Serializable
 data class BackupCounts(val locations: Int, val products: Int, val batches: Int, val events: Int, val shopping: Int)

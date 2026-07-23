@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,30 +13,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,15 +44,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.BuildConfig
 import com.eatbefore.R
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.datastore.ThemeMode
+import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.SectionCard
+import com.eatbefore.core.designsystem.component.SettingActionRow
+import com.eatbefore.core.designsystem.component.SettingSwitchRow
+import com.eatbefore.core.designsystem.component.SettingValueRow
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDateTime
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -75,6 +79,7 @@ fun SettingsScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     var showLocationPicker by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+    var showOffAccountDialog by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -104,31 +109,20 @@ fun SettingsScreen(
         notifPermission != null &&
         !notifPermission.status.isGranted
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+    ScreenScaffold(
+        title = stringResource(R.string.settings_title),
+        onBack = onBack,
+        snackbarHostState = snackbarHost,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
-            SettingsSection(title = stringResource(R.string.settings_section_appearance)) {
+            SectionCard(title = stringResource(R.string.settings_section_appearance)) {
                 Text(
                     stringResource(R.string.settings_theme),
                     style = MaterialTheme.typography.bodyLarge,
@@ -155,7 +149,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSection(title = stringResource(R.string.settings_section_inventory)) {
+            SectionCard(title = stringResource(R.string.settings_section_inventory)) {
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -175,7 +169,7 @@ fun SettingsScreen(
                     )
                 }
                 HorizontalDivider()
-                ClickableRow(
+                SettingValueRow(
                     title = stringResource(R.string.settings_default_location),
                     value = locations.firstOrNull { it.isDefault }?.displayName() ?: "—",
                     onClick = { showLocationPicker = true },
@@ -195,7 +189,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(title = stringResource(R.string.settings_section_notifications)) {
+            SectionCard(title = stringResource(R.string.settings_section_notifications)) {
                 SettingSwitchRow(
                     title = stringResource(R.string.settings_notifications_enabled),
                     subtitle = stringResource(R.string.settings_notifications_desc),
@@ -208,7 +202,7 @@ fun SettingsScreen(
 
                 if (permissionMissing) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceXs),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -226,7 +220,7 @@ fun SettingsScreen(
 
                 if (prefs.notificationsEnabled) {
                     HorizontalDivider()
-                    ClickableRow(
+                    SettingValueRow(
                         title = stringResource(R.string.settings_notification_time),
                         value = formatTime(prefs.notificationHour, prefs.notificationMinute),
                         onClick = { showTimePicker = true },
@@ -255,7 +249,7 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSection(title = stringResource(R.string.settings_section_data)) {
+            SectionCard(title = stringResource(R.string.settings_section_data)) {
                 SettingSwitchRow(
                     title = stringResource(R.string.settings_auto_backup),
                     subtitle = if (prefs.lastAutoBackupAt > 0) {
@@ -286,7 +280,23 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(title = stringResource(R.string.settings_section_about)) {
+            SectionCard(title = stringResource(R.string.settings_section_catalog)) {
+                Text(
+                    stringResource(R.string.settings_catalog_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.settings_off_account),
+                    subtitle = prefs.offUsername
+                        ?.let { stringResource(R.string.settings_off_account_linked, it) }
+                        ?: stringResource(R.string.settings_off_account_none),
+                    onClick = { showOffAccountDialog = true },
+                )
+            }
+
+            SectionCard(title = stringResource(R.string.settings_section_about)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -323,13 +333,13 @@ fun SettingsScreen(
                                         showLocationPicker = false
                                     },
                                 )
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = Dimens.spaceSm),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             RadioButton(selected = location.isDefault, onClick = null)
                             Text(
                                 location.displayName(),
-                                modifier = Modifier.padding(start = 8.dp),
+                                modifier = Modifier.padding(start = Dimens.spaceSm),
                             )
                         }
                     }
@@ -349,7 +359,7 @@ fun SettingsScreen(
             onDismissRequest = { pendingImportUri = null },
             title = { Text(stringResource(R.string.backup_import_confirm_title)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
                     Text(stringResource(R.string.backup_import_confirm_body))
                     Text(
                         stringResource(R.string.backup_import_merge_note),
@@ -400,6 +410,99 @@ fun SettingsScreen(
             text = { TimePicker(state = timeState) },
         )
     }
+
+    if (showOffAccountDialog) {
+        OffAccountDialog(
+            currentUsername = prefs.offUsername,
+            onDismiss = { showOffAccountDialog = false },
+            onSave = { user, pass ->
+                viewModel.setOffAccount(user, pass)
+                showOffAccountDialog = false
+            },
+        )
+    }
+}
+
+/**
+ * Links an Open Food Facts account so unknown products can be contributed back.
+ *
+ * The password is stored encrypted (Android Keystore) and is never shown again — the
+ * field starts empty on reopen, and leaving it empty keeps the saved one.
+ */
+@Composable
+private fun OffAccountDialog(
+    currentUsername: String?,
+    onDismiss: () -> Unit,
+    onSave: (String, String?) -> Unit,
+) {
+    var username by remember { mutableStateOf(currentUsername.orEmpty()) }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_off_account)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                Text(
+                    stringResource(R.string.settings_off_account_help),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text(stringResource(R.string.settings_off_username)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.settings_off_password)) },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(
+                                    if (passwordVisible) {
+                                        R.string.settings_off_password_hide
+                                    } else {
+                                        R.string.settings_off_password_show
+                                    },
+                                ),
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onSave(username, password.takeIf { it.isNotEmpty() }) },
+                // A new link needs both fields; an existing one may keep its password.
+                enabled = username.isNotBlank() && (password.isNotEmpty() || currentUsername != null),
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            Row {
+                if (currentUsername != null) {
+                    TextButton(onClick = { onSave("", null) }) {
+                        Text(stringResource(R.string.settings_off_account_unlink))
+                    }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            }
+        },
+    )
 }
 
 @Composable
@@ -411,85 +514,6 @@ private fun themeModeLabel(mode: ThemeMode): String = stringResource(
     },
 )
 
-/** A titled tonal card grouping related settings rows. */
-@Composable
-private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 4.dp),
-        )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingSwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
-    }
-}
-
-@Composable
-private fun SettingActionRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
-    ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun ClickableRow(title: String, value: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f),
-        )
-        Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-    }
-}
-
 @Composable
 private fun QuietHoursRow(
     startHour: Int,
@@ -498,8 +522,8 @@ private fun QuietHoursRow(
     onEndChange: (Int) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceSm),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(R.string.settings_quiet_from))

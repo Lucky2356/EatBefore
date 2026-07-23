@@ -22,12 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
+import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,8 +65,8 @@ fun HomeScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             item {
                 Row(
@@ -93,7 +94,7 @@ fun HomeScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
                     HomeStatTile(
                         value = state.totalCount,
@@ -143,10 +144,10 @@ private fun HomeStatTile(
 ) {
     androidx.compose.material3.Card(
         modifier = modifier,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        shape = Shapes.card,
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = container),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg)) {
             Text(
                 text = value.toString(),
                 style = MaterialTheme.typography.headlineMedium,
@@ -161,8 +162,8 @@ private fun HomeStatTile(
 private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Row(
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+        modifier = Modifier.padding(top = Dimens.spaceSm),
     ) {
         androidx.compose.material3.Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Text(text = title, style = MaterialTheme.typography.titleMedium)

@@ -3,7 +3,11 @@ package com.eatbefore.feature.addmanual
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eatbefore.R
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.domain.catalog.CatalogContributor
+import com.eatbefore.domain.catalog.CatalogProduct
+import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
@@ -31,12 +35,25 @@ data class AddManualUiState(
     val isSaving: Boolean = false,
     val nameError: Boolean = false,
     val savedBatchId: Long? = null,
+    /**
+     * Set after saving a product that carried a barcode the open catalog does not know.
+     * While this is non-null the screen stays put so the user can decide; navigation
+     * happens once it is resolved.
+     */
+    val contributeOffer: ContributeOffer? = null,
+    val isContributing: Boolean = false,
+    /** One-shot message (string resource) about the contribution outcome. */
+    val message: Int? = null,
 )
+
+/** The product about to be offered to the shared catalog. */
+data class ContributeOffer(val name: String, val barcode: String)
 
 @HiltViewModel
 class AddManualViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val addManualProduct: AddManualProductUseCase,
+    private val catalogContributor: CatalogContributor,
     private val storageLocationRepository: StorageLocationRepository,
     private val clock: AppClock,
 ) : ViewModel() {
@@ -105,7 +122,57 @@ class AddManualViewModel @Inject constructor(
                     note = current.note.ifBlank { null },
                 ),
             )
-            _state.update { it.copy(isSaving = false, savedBatchId = id) }
+            // Offer to publish only for a barcode the catalog missed, and only when the
+            // user has linked an account — otherwise just hint that it is possible.
+            val offer = barcode
+                ?.takeIf { it.isNotBlank() }
+                ?.let { code ->
+                    if (catalogContributor.isConfigured()) {
+                        ContributeOffer(name = current.name.trim(), barcode = code)
+                    } else {
+                        null
+                    }
+                }
+
+            _state.update {
+                it.copy(
+                    isSaving = false,
+                    savedBatchId = id,
+                    contributeOffer = offer,
+                )
+            }
         }
     }
+
+    /** Publishes the just-saved product to the shared catalog after explicit confirmation. */
+    fun confirmContribution() {
+        val offer = _state.value.contributeOffer ?: return
+        _state.update { it.copy(isContributing = true) }
+        viewModelScope.launch {
+            val result = catalogContributor.contribute(
+                CatalogProduct(
+                    barcode = offer.barcode,
+                    name = offer.name,
+                    brand = _state.value.brand.ifBlank { null },
+                    packageSize = null,
+                ),
+            )
+            _state.update {
+                it.copy(
+                    isContributing = false,
+                    contributeOffer = null,
+                    message = when (result) {
+                        ContributionResult.Success -> R.string.contribute_success
+                        ContributionResult.AuthFailed -> R.string.contribute_auth_failed
+                        ContributionResult.NotConfigured -> R.string.contribute_setup
+                        is ContributionResult.Failed -> R.string.contribute_failed
+                    },
+                )
+            }
+        }
+    }
+
+    fun declineContribution() = _state.update { it.copy(contributeOffer = null) }
+
+    fun consumeMessage() = _state.update { it.copy(message = null) }
 }

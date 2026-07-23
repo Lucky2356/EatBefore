@@ -8,6 +8,9 @@ import com.eatbefore.core.database.entity.InventoryEventEntity
 import com.eatbefore.core.database.entity.ProductEntity
 import com.eatbefore.core.database.entity.ShoppingListItemEntity
 import com.eatbefore.core.database.entity.StorageLocationEntity
+import com.eatbefore.core.datastore.ThemeMode
+import com.eatbefore.core.datastore.UserPreferences
+import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
@@ -15,6 +18,7 @@ import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.ShoppingPriority
 import com.eatbefore.domain.model.StorageType
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,7 +32,12 @@ data class ImportStats(val products: Int, val batches: Int, val events: Int)
  * all data atomically inside one Room transaction — a corrupt file changes nothing.
  */
 @Singleton
-class BackupManager @Inject constructor(private val db: EatBeforeDatabase, private val json: Json, private val clock: AppClock) {
+class BackupManager @Inject constructor(
+    private val db: EatBeforeDatabase,
+    private val json: Json,
+    private val clock: AppClock,
+    private val preferences: UserPreferencesRepository,
+) {
 
     /** How an import treats the data already on the device. */
     enum class ImportMode {
@@ -61,6 +70,7 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
             batches = batches,
             events = events,
             shopping = shopping,
+            settings = preferences.preferences.first().toBackupSettings(),
         )
         return json.encodeToString(BackupFile.serializer(), file)
     }
@@ -105,6 +115,10 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
 
             ImportMode.MERGE -> db.withTransaction { mergeInto(file) }
         }
+
+        // Settings live in DataStore, outside the database transaction, so they are
+        // applied only after the data import has succeeded. A v1 file carries none.
+        file.settings?.let { preferences.restoreFrom(it.toPreferences()) }
 
         return ImportStats(
             products = file.products.size,
@@ -182,6 +196,32 @@ class BackupManager @Inject constructor(private val db: EatBeforeDatabase, priva
     }
 
     // --- entity <-> backup DTO mapping -------------------------------------------------
+
+    private fun BackupSettings.toPreferences() = UserPreferences(
+        soonThresholdDays = soonThresholdDays,
+        detailedQuantityMode = detailedQuantityMode,
+        themeMode = enumOr(themeMode, ThemeMode.SYSTEM),
+        dynamicColors = dynamicColors,
+        notificationsEnabled = notificationsEnabled,
+        notificationHour = notificationHour,
+        notificationMinute = notificationMinute,
+        quietHoursEnabled = quietHoursEnabled,
+        quietStartHour = quietStartHour,
+        quietEndHour = quietEndHour,
+    )
+
+    private fun UserPreferences.toBackupSettings() = BackupSettings(
+        soonThresholdDays = soonThresholdDays,
+        detailedQuantityMode = detailedQuantityMode,
+        themeMode = themeMode.name,
+        dynamicColors = dynamicColors,
+        notificationsEnabled = notificationsEnabled,
+        notificationHour = notificationHour,
+        notificationMinute = notificationMinute,
+        quietHoursEnabled = quietHoursEnabled,
+        quietStartHour = quietStartHour,
+        quietEndHour = quietEndHour,
+    )
 
     private fun StorageLocationEntity.toBackup() = BackupLocation(
         id,

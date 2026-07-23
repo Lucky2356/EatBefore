@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.eatbefore.core.security.SecretCipher
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,7 +18,13 @@ import javax.inject.Singleton
 /** App-wide theme selection. */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
-/** User settings backed by Preferences DataStore. No sensitive data is stored here. */
+/**
+ * User settings backed by Preferences DataStore.
+ *
+ * The only secret here is the optional Open Food Facts password, and it is stored
+ * encrypted via [com.eatbefore.core.security.SecretCipher] and deliberately kept out of
+ * this data class so it never reaches UI state or a log.
+ */
 data class UserPreferences(
     val onboardingCompleted: Boolean = false,
     val soonThresholdDays: Int = DetermineExpiryStatusUseCase.DEFAULT_SOON_THRESHOLD_DAYS,
@@ -44,13 +52,22 @@ data class UserPreferences(
     val autoBackupKeepCount: Int = DEFAULT_BACKUP_KEEP_COUNT,
     /** Epoch millis of the last successful automatic backup, 0 when never run. */
     val lastAutoBackupAt: Long = 0,
+    /**
+     * Open Food Facts account name, null when the user has not linked one. Contributing a
+     * product to the shared catalog requires an account — the API rejects anonymous
+     * writes — so this doubles as "contributing is possible".
+     */
+    val offUsername: String? = null,
 )
 
 /** How many automatic copies to keep before deleting the oldest. */
 const val DEFAULT_BACKUP_KEEP_COUNT = 7
 
 @Singleton
-class UserPreferencesRepository @Inject constructor(private val dataStore: DataStore<Preferences>) {
+class UserPreferencesRepository @Inject constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val secretCipher: SecretCipher,
+) {
     val preferences: Flow<UserPreferences> = dataStore.data.map { prefs ->
         UserPreferences(
             onboardingCompleted = prefs[KEY_ONBOARDING] ?: false,
@@ -71,7 +88,36 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             autoBackupFolderUri = prefs[KEY_AUTO_BACKUP_FOLDER],
             autoBackupKeepCount = prefs[KEY_AUTO_BACKUP_KEEP] ?: DEFAULT_BACKUP_KEEP_COUNT,
             lastAutoBackupAt = prefs[KEY_LAST_AUTO_BACKUP] ?: 0L,
+            offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
         )
+    }
+
+    /**
+     * Links (or, with a blank username, unlinks) an Open Food Facts account. The password
+     * is encrypted before it touches disk; a null [password] keeps the stored one so the
+     * user can correct just the name.
+     */
+    suspend fun setOffAccount(username: String, password: String?) {
+        val encrypted = password?.let(secretCipher::encrypt)
+        dataStore.edit { prefs ->
+            if (username.isBlank()) {
+                prefs.remove(KEY_OFF_USERNAME)
+                prefs.remove(KEY_OFF_PASSWORD)
+                return@edit
+            }
+            prefs[KEY_OFF_USERNAME] = username.trim()
+            if (encrypted != null) prefs[KEY_OFF_PASSWORD] = encrypted
+        }
+    }
+
+    /**
+     * Decrypted password for the linked account, or null when absent/undecryptable (for
+     * example after a restore onto another device, where the Keystore key is gone).
+     * Intentionally not part of [preferences] so it is never held in UI state.
+     */
+    suspend fun offPassword(): String? {
+        val stored = dataStore.data.first()[KEY_OFF_PASSWORD] ?: return null
+        return secretCipher.decrypt(stored)
     }
 
     /** Enabling requires a folder; the caller picks it via SAF first. */
@@ -84,6 +130,28 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
 
     suspend fun setLastAutoBackupAt(epochMillis: Long) {
         dataStore.edit { it[KEY_LAST_AUTO_BACKUP] = epochMillis }
+    }
+
+    /**
+     * Applies a settings snapshot (from a backup). Deliberately restores only what the
+     * user chose — not onboarding state, not the auto-backup folder (its SAF permission
+     * belongs to the old device) and not the Open Food Facts account. Taking
+     * [UserPreferences] rather than the backup DTO keeps this layer unaware of the file
+     * format.
+     */
+    suspend fun restoreFrom(settings: UserPreferences) {
+        dataStore.edit { prefs ->
+            prefs[KEY_SOON_DAYS] = settings.soonThresholdDays.coerceIn(0, 60)
+            prefs[KEY_DETAILED_QTY] = settings.detailedQuantityMode
+            prefs[KEY_THEME_MODE] = settings.themeMode.name
+            prefs[KEY_DYNAMIC_COLORS] = settings.dynamicColors
+            prefs[KEY_NOTIF_ENABLED] = settings.notificationsEnabled
+            prefs[KEY_NOTIF_HOUR] = settings.notificationHour.coerceIn(0, 23)
+            prefs[KEY_NOTIF_MINUTE] = settings.notificationMinute.coerceIn(0, 59)
+            prefs[KEY_QUIET_ENABLED] = settings.quietHoursEnabled
+            prefs[KEY_QUIET_START] = settings.quietStartHour.coerceIn(0, 23)
+            prefs[KEY_QUIET_END] = settings.quietEndHour.coerceIn(0, 23)
+        }
     }
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
@@ -141,5 +209,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         val KEY_AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder_uri")
         val KEY_AUTO_BACKUP_KEEP = intPreferencesKey("auto_backup_keep_count")
         val KEY_LAST_AUTO_BACKUP = longPreferencesKey("last_auto_backup_at")
+        val KEY_OFF_USERNAME = stringPreferencesKey("off_username")
+        val KEY_OFF_PASSWORD = stringPreferencesKey("off_password_encrypted")
     }
 }

@@ -37,8 +37,13 @@ class OpenFoodFactsCatalogProvider @Inject constructor(
             return@withContext CatalogResult.NotFound
         }
 
+        // product_type=all widens the lookup from food alone to the whole Open*Facts
+        // family — food, beauty, pet food and general products. The server answers with a
+        // 302 to whichever database owns the code, and OkHttp follows it. Without this,
+        // scanning shampoo or washing powder could never succeed.
         val url = "https://world.openfoodfacts.org/api/v2/product/$clean.json" +
-            "?fields=code,product_name,brands,categories,image_url,quantity"
+            "?product_type=all" +
+            "&fields=code,product_name,brands,categories,image_url,quantity,product_type"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", USER_AGENT)
@@ -81,12 +86,29 @@ class OpenFoodFactsCatalogProvider @Inject constructor(
         barcode = barcode,
         name = InputValidator.requireText(productName, InputValidator.MAX_NAME_LENGTH, "name"),
         brand = InputValidator.sanitizeText(brands?.substringBefore(","), InputValidator.MAX_BRAND_LENGTH),
-        category = InputValidator.sanitizeText(categories?.substringBefore(","), InputValidator.MAX_CATEGORY_LENGTH),
+        // Non-food entries frequently carry no categories at all; the answering database
+        // is then the only hint we have, and a rough category still drives shelf-life
+        // suggestions and grouping.
+        category = InputValidator.sanitizeText(
+            categories?.substringBefore(",")?.takeIf { it.isNotBlank() } ?: productType?.let(::categoryForProductType),
+            InputValidator.MAX_CATEGORY_LENGTH,
+        ),
         imageUrl = imageUrl?.takeIf { it.startsWith("https://") },
         packageSize = InputValidator.sanitizeText(quantity, 40),
     )
 
-    private companion object {
+    /**
+     * Maps the answering database to a coarse category. Deliberately not localized here:
+     * categories are stored as data and rendered by the UI layer.
+     */
+    private fun categoryForProductType(type: String): String? = when (type) {
+        "beauty" -> "Косметика и гигиена"
+        "petfood" -> "Корм для животных"
+        "product" -> "Бытовые товары"
+        else -> null
+    }
+
+    internal companion object {
         // Open Food Facts requires "AppName/Version (contact)" and rate-limits per IP
         // (15 product reads/min), reserving the right to ban unidentified callers.
         val USER_AGENT = "EatBefore/${com.eatbefore.BuildConfig.VERSION_NAME} " +

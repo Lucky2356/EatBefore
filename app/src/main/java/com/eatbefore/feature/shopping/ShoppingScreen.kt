@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.format.formatQuantity
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.MeasurementUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,8 +85,8 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
             ) {
                 if (state.frequent.isNotEmpty()) {
                     item(key = "frequent") {
@@ -102,7 +103,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
                             stringResource(R.string.shopping_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(vertical = 24.dp),
+                            modifier = Modifier.padding(vertical = Dimens.spaceXl),
                         )
                     }
                 }
@@ -113,7 +114,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
                             text = category ?: stringResource(R.string.shopping_no_category),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                            modifier = Modifier.padding(top = Dimens.spaceMd, bottom = Dimens.spaceXs),
                         )
                     }
                     items(rows, key = { it.id }) { row ->
@@ -187,14 +188,14 @@ private fun FrequentSection(
     frequent: List<FrequentProductUi>,
     onAdd: (Long) -> Unit,
 ) {
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+    Column(modifier = Modifier.padding(bottom = Dimens.spaceSm)) {
         Text(
             stringResource(R.string.shopping_frequent),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp),
+            modifier = Modifier.padding(bottom = Dimens.spaceSm),
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             frequent.forEach { product ->
                 AssistChip(
                     onClick = { onAdd(product.productId) },
@@ -224,7 +225,7 @@ private fun AddItemDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.shopping_add)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },

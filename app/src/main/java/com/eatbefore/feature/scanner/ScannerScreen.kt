@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FlashlightOff
 import androidx.compose.material.icons.outlined.FlashlightOn
@@ -53,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.scanner.camera.CameraPreview
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -162,7 +163,7 @@ fun ScannerScreen(
                         Text(
                             stringResource(R.string.scanner_looking),
                             color = Color.White,
-                            modifier = Modifier.padding(top = 12.dp),
+                            modifier = Modifier.padding(top = Dimens.spaceMd),
                         )
                     }
                 }
@@ -202,7 +203,7 @@ private fun ScanOverlay(hint: String) {
         Box(
             modifier = Modifier
                 .size(260.dp)
-                .border(3.dp, Color.White.copy(alpha = 0.9f), RoundedCornerShape(20.dp)),
+                .border(3.dp, Color.White.copy(alpha = 0.9f), Shapes.card),
         )
         Text(
             text = hint,
@@ -210,9 +211,9 @@ private fun ScanOverlay(hint: String) {
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(32.dp)
-                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(Dimens.spaceXxl)
+                .background(Color.Black.copy(alpha = 0.4f), Shapes.control)
+                .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
         )
     }
 }
@@ -229,13 +230,13 @@ private fun BatchModeBar(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth().padding(16.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.fillMaxWidth().padding(Dimens.spaceLg),
+        shape = Shapes.card,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 4.dp,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceMd),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -273,7 +274,7 @@ private fun CameraPermissionRequest(
 ) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
+        modifier = Modifier.fillMaxSize().padding(Dimens.spaceXxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -294,11 +295,11 @@ private fun CameraPermissionRequest(
                     ),
                 )
             },
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = Dimens.spaceSm),
         ) {
             Text(stringResource(R.string.scanner_open_settings))
         }
-        TextButton(onClick = onAddManual, modifier = Modifier.padding(top = 8.dp)) {
+        TextButton(onClick = onAddManual, modifier = Modifier.padding(top = Dimens.spaceSm)) {
             Text(stringResource(R.string.scanner_add_manual))
         }
     }
@@ -351,7 +352,7 @@ private fun ScanResultDialog(
                             stringResource(R.string.scanner_expiry_from_code, date.toString()),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = Dimens.spaceSm),
                         )
                     }
                     if (resolution.fromNetwork) {
@@ -359,7 +360,7 @@ private fun ScanResultDialog(
                             stringResource(R.string.scanner_found_network),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = Dimens.spaceSm),
                         )
                     }
                 }
@@ -387,7 +388,7 @@ private fun ScanResultDialog(
                             stringResource(R.string.scanner_expiry_from_code, date.toString()),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = Dimens.spaceSm),
                         )
                     }
                     // The manual entry is not wasted work — say so up front.
@@ -395,7 +396,7 @@ private fun ScanResultDialog(
                         stringResource(R.string.scanner_remembered_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = Dimens.spaceSm),
                     )
                 }
             },

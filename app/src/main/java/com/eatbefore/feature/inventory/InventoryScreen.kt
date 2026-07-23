@@ -30,12 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.format.displayName
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.common.InventoryRowCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,15 +85,15 @@ fun InventoryScreen(
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 placeholder = { Text(stringResource(R.string.inventory_search_hint)) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = Dimens.spaceLg),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 FilterChip(
                     selected = state.selectedLocationId == null,
@@ -114,8 +114,8 @@ fun InventoryScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
                     items(state.rows, key = { it.batchId }) { row ->
                         InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })

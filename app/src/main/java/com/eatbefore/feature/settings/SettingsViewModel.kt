@@ -69,6 +69,18 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { preferences.setThemeMode(mode) }
     }
 
+    /** Links or, with a blank [username], unlinks the Open Food Facts account. */
+    fun setOffAccount(username: String, password: String?) {
+        viewModelScope.launch {
+            preferences.setOffAccount(username, password)
+            _message.value = if (username.isBlank()) {
+                R.string.settings_off_removed
+            } else {
+                R.string.settings_off_saved
+            }
+        }
+    }
+
     fun setDynamicColors(enabled: Boolean) {
         viewModelScope.launch { preferences.setDynamicColors(enabled) }
     }

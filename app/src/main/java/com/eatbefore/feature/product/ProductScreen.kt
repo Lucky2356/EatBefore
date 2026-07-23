@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -64,6 +63,8 @@ import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
 import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.format.remainingText
+import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.history.eventLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +78,8 @@ fun ProductScreen(
     val undoLabel = stringResource(R.string.action_undo)
     var showQuantityDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
+    // Discarding writes off the whole batch and is easy to hit by accident in a menu.
+    var showDiscardConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.closed) {
         if (state.closed) onBack()
@@ -121,6 +124,25 @@ fun ProductScreen(
                 showEditDialog = false
             },
             onDismiss = { showEditDialog = false },
+        )
+    }
+
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(R.string.product_discard_confirm_title)) },
+            text = { Text(stringResource(R.string.product_discard_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDiscardConfirm = false
+                    viewModel.discard()
+                }) { Text(stringResource(R.string.product_action_discard)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
         )
     }
 
@@ -192,7 +214,7 @@ fun ProductScreen(
                             },
                             onDiscard = {
                                 showOverflow = false
-                                viewModel.discard()
+                                showDiscardConfirm = true
                             },
                             onToShopping = {
                                 showOverflow = false
@@ -220,8 +242,8 @@ fun ProductScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             if (item != null) {
                 ProductHeaderCard(
@@ -262,8 +284,8 @@ private fun ProductHeaderCard(
         ),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             // Product photo from the catalog (https-only URLs are stored).
             item.product.imageUri?.let { url ->
@@ -273,7 +295,7 @@ private fun ProductHeaderCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 200.dp)
-                        .clip(RoundedCornerShape(16.dp)),
+                        .clip(Shapes.control),
                     contentScale = ContentScale.Fit,
                 )
             }
@@ -289,7 +311,7 @@ private fun ProductHeaderCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
             ) {
                 Text(
                     formatQuantity(item.batch.quantity, item.batch.measurementUnit),
@@ -351,7 +373,7 @@ private fun PrimaryActions(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
     ) {
         ActionButton(
             icon = Icons.Outlined.LockOpen,
@@ -387,11 +409,11 @@ private fun ActionButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 72.dp),
-        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 4.dp),
+        contentPadding = PaddingValues(vertical = Dimens.spaceMd, horizontal = Dimens.spaceXs),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
         ) {
             Icon(icon, contentDescription = null)
             Text(
@@ -460,7 +482,7 @@ private fun MoveMenu(
 @Composable
 private fun HistorySection(history: List<com.eatbefore.domain.model.InventoryEvent>) {
     if (history.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Text(
             stringResource(R.string.product_history),
             style = MaterialTheme.typography.titleMedium,
@@ -468,7 +490,7 @@ private fun HistorySection(history: List<com.eatbefore.domain.model.InventoryEve
         )
         history.forEach { event ->
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceXs),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(eventLabel(event.eventType), style = MaterialTheme.typography.bodyMedium)
@@ -568,7 +590,7 @@ private fun EditDetailsDialog(
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 androidx.compose.material3.OutlinedTextField(
                     value = name,

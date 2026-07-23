@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,9 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -44,7 +41,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.displayName
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.LocalStatusColors
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.usecase.AnalyticsSummary
@@ -62,36 +61,25 @@ fun AnalyticsScreen(
     val context = LocalContext.current
     val reportText = state.summary?.let { buildReportText(it, state.period, state.byLocation) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.analytics_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
+    ScreenScaffold(
+        title = stringResource(R.string.analytics_title),
+        onBack = onBack,
+        actions = {
+            if (reportText != null && state.summary?.hasData == true) {
+                IconButton(onClick = {
+                    // Plain-text report via the system share sheet; the user picks the target.
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, reportText)
                     }
-                },
-                actions = {
-                    if (reportText != null && state.summary?.hasData == true) {
-                        IconButton(onClick = {
-                            // Plain-text report via the system share sheet; the user picks the target.
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, reportText)
-                            }
-                            context.startActivity(Intent.createChooser(intent, null))
-                        }) {
-                            Icon(
-                                Icons.Outlined.Share,
-                                contentDescription = stringResource(R.string.analytics_share),
-                            )
-                        }
-                    }
-                },
-            )
+                    context.startActivity(Intent.createChooser(intent, null))
+                }) {
+                    Icon(
+                        Icons.Outlined.Share,
+                        contentDescription = stringResource(R.string.analytics_share),
+                    )
+                }
+            }
         },
     ) { padding ->
         Column(
@@ -99,12 +87,12 @@ fun AnalyticsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 PeriodChip(R.string.analytics_period_week, AnalyticsPeriod.WEEK, state.period, viewModel::setPeriod)
                 PeriodChip(R.string.analytics_period_month, AnalyticsPeriod.MONTH, state.period, viewModel::setPeriod)
@@ -187,7 +175,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
         StatTile(
             label = stringResource(R.string.analytics_added),
@@ -206,7 +194,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
         StatTile(
             label = stringResource(R.string.analytics_discarded),
@@ -226,7 +214,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
 
     summary.usedInTimePercent?.let { percent ->
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
                 Text(
                     stringResource(R.string.analytics_used_in_time, percent),
                     style = MaterialTheme.typography.titleMedium,
@@ -276,14 +264,14 @@ private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
     val wastedColor = MaterialTheme.colorScheme.error
 
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
             Text(stringResource(R.string.analytics_trend), style = MaterialTheme.typography.titleMedium)
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 trend.forEach { week ->
@@ -305,7 +293,7 @@ private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
                 LegendDot(addedColor, stringResource(R.string.analytics_trend_added))
                 LegendDot(wastedColor, stringResource(R.string.analytics_trend_wasted))
             }
@@ -357,8 +345,8 @@ private fun StatTile(
         colors = CardDefaults.cardColors(containerColor = color),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
         ) {
             Text(
                 text = value.toString(),
@@ -374,7 +362,7 @@ private fun StatTile(
 @Composable
 private fun SectionList(title: String, rows: List<Pair<String, Int>>) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             rows.forEach { (label, count) ->
                 Row(

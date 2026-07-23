@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,21 +18,20 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.formatDateTime
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.EventType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,27 +42,16 @@ fun HistoryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.history_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = viewModel::undoLast) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.Undo,
-                            contentDescription = stringResource(R.string.history_undo_last),
-                        )
-                    }
-                },
-            )
+    ScreenScaffold(
+        title = stringResource(R.string.history_title),
+        onBack = onBack,
+        actions = {
+            IconButton(onClick = viewModel::undoLast) {
+                Icon(
+                    Icons.AutoMirrored.Outlined.Undo,
+                    contentDescription = stringResource(R.string.history_undo_last),
+                )
+            }
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -72,8 +59,8 @@ fun HistoryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 FilterChip(
                     selected = state.filter == null,
@@ -115,13 +102,13 @@ fun HistoryScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     items(state.events, key = { it.id }) { event ->
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {

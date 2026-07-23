@@ -325,6 +325,32 @@
     <string name="product_edit_pick_date">Pick a date</string>
 
     <!-- Settings: about -->
+    <string name="product_discard_confirm_title">Throw this away?</string>
+    <string name="product_discard_confirm_message">The batch will be written off as discarded and counted as waste. You can undo this from History.</string>
+
+    <string name="settings_section_catalog">Product catalog</string>
+    <string name="settings_catalog_desc">Lookups use the open Open Food Facts databases: food, cosmetics, household products and pet food. Russian coverage is thin — if you add an unknown product and send it in, everyone gets it.</string>
+    <string name="settings_off_account">Open Food Facts account</string>
+    <string name="settings_off_account_none">Not linked — sending products is unavailable</string>
+    <string name="settings_off_account_linked">Linked: %1$s</string>
+    <string name="settings_off_account_unlink">Unlink</string>
+    <string name="settings_off_account_help">Requires a free account at openfoodfacts.org: the database does not accept anonymous writes. The password is stored encrypted on this device.</string>
+    <string name="settings_off_username">Username</string>
+    <string name="settings_off_password">Password</string>
+    <string name="settings_off_password_show">Show password</string>
+    <string name="settings_off_password_hide">Hide password</string>
+    <string name="settings_off_saved">Account saved</string>
+    <string name="settings_off_removed">Account unlinked</string>
+
+    <string name="contribute_title">Send this product to the shared database?</string>
+    <string name="contribute_message">%1$s is missing from the open catalog. Sending it makes the barcode resolve for everyone — including you on another phone.\n\nOnly the barcode, name, brand and size are sent. Your stock, dates and storage places are not.</string>
+    <string name="contribute_action">Send</string>
+    <string name="contribute_skip">Do not send</string>
+    <string name="contribute_setup">You can send this product to the shared database — link an Open Food Facts account in settings</string>
+    <string name="contribute_success">Thank you! The product was sent to the shared database</string>
+    <string name="contribute_auth_failed">The catalog rejected your username or password — check them in settings</string>
+    <string name="contribute_failed">Could not send the product. Try again later</string>
+
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_about_privacy">Data is stored on your device only. No ads, no trackers.</string>

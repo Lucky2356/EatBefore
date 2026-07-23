@@ -11,33 +11,34 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.shortLabel
+import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.MeasurementUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -50,9 +51,22 @@ fun AddManualScreen(
     viewModel: AddManualViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
 
-    LaunchedEffect(state.savedBatchId) {
-        if (state.savedBatchId != null) onSaved()
+    // Saving navigates away, unless we are still asking whether to share the product
+    // with the open catalog — that question would be lost on the next screen.
+    LaunchedEffect(state.savedBatchId, state.contributeOffer, state.message) {
+        if (state.savedBatchId != null && state.contributeOffer == null && state.message == null) {
+            onSaved()
+        }
+    }
+
+    val messageText = state.message?.let { stringResource(it) }
+    LaunchedEffect(state.message) {
+        if (messageText != null) {
+            snackbarHost.showSnackbar(messageText)
+            viewModel.consumeMessage()
+        }
     }
 
     // Apply a date recognized by the OCR screen when returning to this form.
@@ -62,28 +76,18 @@ fun AddManualScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.add_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_cancel),
-                        )
-                    }
-                },
-            )
-        },
+    ScreenScaffold(
+        title = stringResource(R.string.add_title),
+        onBack = onBack,
+        snackbarHostState = snackbarHost,
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             OutlinedTextField(
                 value = state.name,
@@ -109,7 +113,7 @@ fun AddManualScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
                 OutlinedTextField(
                     value = state.quantity,
                     onValueChange = viewModel::onQuantity,
@@ -123,7 +127,7 @@ fun AddManualScreen(
             LabeledSection(stringResource(R.string.add_unit)) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     MeasurementUnit.entries.forEach { unit ->
                         FilterChip(
@@ -138,7 +142,7 @@ fun AddManualScreen(
             LabeledSection(stringResource(R.string.add_location)) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     state.locations.forEach { location ->
                         FilterChip(
@@ -153,7 +157,7 @@ fun AddManualScreen(
             LabeledSection(stringResource(R.string.add_expiration)) {
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     ExpiryChip(R.string.add_expiry_today, 0L, viewModel)
                     ExpiryChip(R.string.add_expiry_tomorrow, 1L, viewModel)
@@ -179,7 +183,7 @@ fun AddManualScreen(
                 Icon(
                     Icons.Outlined.PhotoCamera,
                     contentDescription = null,
-                    modifier = Modifier.padding(end = 8.dp),
+                    modifier = Modifier.padding(end = Dimens.spaceSm),
                 )
                 Text(stringResource(R.string.ocr_from_photo))
             }
@@ -197,11 +201,30 @@ fun AddManualScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 if (state.isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                    CircularProgressIndicator(modifier = Modifier.padding(end = Dimens.spaceSm))
                 }
                 Text(stringResource(R.string.action_save))
             }
         }
+    }
+
+    state.contributeOffer?.let { offer ->
+        AlertDialog(
+            onDismissRequest = viewModel::declineContribution,
+            title = { Text(stringResource(R.string.contribute_title)) },
+            text = { Text(stringResource(R.string.contribute_message, offer.name)) },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::confirmContribution,
+                    enabled = !state.isContributing,
+                ) { Text(stringResource(R.string.contribute_action)) }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::declineContribution) {
+                    Text(stringResource(R.string.contribute_skip))
+                }
+            },
+        )
     }
 }
 
@@ -221,7 +244,7 @@ private fun ExpiryChip(
 
 @Composable
 private fun LabeledSection(label: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Text(text = label, style = MaterialTheme.typography.titleMedium)
         content()
     }
