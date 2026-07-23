@@ -328,6 +328,23 @@
     <string name="product_discard_confirm_title">Throw this away?</string>
     <string name="product_discard_confirm_message">The batch will be written off as discarded and counted as waste. You can undo this from History.</string>
 
+    <string name="settings_section_sharing">Household sharing</string>
+    <string name="settings_sharing_desc">Pick a folder that syncs between your devices (Google Drive, Dropbox and the like) and choose the same folder on the second phone. The app exchanges changes through it — no accounts, no servers of ours.</string>
+    <string name="settings_sharing_folder">Shared folder</string>
+    <string name="settings_sharing_folder_none">Not chosen — stock is visible on this phone only</string>
+    <string name="settings_sharing_folder_set">Sharing is on</string>
+    <string name="settings_sharing_last">Last exchange: %1$s</string>
+    <string name="settings_sharing_never">No exchange yet</string>
+    <string name="settings_sharing_now">Exchange now</string>
+    <string name="settings_sharing_disable">Turn off sharing</string>
+    <string name="settings_sharing_delay">Changes do not appear instantly: the cloud drive has to sync them first, and the other phone has to open the app.</string>
+    <string name="settings_sharing_off">Sharing turned off</string>
+    <string name="settings_sharing_done">Exchange complete</string>
+    <string name="settings_sharing_no_peers">Folder is ready. Choose the same one on the second phone</string>
+    <string name="settings_sharing_not_configured">Choose a shared folder first</string>
+    <string name="settings_sharing_folder_gone">Folder is unavailable — choose it again</string>
+    <string name="settings_sharing_failed">Exchange failed. Try again later</string>
+
     <string name="settings_section_catalog">Product catalog</string>
     <string name="settings_catalog_desc">Lookups use the open Open Food Facts databases: food, cosmetics, household products and pet food. Russian coverage is thin — if you add an unknown product and send it in, everyone gets it.</string>
     <string name="settings_off_account">Open Food Facts account</string>

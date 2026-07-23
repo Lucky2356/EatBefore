@@ -35,7 +35,8 @@ abstract class EatBeforeDatabase : RoomDatabase() {
     abstract fun shoppingListDao(): ShoppingListDao
 
     companion object {
-        const val VERSION = 1
+        /** v2 added uuid/device_id for household sync (ADR-0004). */
+        const val VERSION = 2
         const val NAME = "eatbefore.db"
     }
 }

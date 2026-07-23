@@ -58,6 +58,13 @@ data class UserPreferences(
      * writes — so this doubles as "contributing is possible".
      */
     val offUsername: String? = null,
+    /**
+     * Folder shared with the other household member (SAF tree URI), null when sharing is
+     * off. See docs/adr/0004-household-sharing.md.
+     */
+    val syncFolderUri: String? = null,
+    /** Epoch millis of the last successful exchange, 0 when never run. */
+    val lastSyncAt: Long = 0,
 )
 
 /** How many automatic copies to keep before deleting the oldest. */
@@ -89,6 +96,8 @@ class UserPreferencesRepository @Inject constructor(
             autoBackupKeepCount = prefs[KEY_AUTO_BACKUP_KEEP] ?: DEFAULT_BACKUP_KEEP_COUNT,
             lastAutoBackupAt = prefs[KEY_LAST_AUTO_BACKUP] ?: 0L,
             offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
+            syncFolderUri = prefs[KEY_SYNC_FOLDER]?.takeIf { it.isNotBlank() },
+            lastSyncAt = prefs[KEY_LAST_SYNC] ?: 0L,
         )
     }
 
@@ -118,6 +127,31 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun offPassword(): String? {
         val stored = dataStore.data.first()[KEY_OFF_PASSWORD] ?: return null
         return secretCipher.decrypt(stored)
+    }
+
+    /**
+     * This installation's sync identity, created on first use and stable afterwards.
+     * Random rather than derived from hardware ids, which are device-wide and would
+     * link the user across apps.
+     */
+    suspend fun deviceId(): String {
+        dataStore.data.first()[KEY_DEVICE_ID]?.takeIf { it.isNotBlank() }?.let { return it }
+        val generated = java.util.UUID.randomUUID().toString()
+        // Concurrent callers must agree, so the write returns whatever landed first.
+        return dataStore.edit { prefs ->
+            if (prefs[KEY_DEVICE_ID].isNullOrBlank()) prefs[KEY_DEVICE_ID] = generated
+        }[KEY_DEVICE_ID] ?: generated
+    }
+
+    /** Sync folder shared with the other household member (SAF tree URI). */
+    suspend fun setSyncFolder(uri: String?) {
+        dataStore.edit { prefs ->
+            if (uri == null) prefs.remove(KEY_SYNC_FOLDER) else prefs[KEY_SYNC_FOLDER] = uri
+        }
+    }
+
+    suspend fun setLastSyncAt(epochMillis: Long) {
+        dataStore.edit { it[KEY_LAST_SYNC] = epochMillis }
     }
 
     /** Enabling requires a folder; the caller picks it via SAF first. */
@@ -211,5 +245,8 @@ class UserPreferencesRepository @Inject constructor(
         val KEY_LAST_AUTO_BACKUP = longPreferencesKey("last_auto_backup_at")
         val KEY_OFF_USERNAME = stringPreferencesKey("off_username")
         val KEY_OFF_PASSWORD = stringPreferencesKey("off_password_encrypted")
+        val KEY_DEVICE_ID = stringPreferencesKey("device_id")
+        val KEY_SYNC_FOLDER = stringPreferencesKey("sync_folder_uri")
+        val KEY_LAST_SYNC = longPreferencesKey("last_sync_at")
     }
 }

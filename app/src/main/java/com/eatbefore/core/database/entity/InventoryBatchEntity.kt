@@ -25,6 +25,7 @@ import com.eatbefore.domain.model.MeasurementUnit
         ),
     ],
     indices = [
+        Index(value = ["uuid"], unique = true),
         Index(value = ["product_id"]),
         Index(value = ["storage_location_id"]),
         Index(value = ["expiration_date"]),
@@ -34,6 +35,8 @@ import com.eatbefore.domain.model.MeasurementUnit
 )
 data class InventoryBatchEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Stable across devices; the local [id] is not. See ADR-0004. */
+    @ColumnInfo(name = "uuid") val uuid: String = java.util.UUID.randomUUID().toString(),
     @ColumnInfo(name = "product_id") val productId: Long,
     @ColumnInfo(name = "storage_location_id") val storageLocationId: Long,
     @ColumnInfo(name = "quantity") val quantity: Double,

@@ -221,8 +221,21 @@ class BackupManagerTest {
         val products = db.productDao().getAll()
         assertEquals(1, products.size)
         assertEquals("Кефир", products.first().name)
-        // The batch has no stable identity yet, so it is appended — documented behaviour.
-        assertEquals(2, db.inventoryBatchDao().getAll().size)
+        // Since schema v2 batches carry a uuid, so re-importing recognises them instead
+        // of stacking duplicates — the limitation documented for v1.3.0 is gone.
+        assertEquals(1, db.inventoryBatchDao().getAll().size)
+    }
+
+    /** Importing the same file repeatedly must converge, not grow the database. */
+    @Test
+    fun merge_isIdempotentAcrossRepeatedImports() = runTest {
+        seed()
+        val json = manager.export()
+
+        repeat(3) { manager.import(json, BackupManager.ImportMode.MERGE) }
+
+        assertEquals(1, db.productDao().getAll().size)
+        assertEquals(1, db.inventoryBatchDao().getAll().size)
     }
 
     @Test

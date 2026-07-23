@@ -62,6 +62,8 @@ data class BackupLocation(
 @Serializable
 data class BackupProduct(
     val id: Long,
+    /** Stable identity (schema v2+). Empty in v1 files. */
+    val uuid: String = "",
     val barcode: String?,
     val barcodeType: String,
     val name: String,
@@ -80,6 +82,8 @@ data class BackupProduct(
 @Serializable
 data class BackupBatch(
     val id: Long,
+    /** Stable identity (schema v2+). Empty in v1 files. */
+    val uuid: String = "",
     val productId: Long,
     val storageLocationId: Long,
     val quantity: Double,
@@ -102,6 +106,8 @@ data class BackupBatch(
 @Serializable
 data class BackupEvent(
     val id: Long,
+    /** Stable identity (schema v2+). Empty in v1 files. */
+    val uuid: String = "",
     val inventoryBatchId: Long,
     val productId: Long,
     val eventType: String,

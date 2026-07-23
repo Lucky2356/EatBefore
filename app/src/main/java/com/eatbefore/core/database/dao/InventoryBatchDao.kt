@@ -27,6 +27,10 @@ interface InventoryBatchDao {
     @Query("SELECT * FROM inventory_batches WHERE id = :id")
     suspend fun getById(id: Long): InventoryBatchEntity?
 
+    /** Cross-device identity; see ADR-0004. */
+    @Query("SELECT * FROM inventory_batches WHERE uuid = :uuid LIMIT 1")
+    suspend fun getByUuid(uuid: String): InventoryBatchEntity?
+
     @Transaction
     @Query("SELECT * FROM inventory_batches WHERE id = :id")
     fun observeWithProduct(id: Long): Flow<BatchWithProductAndLocation?>

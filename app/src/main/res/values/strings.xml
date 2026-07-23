@@ -339,6 +339,23 @@
     <string name="product_discard_confirm_title">Выбросить продукт?</string>
     <string name="product_discard_confirm_message">Партия будет списана как выброшенная и попадёт в статистику потерь. Действие можно отменить в истории.</string>
 
+    <string name="settings_section_sharing">Совместный доступ</string>
+    <string name="settings_sharing_desc">Выберите папку, которая синхронизируется между вашими устройствами (например, в Google Диске или Яндекс.Диске), и укажите ту же папку на втором телефоне. Приложение будет обмениваться изменениями через неё — без регистрации и без наших серверов.</string>
+    <string name="settings_sharing_folder">Общая папка</string>
+    <string name="settings_sharing_folder_none">Не выбрана — запасы видны только на этом телефоне</string>
+    <string name="settings_sharing_folder_set">Обмен включён</string>
+    <string name="settings_sharing_last">Последний обмен: %1$s</string>
+    <string name="settings_sharing_never">Обмена ещё не было</string>
+    <string name="settings_sharing_now">Обменяться сейчас</string>
+    <string name="settings_sharing_disable">Отключить обмен</string>
+    <string name="settings_sharing_delay">Изменения появляются не мгновенно: сначала их должен синхронизировать облачный диск, а второй телефон — открыть приложение.</string>
+    <string name="settings_sharing_off">Обмен отключён</string>
+    <string name="settings_sharing_done">Обмен завершён</string>
+    <string name="settings_sharing_no_peers">Папка готова. Укажите её же на втором телефоне</string>
+    <string name="settings_sharing_not_configured">Сначала выберите общую папку</string>
+    <string name="settings_sharing_folder_gone">Папка недоступна — выберите её заново</string>
+    <string name="settings_sharing_failed">Не удалось обменяться. Попробуйте позже</string>
+
     <string name="settings_section_catalog">Каталог товаров</string>
     <string name="settings_catalog_desc">Поиск идёт по открытым базам Open Food Facts: продукты, косметика, бытовая химия и корма. Российских товаров там мало — если вы добавите неизвестный товар и отправите его в базу, он появится у всех.</string>
     <string name="settings_off_account">Аккаунт Open Food Facts</string>

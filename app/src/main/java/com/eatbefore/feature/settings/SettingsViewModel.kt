@@ -10,6 +10,9 @@ import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.sync.SyncManager
+import com.eatbefore.core.sync.SyncResult
+import com.eatbefore.core.sync.SyncScheduler
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.StorageLocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,6 +34,8 @@ class SettingsViewModel @Inject constructor(
     private val preferences: UserPreferencesRepository,
     private val storageLocations: StorageLocationRepository,
     private val backupManager: BackupManager,
+    private val syncManager: SyncManager,
+    private val syncScheduler: SyncScheduler,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -45,6 +51,9 @@ class SettingsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList(),
     )
+
+    private val _isSyncing = MutableStateFlow(false)
+    val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
     private val _message = MutableStateFlow<Int?>(null)
     val message: StateFlow<Int?> = _message.asStateFlow()
@@ -113,6 +122,53 @@ class SettingsViewModel @Inject constructor(
 
     fun disableAutoBackup() {
         viewModelScope.launch { preferences.setAutoBackup(enabled = false, folderUri = null) }
+    }
+
+    /**
+     * Turns on household sharing with the folder the user just picked, and syncs at once
+     * so they can see whether it worked instead of waiting for the periodic job.
+     */
+    fun enableSharing(folderUri: Uri) {
+        viewModelScope.launch {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    folderUri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+                )
+            }
+            preferences.setSyncFolder(folderUri.toString())
+            syncScheduler.apply(preferences.preferences.first())
+            syncNow()
+        }
+    }
+
+    fun disableSharing() {
+        viewModelScope.launch {
+            preferences.setSyncFolder(null)
+            syncScheduler.apply(preferences.preferences.first())
+            _message.value = R.string.settings_sharing_off
+        }
+    }
+
+    /** Exchanges journals right now. Shown as a spinner so a slow drive is visible. */
+    fun syncNow() {
+        if (_isSyncing.value) return
+        _isSyncing.value = true
+        viewModelScope.launch {
+            _message.value = when (val result = syncManager.sync()) {
+                is SyncResult.Success -> if (result.stats.peersSeen == 0) {
+                    R.string.settings_sharing_no_peers
+                } else {
+                    R.string.settings_sharing_done
+                }
+
+                SyncResult.NotConfigured -> R.string.settings_sharing_not_configured
+                SyncResult.FolderUnavailable -> R.string.settings_sharing_folder_gone
+                is SyncResult.Failed -> R.string.settings_sharing_failed
+            }
+            _isSyncing.value = false
+        }
     }
 
     /** Writes a backup to the user-chosen document. Explicit user action only. */

@@ -79,7 +79,9 @@ exceptions:
   TooGenericExceptionCaught:
     # Provider boundaries deliberately catch broadly so untrusted input can never
     # crash the app; each site documents why.
-    excludes: ['**/data/catalog/**', '**/data/ocr/**', '**/core/backup/**']
+    # core/sync reads files written by another device through a cloud drive: a truncated
+    # or half-synced file must degrade to "no exchange", never to a crash.
+    excludes: ['**/data/catalog/**', '**/data/ocr/**', '**/core/backup/**', '**/core/sync/**']
   SwallowedException:
     # Parsers treat unparseable input as "no result", which is the whole point;
     # the exception carries no extra information for the user.

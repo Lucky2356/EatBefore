@@ -23,6 +23,10 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE id = :id")
     fun observeById(id: Long): Flow<ProductEntity?>
 
+    /** Cross-device identity; see ADR-0004. */
+    @Query("SELECT * FROM products WHERE uuid = :uuid LIMIT 1")
+    suspend fun getByUuid(uuid: String): ProductEntity?
+
     @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
     suspend fun getByBarcode(barcode: String): ProductEntity?
 

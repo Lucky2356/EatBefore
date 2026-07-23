@@ -54,6 +54,10 @@ interface InventoryEventDao {
     @Query("SELECT * FROM inventory_events")
     suspend fun getAll(): List<InventoryEventEntity>
 
+    /** Uuids already stored, so a repeated sync does not re-insert the same events. */
+    @Query("SELECT uuid FROM inventory_events")
+    suspend fun getAllUuids(): List<String>
+
     @Insert
     suspend fun insertAll(items: List<InventoryEventEntity>)
 

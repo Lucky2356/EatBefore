@@ -11,12 +11,15 @@ import com.eatbefore.domain.model.ProductSource
 @Entity(
     tableName = "products",
     indices = [
+        Index(value = ["uuid"], unique = true),
         Index(value = ["barcode"]),
         Index(value = ["name"]),
     ],
 )
 data class ProductEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Stable across devices; the local [id] is not. See ADR-0004. */
+    @ColumnInfo(name = "uuid") val uuid: String = java.util.UUID.randomUUID().toString(),
     @ColumnInfo(name = "barcode") val barcode: String?,
     @ColumnInfo(name = "barcode_type") val barcodeType: BarcodeType,
     @ColumnInfo(name = "name") val name: String,

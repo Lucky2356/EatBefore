@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -75,6 +76,7 @@ fun SettingsScreen(
     val prefs by viewModel.state.collectAsStateWithLifecycle()
     val locations by viewModel.locations.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     var showTimePicker by remember { mutableStateOf(false) }
     var showLocationPicker by remember { mutableStateOf(false) }
@@ -90,6 +92,9 @@ fun SettingsScreen(
     val folderLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri -> uri?.let(viewModel::enableAutoBackup) }
+    val syncFolderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri -> uri?.let(viewModel::enableSharing) }
 
     val messageText = message?.let { stringResource(it) }
     LaunchedEffect(message) {
@@ -278,6 +283,55 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_import_desc),
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 )
+            }
+
+            SectionCard(title = stringResource(R.string.settings_section_sharing)) {
+                Text(
+                    stringResource(R.string.settings_sharing_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.settings_sharing_folder),
+                    subtitle = if (prefs.syncFolderUri != null) {
+                        stringResource(R.string.settings_sharing_folder_set)
+                    } else {
+                        stringResource(R.string.settings_sharing_folder_none)
+                    },
+                    onClick = { syncFolderLauncher.launch(null) },
+                )
+                if (prefs.syncFolderUri != null) {
+                    HorizontalDivider()
+                    SettingActionRow(
+                        title = stringResource(R.string.settings_sharing_now),
+                        subtitle = if (prefs.lastSyncAt > 0) {
+                            stringResource(
+                                R.string.settings_sharing_last,
+                                formatDateTime(java.time.Instant.ofEpochMilli(prefs.lastSyncAt)),
+                            )
+                        } else {
+                            stringResource(R.string.settings_sharing_never)
+                        },
+                        onClick = viewModel::syncNow,
+                    )
+                    if (isSyncing) {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
+                    HorizontalDivider()
+                    SettingActionRow(
+                        title = stringResource(R.string.settings_sharing_disable),
+                        subtitle = null,
+                        onClick = viewModel::disableSharing,
+                    )
+                    // Honest about the latency: a cloud folder is not a live connection.
+                    Text(
+                        stringResource(R.string.settings_sharing_delay),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Dimens.spaceSm, bottom = Dimens.spaceSm),
+                    )
+                }
             }
 
             SectionCard(title = stringResource(R.string.settings_section_catalog)) {

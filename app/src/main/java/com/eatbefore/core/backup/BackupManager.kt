@@ -135,9 +135,8 @@ class BackupManager @Inject constructor(
      * inserted otherwise; batches, events and list entries are always inserted and
      * re-pointed at the resolved parents.
      *
-     * Known limitation: batches have no stable identity across devices, so importing the
-     * same file twice adds its batches twice. This is surfaced in the UI and goes away
-     * once records carry uuids (see docs/adr/0004-household-sharing.md).
+     * Since schema v2 batches and events carry uuids, so importing the same file twice
+     * converges instead of duplicating — the limitation documented for v1.3.0 is gone.
      */
     private suspend fun mergeInto(file: BackupFile) {
         val locationIds = mutableMapOf<Long, Long>()
@@ -159,33 +158,8 @@ class BackupManager @Inject constructor(
             productIds[dto.id] = match?.id ?: db.productDao().insert(entity.copy(id = 0))
         }
 
-        val batchIds = mutableMapOf<Long, Long>()
-        file.batches.forEach { dto ->
-            val entity = dto.toEntity()
-            val productId = productIds[entity.productId] ?: return@forEach
-            val locationId = locationIds[entity.storageLocationId]
-                ?: db.storageLocationDao().getDefault()?.id
-                ?: return@forEach
-            batchIds[dto.id] = db.inventoryBatchDao().insert(
-                entity.copy(id = 0, productId = productId, storageLocationId = locationId),
-            )
-        }
-
-        file.events.forEach { dto ->
-            val entity = dto.toEntity()
-            val batchId = batchIds[entity.inventoryBatchId] ?: return@forEach
-            val productId = productIds[entity.productId] ?: return@forEach
-            db.inventoryEventDao().insert(
-                entity.copy(
-                    id = 0,
-                    inventoryBatchId = batchId,
-                    productId = productId,
-                    previousStorageLocationId = entity.previousStorageLocationId
-                        ?.let(locationIds::get),
-                    newStorageLocationId = entity.newStorageLocationId?.let(locationIds::get),
-                ),
-            )
-        }
+        val batchIds = mergeBatches(file, productIds, locationIds)
+        mergeEvents(file, productIds, locationIds, batchIds)
 
         file.shopping.forEach { dto ->
             val entity = dto.toEntity()
@@ -209,6 +183,58 @@ class BackupManager @Inject constructor(
         quietStartHour = quietStartHour,
         quietEndHour = quietEndHour,
     )
+
+    /**
+     * Inserts the file's batches under their resolved parents. Since schema v2 batches
+     * carry a uuid, so a repeated import of the same file recognises them instead of
+     * stacking up duplicates.
+     */
+    private suspend fun mergeBatches(
+        file: BackupFile,
+        productIds: Map<Long, Long>,
+        locationIds: Map<Long, Long>,
+    ): Map<Long, Long> {
+        val batchIds = mutableMapOf<Long, Long>()
+        file.batches.forEach { dto ->
+            val entity = dto.toEntity()
+            val productId = productIds[entity.productId] ?: return@forEach
+            val locationId = locationIds[entity.storageLocationId]
+                ?: db.storageLocationDao().getDefault()?.id
+                ?: return@forEach
+            val existing = dto.uuid.takeIf { it.isNotBlank() }
+                ?.let { db.inventoryBatchDao().getByUuid(it) }
+            batchIds[dto.id] = existing?.id ?: db.inventoryBatchDao().insert(
+                entity.copy(id = 0, productId = productId, storageLocationId = locationId),
+            )
+        }
+        return batchIds
+    }
+
+    /** Events are append-only, so an already-known uuid is skipped rather than re-added. */
+    private suspend fun mergeEvents(
+        file: BackupFile,
+        productIds: Map<Long, Long>,
+        locationIds: Map<Long, Long>,
+        batchIds: Map<Long, Long>,
+    ) {
+        val known = db.inventoryEventDao().getAllUuids().toHashSet()
+        file.events.forEach { dto ->
+            val entity = dto.toEntity()
+            if (dto.uuid.isNotBlank() && !known.add(dto.uuid)) return@forEach
+            val batchId = batchIds[entity.inventoryBatchId] ?: return@forEach
+            val productId = productIds[entity.productId] ?: return@forEach
+            db.inventoryEventDao().insert(
+                entity.copy(
+                    id = 0,
+                    inventoryBatchId = batchId,
+                    productId = productId,
+                    previousStorageLocationId = entity.previousStorageLocationId
+                        ?.let(locationIds::get),
+                    newStorageLocationId = entity.newStorageLocationId?.let(locationIds::get),
+                ),
+            )
+        }
+    }
 
     private fun UserPreferences.toBackupSettings() = BackupSettings(
         soonThresholdDays = soonThresholdDays,
@@ -243,13 +269,30 @@ class BackupManager @Inject constructor(
         isArchived = isArchived,
     )
 
+    // Named rather than positional: the field list is long and a silent reordering
+    // would map one column onto another without the compiler noticing.
     private fun ProductEntity.toBackup() = BackupProduct(
-        id, barcode, barcodeType.name, name, brand, category, description, packageSize,
-        measurementUnit.name, imageUri, source.name, isUserCreated, createdAt, updatedAt,
+        id = id,
+        uuid = uuid,
+        barcode = barcode,
+        barcodeType = barcodeType.name,
+        name = name,
+        brand = brand,
+        category = category,
+        description = description,
+        packageSize = packageSize,
+        measurementUnit = measurementUnit.name,
+        imageUri = imageUri,
+        source = source.name,
+        isUserCreated = isUserCreated,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
     )
 
     private fun BackupProduct.toEntity() = ProductEntity(
         id = id,
+        // Empty in v1 files; the entity default then mints a fresh one.
+        uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
         barcode = barcode,
         barcodeType = enumOr(barcodeType, BarcodeType.NONE),
         name = name,
@@ -266,13 +309,31 @@ class BackupManager @Inject constructor(
     )
 
     private fun InventoryBatchEntity.toBackup() = BackupBatch(
-        id, productId, storageLocationId, quantity, initialQuantity, measurementUnit.name,
-        purchaseDate, addedAt, expirationDate, openedAt, recommendedUseAfterOpeningDays,
-        calculatedExpirationAfterOpening, status.name, note, price, currency, deletedAt, updatedAt,
+        id = id,
+        uuid = uuid,
+        productId = productId,
+        storageLocationId = storageLocationId,
+        quantity = quantity,
+        initialQuantity = initialQuantity,
+        measurementUnit = measurementUnit.name,
+        purchaseDate = purchaseDate,
+        addedAt = addedAt,
+        expirationDate = expirationDate,
+        openedAt = openedAt,
+        recommendedUseAfterOpeningDays = recommendedUseAfterOpeningDays,
+        calculatedExpirationAfterOpening = calculatedExpirationAfterOpening,
+        status = status.name,
+        note = note,
+        price = price,
+        currency = currency,
+        deletedAt = deletedAt,
+        updatedAt = updatedAt,
     )
 
     private fun BackupBatch.toEntity() = InventoryBatchEntity(
         id = id,
+        // Empty in v1 files; the entity default then mints a fresh one.
+        uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
         productId = productId,
         storageLocationId = storageLocationId,
         quantity = quantity,
@@ -293,12 +354,24 @@ class BackupManager @Inject constructor(
     )
 
     private fun InventoryEventEntity.toBackup() = BackupEvent(
-        id, inventoryBatchId, productId, eventType.name, oldQuantity, newQuantity,
-        previousStorageLocationId, newStorageLocationId, reason, createdAt, metadata,
+        id = id,
+        uuid = uuid,
+        inventoryBatchId = inventoryBatchId,
+        productId = productId,
+        eventType = eventType.name,
+        oldQuantity = oldQuantity,
+        newQuantity = newQuantity,
+        previousStorageLocationId = previousStorageLocationId,
+        newStorageLocationId = newStorageLocationId,
+        reason = reason,
+        createdAt = createdAt,
+        metadata = metadata,
     )
 
     private fun BackupEvent.toEntity() = InventoryEventEntity(
         id = id,
+        // Empty in v1 files; the entity default then mints a fresh one.
+        uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
         inventoryBatchId = inventoryBatchId,
         productId = productId,
         eventType = enumOr(eventType, EventType.UPDATED),

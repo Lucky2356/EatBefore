@@ -29,13 +29,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.scanner.camera.CameraPreview
@@ -81,37 +79,34 @@ fun ScannerScreen(
         onShown = { viewModel.resume() },
     )
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.scanner_title)) },
-                actions = {
-                    if (cameraPermission.status.isGranted) {
-                        IconButton(onClick = { viewModel.setBatchMode(!state.batchMode) }) {
-                            Icon(
-                                Icons.Outlined.ShoppingBag,
-                                contentDescription = stringResource(R.string.scanner_batch_mode),
-                                tint = if (state.batchMode) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    LocalContentColor.current
-                                },
-                            )
-                        }
-                        IconButton(onClick = viewModel::toggleTorch) {
-                            Icon(
-                                if (state.torchEnabled) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff,
-                                contentDescription = stringResource(R.string.scanner_torch),
-                            )
-                        }
-                        IconButton(onClick = { showManualDialog = true }) {
-                            Icon(Icons.Outlined.Keyboard, contentDescription = stringResource(R.string.scanner_manual))
-                        }
-                    }
-                },
-            )
+    ScreenScaffold(
+        title = stringResource(R.string.scanner_title),
+        snackbarHostState = snackbarHost,
+        actions = {
+            // Without the camera there is nothing to toggle, so the actions stay hidden.
+            if (cameraPermission.status.isGranted) {
+                IconButton(onClick = { viewModel.setBatchMode(!state.batchMode) }) {
+                    Icon(
+                        Icons.Outlined.ShoppingBag,
+                        contentDescription = stringResource(R.string.scanner_batch_mode),
+                        tint = if (state.batchMode) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            LocalContentColor.current
+                        },
+                    )
+                }
+                IconButton(onClick = viewModel::toggleTorch) {
+                    Icon(
+                        if (state.torchEnabled) Icons.Outlined.FlashlightOn else Icons.Outlined.FlashlightOff,
+                        contentDescription = stringResource(R.string.scanner_torch),
+                    )
+                }
+                IconButton(onClick = { showManualDialog = true }) {
+                    Icon(Icons.Outlined.Keyboard, contentDescription = stringResource(R.string.scanner_manual))
+                }
+            }
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             if (cameraPermission.status.isGranted) {
