@@ -8,6 +8,12 @@ import java.time.Instant
  */
 data class Product(
     val id: Long = 0,
+    /**
+     * Stable identity across devices. Carried through the mappers so an ordinary
+     * edit keeps the row's identity — regenerating it here would make a peer see the
+     * change as a new record. See ADR-0004.
+     */
+    val uuid: String = "",
     val barcode: String? = null,
     val barcodeType: BarcodeType = BarcodeType.NONE,
     val name: String,

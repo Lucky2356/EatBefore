@@ -9,6 +9,12 @@ import java.time.Instant
  */
 data class InventoryEvent(
     val id: Long = 0,
+    /**
+     * Stable identity across devices. Carried through the mappers so an ordinary
+     * edit keeps the row's identity — regenerating it here would make a peer see the
+     * change as a new record. See ADR-0004.
+     */
+    val uuid: String = "",
     val inventoryBatchId: Long,
     val productId: Long,
     val eventType: EventType,

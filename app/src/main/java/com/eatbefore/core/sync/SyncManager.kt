@@ -9,6 +9,8 @@ import com.eatbefore.core.datastore.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -50,15 +52,28 @@ class SyncManager @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) {
 
-    suspend fun sync(): SyncResult = withContext(ioDispatcher) {
+    /**
+     * Only one exchange at a time. Tapping "sync now" while the periodic worker is
+     * already running used to let both write the journal at once: each checked for an
+     * existing file, neither found one yet, and SAF happily created a second
+     * "journal-<id> (1).json". Peers then read the stale copy as if it were another
+     * household member.
+     */
+    private val mutex = Mutex()
+
+    suspend fun sync(): SyncResult = mutex.withLock {
+        withContext(ioDispatcher) { syncInternal() }
+    }
+
+    private suspend fun syncInternal(): SyncResult {
         val folderUri = preferences.preferences.first().syncFolderUri
-            ?: return@withContext SyncResult.NotConfigured
+            ?: return SyncResult.NotConfigured
         val folder = DocumentFile.fromTreeUri(appContext, Uri.parse(folderUri))
-        if (folder == null || !folder.canWrite()) return@withContext SyncResult.FolderUnavailable
+        if (folder == null || !folder.canWrite()) return SyncResult.FolderUnavailable
 
         val deviceId = deviceIdProvider.deviceId()
 
-        try {
+        return try {
             // Read peers first: publishing our own state afterwards means a partial read
             // never leaves the folder advertising data we have not merged.
             var total = SyncStats()
@@ -101,11 +116,26 @@ class SyncManager @Inject constructor(
         )
         // Overwrite in place when possible: recreating the file changes its identity and
         // some cloud clients treat that as a delete plus an add.
-        val existing = folder.listFiles().firstOrNull { it.name == name }
-        val target = existing ?: folder.createFile(MIME_TYPE, name) ?: return
+        val ours = folder.listFiles().filter { it.isOurJournal(deviceId) }
+        val target = ours.firstOrNull { it.name == name }
+            ?: ours.firstOrNull()
+            ?: folder.createFile(MIME_TYPE, name)
+            ?: return
         appContext.contentResolver.openOutputStream(target.uri, "wt")?.use { stream ->
             stream.write(content.toByteArray(Charsets.UTF_8))
         }
+
+        // Tidy up "journal-<id> (1).json" copies left by the race fixed above, or by a
+        // cloud client resolving a conflict. Only ever our own files.
+        ours.filter { it.uri != target.uri }.forEach { runCatching { it.delete() } }
+    }
+
+    /** Our own journal, including duplicates a cloud client may have made. */
+    private fun DocumentFile.isOurJournal(deviceId: String): Boolean {
+        val name = name ?: return false
+        return isFile &&
+            name.startsWith("${SyncJournal.FILE_PREFIX}$deviceId") &&
+            name.endsWith(SyncJournal.FILE_SUFFIX)
     }
 
     private fun SyncStats.plus(other: SyncStats) = SyncStats(

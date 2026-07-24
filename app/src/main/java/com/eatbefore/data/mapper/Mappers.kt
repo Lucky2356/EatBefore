@@ -21,6 +21,7 @@ private fun Long?.toLocalDateOrNull(): LocalDate? = this?.let(LocalDate::ofEpoch
 
 fun ProductEntity.toDomain(): Product = Product(
     id = id,
+    uuid = uuid,
     barcode = barcode,
     barcodeType = barcodeType,
     name = name,
@@ -38,6 +39,8 @@ fun ProductEntity.toDomain(): Product = Product(
 
 fun Product.toEntity(): ProductEntity = ProductEntity(
     id = id,
+    // Blank only for objects built in code before they are stored.
+    uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
     barcode = barcode,
     barcodeType = barcodeType,
     name = name,
@@ -75,6 +78,7 @@ fun StorageLocation.toEntity(): StorageLocationEntity = StorageLocationEntity(
 
 fun InventoryBatchEntity.toDomain(): InventoryBatch = InventoryBatch(
     id = id,
+    uuid = uuid,
     productId = productId,
     storageLocationId = storageLocationId,
     quantity = quantity,
@@ -96,6 +100,8 @@ fun InventoryBatchEntity.toDomain(): InventoryBatch = InventoryBatch(
 
 fun InventoryBatch.toEntity(): InventoryBatchEntity = InventoryBatchEntity(
     id = id,
+    // Blank only for objects built in code before they are stored.
+    uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
     productId = productId,
     storageLocationId = storageLocationId,
     quantity = quantity,
@@ -117,6 +123,7 @@ fun InventoryBatch.toEntity(): InventoryBatchEntity = InventoryBatchEntity(
 
 fun InventoryEventEntity.toDomain(): InventoryEvent = InventoryEvent(
     id = id,
+    uuid = uuid,
     inventoryBatchId = inventoryBatchId,
     productId = productId,
     eventType = eventType,
@@ -131,6 +138,8 @@ fun InventoryEventEntity.toDomain(): InventoryEvent = InventoryEvent(
 
 fun InventoryEvent.toEntity(): InventoryEventEntity = InventoryEventEntity(
     id = id,
+    // Blank only for objects built in code before they are stored.
+    uuid = uuid.ifBlank { java.util.UUID.randomUUID().toString() },
     inventoryBatchId = inventoryBatchId,
     productId = productId,
     eventType = eventType,
