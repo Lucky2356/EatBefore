@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,6 +9,22 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.baselineprofile)
 }
+
+/**
+ * Release signing details, from `local.properties` (developer machine) or environment
+ * variables (CI). Neither is in version control — the key must never reach the repo,
+ * because anyone holding it can publish updates that Android accepts as genuine.
+ */
+val releaseSigning = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(property: String, environment: String): String? =
+    (releaseSigning.getProperty(property) ?: System.getenv(environment))?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingValue("release.storeFile", "EATBEFORE_STORE_FILE")
+val hasReleaseKey = releaseStoreFile != null && file(releaseStoreFile).exists()
 
 android {
     namespace = "com.eatbefore"
@@ -23,6 +41,17 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(releaseStoreFile!!)
+                storePassword = signingValue("release.storePassword", "EATBEFORE_STORE_PASSWORD")
+                keyAlias = signingValue("release.keyAlias", "EATBEFORE_KEY_ALIAS")
+                keyPassword = signingValue("release.keyPassword", "EATBEFORE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -35,9 +64,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Signed with the debug key so the published APK is installable. Replace
-            // with a real upload keystore before any store distribution.
-            signingConfig = signingConfigs.getByName("debug")
+            // Falling back to the debug key keeps the build working without a keystore,
+            // but such an APK must not be handed out: the debug key is public, and
+            // switching to a real one later forces a reinstall (see README).
+            signingConfig = if (hasReleaseKey) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "EatBefore: no release keystore configured — signing with the DEBUG key. " +
+                        "See README «Подпись релиза».",
+                )
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
