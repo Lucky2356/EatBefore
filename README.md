@@ -101,10 +101,17 @@ JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew :app:assembleD
 Ключ создаёте вы, и он не должен попадать в репозиторий. Пароль тоже
 придумываете сами — ниже он показан как `ВАШ_ПАРОЛЬ`.
 
-```bash
-keytool -genkeypair -v -keystore ~/eatbefore-release.jks -alias eatbefore \
-  -keyalg RSA -keysize 2048 -validity 10000
+Глобальной Java в системе может не быть — `keytool` лежит внутри Android Studio.
+В PowerShell путь с пробелами требует оператора `&`, а тильду keytool не
+разворачивает, отсюда `$env:USERPROFILE`:
+
+```powershell
+& "C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe" -genkeypair -v -keystore "$env:USERPROFILE\eatbefore-release.jks" -alias eatbefore -keyalg RSA -keysize 2048 -validity 10000
 ```
+
+Организационные поля (подразделение, город, регион) можно пропустить Enter'ом —
+для личного приложения они ни на что не влияют. На запрос пароля ключа
+достаточно Enter: тогда он совпадёт с паролем хранилища.
 
 Затем добавьте в `local.properties` (файл в `.gitignore`, в git не уходит):
 
