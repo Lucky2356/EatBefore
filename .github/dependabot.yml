@@ -7,6 +7,23 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # These need AGP 9, and AGP 9 is not reachable yet: it replaces the Kotlin plugin
+    # with its own built-in Kotlin, and neither androidx.baselineprofile (checked up to
+    # 1.4.1) nor detekt (stuck at 1.23.8) supports it. Moving now would mean deleting the
+    # Baseline Profile module and turning off static analysis. Revisit when both ship AGP
+    # 9 support, then drop these ignores. See docs/TOOLCHAIN.md.
+    ignore:
+      - dependency-name: "com.android.tools.build:gradle"
+        versions: [">=9.0.0"]
+      - dependency-name: "com.google.dagger*"
+        # 2.58 is the last release that works with AGP 8; 2.58.2+ requires AGP 9.
+        versions: [">=2.58.2"]
+      - dependency-name: "androidx.hilt:hilt-navigation-compose"
+        # 1.4.0 requires compileSdk 37, which AGP 8.10 does not support.
+        versions: [">=1.4.0"]
+      - dependency-name: "org.jetbrains.kotlin*"
+        # Hilt 2.58 reads Kotlin metadata up to 2.3.x only.
+        versions: [">=2.4.0"]
     groups:
       androidx-compose:
         patterns:
