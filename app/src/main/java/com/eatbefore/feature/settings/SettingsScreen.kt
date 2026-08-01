@@ -1,6 +1,7 @@
 package com.eatbefore.feature.settings
 
 import android.Manifest
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -44,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -78,10 +81,12 @@ fun SettingsScreen(
     val message by viewModel.message.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val context = LocalContext.current
     var showTimePicker by remember { mutableStateOf(false) }
     var showLocationPicker by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var showOffAccountDialog by remember { mutableStateOf(false) }
+    var diagnosticsReport by remember { mutableStateOf<String?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
@@ -366,8 +371,68 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.settings_diagnostics),
+                    subtitle = stringResource(R.string.settings_diagnostics_hint),
+                    onClick = {
+                        // Read at the moment of tapping: the log only changes on failures.
+                        val report = viewModel.diagnosticsReport()
+                        if (report == null) {
+                            viewModel.showDiagnosticsEmpty()
+                        } else {
+                            diagnosticsReport = report
+                        }
+                    },
+                )
             }
         }
+    }
+
+    diagnosticsReport?.let { report ->
+        AlertDialog(
+            onDismissRequest = { diagnosticsReport = null },
+            title = { Text(stringResource(R.string.settings_diagnostics)) },
+            text = {
+                Column {
+                    Text(
+                        stringResource(R.string.settings_diagnostics_explain),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    // The user is entitled to read what they would be sending before
+                    // sending it; a report shared blind is a report shared unknowingly.
+                    Text(
+                        report,
+                        modifier = Modifier
+                            .padding(top = Dimens.spaceSm)
+                            .heightIn(max = Dimens.diagnosticsPreviewHeight)
+                            .verticalScroll(rememberScrollState()),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, report)
+                    }
+                    context.startActivity(Intent.createChooser(intent, null))
+                    diagnosticsReport = null
+                }) {
+                    Text(stringResource(R.string.settings_diagnostics_share))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.clearDiagnostics()
+                    diagnosticsReport = null
+                }) {
+                    Text(stringResource(R.string.settings_diagnostics_clear))
+                }
+            },
+        )
     }
 
     if (showLocationPicker) {

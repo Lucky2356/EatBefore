@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.eatbefore.core.backup.AutoBackupScheduler
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.diagnostics.CrashReporter
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.core.notifications.NotificationScheduler
 import com.eatbefore.core.sync.SyncScheduler
@@ -40,6 +41,8 @@ class EatBeforeApplication :
 
     @Inject lateinit var expiryNotifier: ExpiryNotifier
 
+    @Inject lateinit var crashReporter: CrashReporter
+
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     override val workManagerConfiguration: Configuration
@@ -49,6 +52,8 @@ class EatBeforeApplication :
 
     override fun onCreate() {
         super.onCreate()
+        // First, so that a failure in anything below is still recorded.
+        crashReporter.install()
         expiryNotifier.ensureChannel()
         // Re-apply the schedule whenever notification-related settings change.
         appScope.launch {

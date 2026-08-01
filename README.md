@@ -116,11 +116,15 @@ JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew :app:assembleD
 Затем добавьте в `local.properties` (файл в `.gitignore`, в git не уходит):
 
 ```properties
-release.storeFile=C:/путь/к/eatbefore-release.jks
+release.storeFile=C\:/путь/к/eatbefore-release.jks
 release.storePassword=ВАШ_ПАРОЛЬ
 release.keyAlias=eatbefore
 release.keyPassword=ВАШ_ПАРОЛЬ
 ```
+
+Двоеточие диска экранируется (`C\:`) — это формат `.properties`, и lint
+считает неэкранированное двоеточие ошибкой. Прямые слэши в пути работают и на
+Windows.
 
 В CI вместо файла работают переменные окружения `EATBEFORE_STORE_FILE`,
 `EATBEFORE_STORE_PASSWORD`, `EATBEFORE_KEY_ALIAS`, `EATBEFORE_KEY_PASSWORD`.

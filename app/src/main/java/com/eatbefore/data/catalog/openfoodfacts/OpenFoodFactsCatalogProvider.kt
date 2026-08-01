@@ -2,6 +2,7 @@ package com.eatbefore.data.catalog.openfoodfacts
 
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.validation.InputValidator
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.CatalogResult
 import com.eatbefore.domain.catalog.ProductCatalogProvider
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class OpenFoodFactsCatalogProvider @Inject constructor(
     private val client: OkHttpClient,
     private val json: Json,
+    private val diagnostics: DiagnosticsLog,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ProductCatalogProvider {
 
@@ -75,6 +77,9 @@ class OpenFoodFactsCatalogProvider @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Malformed JSON or unexpected issues must not crash or block the user.
+                // Unlike being offline, this usually means the catalog changed its format
+                // — indistinguishable from "product not found" unless it is recorded.
+                diagnostics.record("CATALOG", "Could not parse the catalog response", e)
                 return@withContext CatalogResult.Error("Invalid response")
             }
             delay(RETRY_DELAY_MS * (attempt + 1))

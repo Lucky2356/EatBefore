@@ -3,6 +3,7 @@ package com.eatbefore.data.catalog.openfoodfacts
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.validation.InputValidator
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.ContributionResult
@@ -30,6 +31,7 @@ import javax.inject.Inject
 class OpenFoodFactsContributor @Inject constructor(
     private val client: OkHttpClient,
     private val preferences: UserPreferencesRepository,
+    private val diagnostics: DiagnosticsLog,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : CatalogContributor {
 
@@ -89,6 +91,8 @@ class OpenFoodFactsContributor @Inject constructor(
         } catch (e: IOException) {
             return@withContext ContributionResult.Failed(e.message ?: "Нет соединения")
         } catch (e: Exception) {
+            // "Ошибка отправки" tells the user nothing they can act on and tells us less.
+            diagnostics.record("CATALOG", "Sending the product failed", e)
             return@withContext ContributionResult.Failed("Ошибка отправки")
         }
     }

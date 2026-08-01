@@ -8,6 +8,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -27,6 +28,7 @@ class AutoBackupWorker @AssistedInject constructor(
     private val backupManager: BackupManager,
     private val preferences: UserPreferencesRepository,
     private val clock: AppClock,
+    private val diagnostics: DiagnosticsLog,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -51,7 +53,12 @@ class AutoBackupWorker @AssistedInject constructor(
             pruneOldBackups(folder, prefs.autoBackupKeepCount)
             preferences.setLastAutoBackupAt(clock.now().toEpochMilli())
             Result.success()
-        }.getOrElse { Result.retry() }
+        }.getOrElse { error ->
+            // Nobody is watching when this runs, so a backup that has been failing for
+            // weeks would otherwise look exactly like one that never had anything to do.
+            diagnostics.record("BACKUP", "Automatic backup failed, will retry", error)
+            Result.retry()
+        }
     }
 
     /** Keeps the newest [keep] generated files; user-named exports are never touched. */

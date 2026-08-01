@@ -10,6 +10,7 @@ import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.core.sync.SyncManager
 import com.eatbefore.core.sync.SyncResult
 import com.eatbefore.core.sync.SyncScheduler
@@ -34,6 +35,7 @@ class SettingsViewModel @Inject constructor(
     private val preferences: UserPreferencesRepository,
     private val storageLocations: StorageLocationRepository,
     private val backupManager: BackupManager,
+    private val diagnostics: DiagnosticsLog,
     private val syncManager: SyncManager,
     private val syncScheduler: SyncScheduler,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
@@ -218,6 +220,22 @@ class SettingsViewModel @Inject constructor(
 
     fun consumeMessage() {
         _message.value = null
+    }
+
+    /**
+     * The diagnostics log as shareable text, or null when nothing has gone wrong. Read on
+     * demand rather than observed: it changes only on failures, and polling a file to keep
+     * a settings row up to date would cost more than it tells anyone.
+     */
+    fun diagnosticsReport(): String? = diagnostics.report()
+
+    fun showDiagnosticsEmpty() {
+        _message.value = R.string.settings_diagnostics_empty
+    }
+
+    fun clearDiagnostics() {
+        diagnostics.clear()
+        _message.value = R.string.settings_diagnostics_cleared
     }
 
     /** Reads at most [MAX_IMPORT_BYTES] so a huge or malicious file can't exhaust memory. */

@@ -6,6 +6,7 @@ import androidx.documentfile.provider.DocumentFile
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
@@ -46,6 +47,7 @@ class SyncManager @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val engine: SyncEngine,
     private val preferences: UserPreferencesRepository,
+    private val diagnostics: DiagnosticsLog,
     private val deviceIdProvider: DeviceIdProvider,
     private val json: Json,
     private val clock: AppClock,
@@ -92,7 +94,9 @@ class SyncManager @Inject constructor(
             preferences.setLastSyncAt(clock.now().toEpochMilli())
             SyncResult.Success(total)
         } catch (e: Exception) {
-            // A half-synced cloud file is normal, not a crash-worthy condition.
+            // A half-synced cloud file is normal, not a crash-worthy condition — but the
+            // user only sees "exchange failed", so leave something to look at afterwards.
+            diagnostics.record("SYNC", "Exchange did not finish", e)
             SyncResult.Failed(e.message ?: "Sync failed")
         }
     }
@@ -106,6 +110,10 @@ class SyncManager @Inject constructor(
         appContext.contentResolver.openInputStream(file.uri)?.use { stream ->
             json.decodeFromString(SyncJournal.serializer(), stream.readBytes().toString(Charsets.UTF_8))
         }
+    }.onFailure { error ->
+        // Skipping a peer is the one failure that looks like success: the exchange reports
+        // "done" having merged nothing. The file name is safe to log; its contents are not.
+        diagnostics.record("SYNC", "Could not read peer journal ${file.name}", error)
     }.getOrNull()
 
     private suspend fun writeOwnJournal(folder: DocumentFile, deviceId: String) {

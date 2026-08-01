@@ -37,6 +37,9 @@ object Dimens {
 
     /** Product thumbnail in a list row. */
     val thumbnailSize = 56.dp
+
+    /** Scrollable preview of the diagnostics log — enough to judge it, not enough to bury the buttons. */
+    val diagnosticsPreviewHeight = 240.dp
 }
 
 /** Corner radii, kept separate so a shape is never re-derived from a raw number. */

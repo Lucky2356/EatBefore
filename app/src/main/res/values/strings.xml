@@ -382,6 +382,13 @@
     <string name="settings_section_about">О приложении</string>
     <string name="settings_version">Версия</string>
     <string name="settings_about_privacy">Данные хранятся только на устройстве. Без рекламы и трекеров.</string>
+    <string name="settings_diagnostics">Отчёт о сбое</string>
+    <string name="settings_diagnostics_hint">Что пошло не так в последний раз</string>
+    <string name="settings_diagnostics_explain">Записывается на устройстве и никуда не отправляется само. Здесь только технические ошибки — без ваших продуктов и сроков.</string>
+    <string name="settings_diagnostics_share">Поделиться</string>
+    <string name="settings_diagnostics_clear">Очистить</string>
+    <string name="settings_diagnostics_empty">Сбоев и ошибок не записано</string>
+    <string name="settings_diagnostics_cleared">Отчёт очищен</string>
 
     <!-- Analytics: report extensions -->
     <string name="analytics_share">Поделиться отчётом</string>
