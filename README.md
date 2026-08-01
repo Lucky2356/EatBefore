@@ -72,8 +72,8 @@ Coil. Готовые точки расширения: `ProductCatalogProvider` (
 # Debug APK (результат: app/build/outputs/apk/debug/app-debug.apk)
 ./gradlew :app:assembleDebug
 
-# Минифицированный release APK (R8; подписывается debug-ключом — замените
-# на собственный keystore перед публикацией в магазины)
+# Минифицированный release APK (R8). Подписывается вашим ключом, если он
+# настроен, иначе debug-ключом с предупреждением — см. «Подпись релиза»
 ./gradlew :app:assembleRelease
 
 # Установить на подключённое устройство/эмулятор
@@ -125,17 +125,28 @@ release.keyPassword=ВАШ_ПАРОЛЬ
 В CI вместо файла работают переменные окружения `EATBEFORE_STORE_FILE`,
 `EATBEFORE_STORE_PASSWORD`, `EATBEFORE_KEY_ALIAS`, `EATBEFORE_KEY_PASSWORD`.
 
+Если пароль указан неверно, сборка **падает** с `KeytoolException` — тихого
+отката на debug-ключ не происходит. Сообщение различает случаи: «не открылось
+хранилище» — неверный `storePassword`, «Failed to read key … Get Key failed» —
+неверный `keyPassword`.
+
 **Храните `.jks` и пароль так же надёжно, как пароль от почты.** Потеряете —
 обновить установленные копии приложения будет уже нечем: Android принимает
 обновление, только если оно подписано тем же ключом.
 
 Проверить, чем подписан собранный APK:
 
+`apksigner` — это скрипт-обёртка, ему нужна Java в `JAVA_HOME`:
+
 ```bash
-apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" \
+  "$ANDROID_HOME/build-tools/36.1.0/apksigner.bat" verify --print-certs \
+  app/build/outputs/apk/release/app-release.apk
 ```
 
-Должен показать ваш сертификат, а не `CN=Android Debug`.
+Должен показать ваш сертификат, а не `CN=Android Debug`. Схемы подписи — v2 и
+v3 (v3 включена явно: только она позволяет в будущем сменить ключ без
+переустановки).
 
 ### Разовый переход с отладочной подписи
 
@@ -194,7 +205,8 @@ app/src/main/java/com/eatbefore/
   приложение предлагает ручное добавление с предзаполненным штрихкодом и сроком из кода.
 - Совместный доступ для нескольких человек спроектирован, но не реализован —
   см. [ADR-0004](docs/adr/0004-household-sharing.md).
-- Release-APK подписывается debug-ключом; для магазинов нужен собственный keystore.
+- Без настроенного keystore release-APK подписывается debug-ключом — годится
+  только для проверки на своём устройстве (см. «Подпись релиза»).
 
 ## Документация
 

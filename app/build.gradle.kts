@@ -48,6 +48,10 @@ android {
                 storePassword = signingValue("release.storePassword", "EATBEFORE_STORE_PASSWORD")
                 keyAlias = signingValue("release.keyAlias", "EATBEFORE_KEY_ALIAS")
                 keyPassword = signingValue("release.keyPassword", "EATBEFORE_KEY_PASSWORD")
+                // AGP leaves v3 off by default. It is the only scheme that allows
+                // rotating to a new key later without a reinstall — worth having
+                // when losing the single key would otherwise be unrecoverable.
+                enableV3Signing = true
             }
         }
     }
