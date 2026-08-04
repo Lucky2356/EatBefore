@@ -1,7 +1,6 @@
 package com.eatbefore.core.sync
 
 import android.content.Context
-import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.time.AppClock
@@ -48,6 +47,7 @@ class SyncManager @Inject constructor(
     private val engine: SyncEngine,
     private val preferences: UserPreferencesRepository,
     private val diagnostics: DiagnosticsLog,
+    private val folderResolver: SyncFolderResolver,
     private val deviceIdProvider: DeviceIdProvider,
     private val json: Json,
     private val clock: AppClock,
@@ -70,7 +70,7 @@ class SyncManager @Inject constructor(
     private suspend fun syncInternal(): SyncResult {
         val folderUri = preferences.preferences.first().syncFolderUri
             ?: return SyncResult.NotConfigured
-        val folder = DocumentFile.fromTreeUri(appContext, Uri.parse(folderUri))
+        val folder = folderResolver.resolve(folderUri)
         if (folder == null || !folder.canWrite()) return SyncResult.FolderUnavailable
 
         val deviceId = deviceIdProvider.deviceId()
