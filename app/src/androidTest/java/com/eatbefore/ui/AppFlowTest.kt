@@ -58,7 +58,7 @@ class AppFlowTest {
     /** Waits until [text] is on screen; DataStore writes and navigation are asynchronous. */
     private fun awaitText(text: String) {
         try {
-            composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
                 composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
             }
         } catch (e: ComposeTimeoutException) {
@@ -83,7 +83,7 @@ class AppFlowTest {
     /** Waits until [text] is gone from the screen. */
     private fun awaitTextGone(text: String) {
         try {
-            composeRule.waitUntil(timeoutMillis = 10_000) {
+            composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
                 composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isEmpty()
             }
         } catch (e: ComposeTimeoutException) {
@@ -94,7 +94,7 @@ class AppFlowTest {
 
     /** Clicks an icon-only control, which carries its label as a content description. */
     private fun clickIcon(description: String) {
-        composeRule.waitUntil(timeoutMillis = 10_000) {
+        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
             composeRule.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onAllNodesWithContentDescription(description).onFirst().performClick()
@@ -229,7 +229,7 @@ class AppFlowTest {
         openSettings()
 
         clickText(string(R.string.settings_theme_dark))
-        composeRule.waitUntil(timeoutMillis = 5_000) {
+        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
             runBlocking { preferences.preferences.first().themeMode } == ThemeMode.DARK
         }
 
@@ -248,5 +248,15 @@ class AppFlowTest {
         // described as replacing data, rather than driving the system UI.
         assertVisible(string(R.string.settings_import))
         assertVisible(string(R.string.settings_import_desc))
+    }
+
+    private companion object {
+        /**
+         * Generous on purpose. The timeout only costs time when a test is already failing —
+         * waitUntil returns the moment the condition holds — and a CI emulator is several
+         * times slower than a developer machine. Ten seconds was enough locally and made
+         * the shopping-list test flaky elsewhere, which teaches everyone to ignore red.
+         */
+        const val UI_TIMEOUT_MS = 30_000L
     }
 }
