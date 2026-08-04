@@ -11,8 +11,10 @@ import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * In-memory fakes for use-case tests. Only the methods exercised by tests hold real
@@ -62,7 +64,22 @@ class FakeInventoryRepository(
     override fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>> = emptyFlow()
     override fun observeRecent(limit: Int): Flow<List<InventoryItem>> = emptyFlow()
     override fun observePresentCount(): Flow<Int> = flowOf(batches.size)
-    override fun observeItem(batchId: Long): Flow<InventoryItem?> = emptyFlow()
+
+    /**
+     * What the product screen is looking at. A StateFlow rather than a plain map: the
+     * screen has to react to the item disappearing (the batch was used up, or an add was
+     * undone), and a one-shot flow cannot express that.
+     */
+    val observedItems = MutableStateFlow<Map<Long, InventoryItem>>(emptyMap())
+
+    override fun observeItem(batchId: Long): Flow<InventoryItem?> =
+        observedItems.map { it[batchId] }
+
+    fun setObservedItem(batchId: Long, item: InventoryItem?) {
+        observedItems.value = observedItems.value.toMutableMap().apply {
+            if (item == null) remove(batchId) else put(batchId, item)
+        }
+    }
 
     override suspend fun getBatch(id: Long): InventoryBatch? = batches[id]
 

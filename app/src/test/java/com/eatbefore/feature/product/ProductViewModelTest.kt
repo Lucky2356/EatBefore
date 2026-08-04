@@ -1,0 +1,324 @@
+package com.eatbefore.feature.product
+
+import androidx.lifecycle.SavedStateHandle
+import app.cash.turbine.ReceiveTurbine
+import app.cash.turbine.test
+import com.eatbefore.R
+import com.eatbefore.core.datastore.UserPreferences
+import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.domain.model.BatchStatus
+import com.eatbefore.domain.model.ExpiryStatus
+import com.eatbefore.domain.model.InventoryBatch
+import com.eatbefore.domain.model.InventoryItem
+import com.eatbefore.domain.model.Product
+import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.domain.usecase.AddToShoppingListUseCase
+import com.eatbefore.domain.usecase.ChangeQuantityUseCase
+import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
+import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
+import com.eatbefore.domain.usecase.MoveBatchUseCase
+import com.eatbefore.domain.usecase.OpenBatchUseCase
+import com.eatbefore.domain.usecase.UndoLastActionUseCase
+import com.eatbefore.domain.usecase.UpdateItemDetailsUseCase
+import com.eatbefore.navigation.Routes
+import com.eatbefore.testutil.FakeAppClock
+import com.eatbefore.testutil.FakeHistoryRepository
+import com.eatbefore.testutil.FakeInventoryRepository
+import com.eatbefore.testutil.MainDispatcherRule
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import java.time.Instant
+import java.time.LocalDate
+
+/**
+ * The product screen is where the destructive actions live — used up, discarded, expired,
+ * moved — and each of them has to leave the user a way back. Until now that was checked
+ * only through the real UI, which is slow and says nothing about *why* something broke.
+ */
+class ProductViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private val batchId = 7L
+    private val clock = FakeAppClock(Instant.parse("2026-08-01T10:00:00Z"))
+    private val inventory = FakeInventoryRepository()
+    private val history = FakeHistoryRepository(inventory)
+
+    private val fridge = StorageLocation(id = 1, name = "Холодильник")
+    private val product = Product(id = 3, name = "Молоко")
+    private val batch = InventoryBatch(
+        id = batchId,
+        productId = 3,
+        storageLocationId = 1,
+        quantity = 2.0,
+        initialQuantity = 2.0,
+        expirationDate = LocalDate.of(2026, 8, 3),
+    )
+
+    private val locations = object : StorageLocationRepository {
+        override fun observeActive(): Flow<List<StorageLocation>> = flowOf(listOf(fridge))
+        override fun observeAll(): Flow<List<StorageLocation>> = flowOf(listOf(fridge))
+        override suspend fun getById(id: Long) = fridge
+        override suspend fun getDefault() = fridge
+        override suspend fun setDefault(id: Long) = Unit
+        override suspend fun upsert(location: StorageLocation) = fridge.id
+    }
+
+    private val openBatch = mockk<OpenBatchUseCase>(relaxed = true)
+    private val changeQuantity = mockk<ChangeQuantityUseCase>(relaxed = true)
+    private val markStatus = mockk<MarkBatchStatusUseCase>(relaxed = true)
+    private val moveBatch = mockk<MoveBatchUseCase>(relaxed = true)
+    private val undoLastAction = mockk<UndoLastActionUseCase>(relaxed = true)
+    private val updateItemDetails = mockk<UpdateItemDetailsUseCase>(relaxed = true)
+    private val addToShoppingList = mockk<AddToShoppingListUseCase>(relaxed = true)
+
+    private fun viewModel(preferences: UserPreferences = UserPreferences()): ProductViewModel {
+        inventory.batches[batchId] = batch
+        inventory.setObservedItem(batchId, InventoryItem(batch, product, fridge))
+        val prefs = mockk<UserPreferencesRepository>()
+        every { prefs.preferences } returns flowOf(preferences)
+        return ProductViewModel(
+            savedStateHandle = SavedStateHandle(mapOf(Routes.PRODUCT_BATCH_ARG to batchId)),
+            inventoryRepository = inventory,
+            historyRepository = history,
+            storageLocationRepository = locations,
+            determineExpiryStatus = DetermineExpiryStatusUseCase(),
+            preferences = prefs,
+            openBatch = openBatch,
+            changeQuantity = changeQuantity,
+            markStatus = markStatus,
+            moveBatch = moveBatch,
+            undoLastAction = undoLastAction,
+            updateItemDetails = updateItemDetails,
+            addToShoppingList = addToShoppingList,
+            clock = clock,
+        )
+    }
+
+    @Test
+    fun `loads the batch with its expiry status and days left`() = runTest {
+        viewModel().uiState.test {
+            val state = awaitItemWhere { !it.isLoading }
+            assertEquals(product, state.item?.product)
+            assertEquals(ExpiryStatus.EXPIRING_SOON, state.expiryStatus)
+            assertEquals(2L, state.remainingDays)
+            assertEquals(listOf(fridge), state.locations)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Every destructive action must arm the undo snackbar, or it cannot be taken back. */
+    @Test
+    fun `discarding offers undo and says what happened`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.discard()
+            val state = awaitItemWhere { it.undoableActionAt != null }
+
+            assertEquals(clock.now().toEpochMilli(), state.undoableActionAt)
+            assertEquals(R.string.event_discarded, state.actionMessageRes)
+            coVerify { markStatus(batchId, BatchStatus.DISCARDED) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `using it up offers to put the product on the shopping list`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.markFinished()
+
+            assertTrue(awaitItemWhere { it.undoableActionAt != null }.offerShoppingList)
+            coVerify { changeQuantity(batchId, 0.0) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Merely opening or moving something is not a reason to suggest buying more of it. */
+    @Test
+    fun `opening the pack does not offer the shopping list`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.open()
+
+            val state = awaitItemWhere { it.undoableActionAt != null }
+            assertFalse(state.offerShoppingList)
+            assertEquals(R.string.event_opened, state.actionMessageRes)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** In detailed mode the user types a remaining amount; zero means it ran out. */
+    @Test
+    fun `setting the remaining amount to zero counts as running out`() = runTest {
+        val vm = viewModel(UserPreferences(detailedQuantityMode = true))
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.setQuantity(0.0)
+
+            assertTrue(awaitItemWhere { it.undoableActionAt != null }.offerShoppingList)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `setting a remaining amount above zero does not`() = runTest {
+        val vm = viewModel(UserPreferences(detailedQuantityMode = true))
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.setQuantity(0.5)
+
+            assertFalse(awaitItemWhere { it.undoableActionAt != null }.offerShoppingList)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `declining the shopping offer closes it without adding anything`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.markFinished()
+            awaitItemWhere { it.offerShoppingList }
+
+            vm.dismissShoppingOffer()
+            awaitItemWhere { !it.offerShoppingList }
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify(exactly = 0) { addToShoppingList(any()) }
+    }
+
+    @Test
+    fun `accepting the shopping offer adds the product and closes the offer`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.markFinished()
+            awaitItemWhere { it.offerShoppingList }
+
+            vm.acceptShoppingOffer()
+            awaitItemWhere { !it.offerShoppingList }
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify {
+            addToShoppingList(
+                AddToShoppingListUseCase.Params(productId = 3, sourceInventoryBatchId = batchId),
+            )
+        }
+    }
+
+    /** Undo has to clear the snackbar too, or it stays on screen offering to undo twice. */
+    @Test
+    fun `undo runs the action and disarms the snackbar`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.discard()
+            awaitItemWhere { it.undoableActionAt != null }
+
+            vm.undo()
+            val state = awaitItemWhere { it.undoableActionAt == null }
+            assertNull(state.actionMessageRes)
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify { undoLastAction() }
+    }
+
+    /**
+     * The screen must pop only when an action removed the batch. On first load the item is
+     * legitimately absent for an instant, and closing then would bounce the user straight
+     * back out of a screen they just opened.
+     */
+    @Test
+    fun `a missing item does not close the screen before anything has happened`() = runTest {
+        val vm = viewModel()
+        inventory.setObservedItem(batchId, null)
+
+        vm.uiState.test {
+            assertFalse(awaitItemWhere { !it.isLoading }.closed)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the screen closes once an action has removed the batch`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.markExpired()
+            awaitItemWhere { it.undoableActionAt != null }
+
+            inventory.setObservedItem(batchId, null)
+            assertTrue(awaitItemWhere { it.closed }.closed)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Quick "buy again" from the card: the item stays in stock, nothing is written off. */
+    @Test
+    fun `adding to the shopping list from the card leaves the batch alone`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.addToShopping()
+            // This action deliberately changes no state, so there is no emission to wait
+            // for — let the launched coroutine finish before checking what it did.
+            mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify {
+            addToShoppingList(
+                AddToShoppingListUseCase.Params(productId = 3, sourceInventoryBatchId = batchId),
+            )
+        }
+        coVerify(exactly = 0) { changeQuantity(any(), any()) }
+        coVerify(exactly = 0) { markStatus(any(), any()) }
+    }
+
+    @Test
+    fun `moving the batch reports where it went`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.moveTo(9)
+
+            assertEquals(R.string.event_moved, awaitItemWhere { it.undoableActionAt != null }.actionMessageRes)
+            cancelAndIgnoreRemainingEvents()
+        }
+        coVerify { moveBatch(batchId, 9) }
+    }
+
+    /**
+     * The state is a combine of five flows, so an action can surface across two or three
+     * emissions. Waiting for the condition rather than a fixed number of items keeps the
+     * tests from depending on how many intermediate states happen to be produced.
+     */
+    private suspend fun ReceiveTurbine<ProductUiState>.awaitItemWhere(
+        predicate: (ProductUiState) -> Boolean,
+    ): ProductUiState {
+        repeat(MAX_EMISSIONS) {
+            val item = awaitItem()
+            if (predicate(item)) return item
+        }
+        throw AssertionError("No matching state after $MAX_EMISSIONS emissions")
+    }
+
+    private companion object {
+        const val MAX_EMISSIONS = 20
+    }
+}
