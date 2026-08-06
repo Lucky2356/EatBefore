@@ -3,9 +3,9 @@ agp = "8.10.1"
 kotlin = "2.3.21"
 ksp = "2.3.10"
 # 1.19.0 needs compileSdk 37 + AGP 9.1. See docs/TOOLCHAIN.md.
-coreKtx = "1.18.0"
+coreKtx = "1.19.0"
 # 2.11.0 needs compileSdk 37 + AGP 9.1.
-lifecycle = "2.10.0"
+lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.06.01"
 navigationCompose = "2.9.8"
