@@ -55,15 +55,26 @@ class FakeInventoryRepository(
     val batches: MutableMap<Long, InventoryBatch> = mutableMapOf(),
     val events: MutableList<InventoryEvent> = mutableListOf(),
 ) : InventoryRepository {
-    private var nextBatchId = 1L
     private var nextEventId = 1L
 
-    override fun observePresentByExpiry(): Flow<List<InventoryItem>> = emptyFlow()
-    override fun observePresentByLocation(locationId: Long): Flow<List<InventoryItem>> = emptyFlow()
-    override fun observeExpiringBefore(thresholdEpochDay: Long): Flow<List<InventoryItem>> = emptyFlow()
+    /**
+     * Stock as the list screens see it. StateFlows rather than one-shot flows: a screen
+     * combining several streams only produces state once every one of them has emitted,
+     * so an empty flow here would leave a ViewModel under test stuck on "loading".
+     */
+    val presentItems = MutableStateFlow<List<InventoryItem>>(emptyList())
+    val expiringItems = MutableStateFlow<List<InventoryItem>>(emptyList())
+    val recentItems = MutableStateFlow<List<InventoryItem>>(emptyList())
+
+    override fun observePresentByExpiry(): Flow<List<InventoryItem>> = presentItems
+
+    override fun observePresentByLocation(locationId: Long): Flow<List<InventoryItem>> =
+        presentItems.map { items -> items.filter { it.location.id == locationId } }
+
+    override fun observeExpiringBefore(thresholdEpochDay: Long): Flow<List<InventoryItem>> = expiringItems
     override fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>> = emptyFlow()
-    override fun observeRecent(limit: Int): Flow<List<InventoryItem>> = emptyFlow()
-    override fun observePresentCount(): Flow<Int> = flowOf(batches.size)
+    override fun observeRecent(limit: Int): Flow<List<InventoryItem>> = recentItems.map { it.take(limit) }
+    override fun observePresentCount(): Flow<Int> = presentItems.map { it.size }
 
     /**
      * What the product screen is looking at. A StateFlow rather than a plain map: the
@@ -92,7 +103,9 @@ class FakeInventoryRepository(
         batch: InventoryBatch,
         buildEvent: (batchId: Long) -> InventoryEvent,
     ): Long {
-        val id = nextBatchId++
+        // Derived from what is already there, not from a counter: a test that seeds a
+        // batch by id would otherwise have its seed silently overwritten by the first add.
+        val id = (batches.keys.maxOrNull() ?: 0L) + 1
         batches[id] = batch.copy(id = id)
         events += buildEvent(id).copy(id = nextEventId++)
         return id

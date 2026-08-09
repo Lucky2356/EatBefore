@@ -41,7 +41,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -434,8 +436,12 @@ private fun LaunchedEffectAdded(
     onOpenBatch: (Long) -> Unit,
     onShown: () -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
     androidx.compose.runtime.LaunchedEffect(addedBatchId) {
         if (addedBatchId != null) {
+            // In batch mode the phone is pointed at a shelf and nothing stops to ask, so
+            // a buzz is the only confirmation the user gets that the code went in.
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             val result = snackbarHost.showSnackbar(
                 message = message,
                 actionLabel = actionLabel,

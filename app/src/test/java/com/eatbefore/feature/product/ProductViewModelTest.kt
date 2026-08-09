@@ -83,6 +83,7 @@ class ProductViewModelTest {
     private val undoLastAction = mockk<UndoLastActionUseCase>(relaxed = true)
     private val updateItemDetails = mockk<UpdateItemDetailsUseCase>(relaxed = true)
     private val addToShoppingList = mockk<AddToShoppingListUseCase>(relaxed = true)
+    private val addBatch = mockk<com.eatbefore.domain.usecase.AddBatchUseCase>(relaxed = true)
 
     private fun viewModel(preferences: UserPreferences = UserPreferences()): ProductViewModel {
         inventory.batches[batchId] = batch
@@ -103,6 +104,7 @@ class ProductViewModelTest {
             undoLastAction = undoLastAction,
             updateItemDetails = updateItemDetails,
             addToShoppingList = addToShoppingList,
+            addBatch = addBatch,
             clock = clock,
         )
     }

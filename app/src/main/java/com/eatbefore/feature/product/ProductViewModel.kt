@@ -14,6 +14,7 @@ import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
@@ -80,6 +81,7 @@ class ProductViewModel @Inject constructor(
     private val undoLastAction: UndoLastActionUseCase,
     private val updateItemDetails: UpdateItemDetailsUseCase,
     private val addToShoppingList: AddToShoppingListUseCase,
+    private val addBatch: AddBatchUseCase,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -87,6 +89,9 @@ class ProductViewModel @Inject constructor(
         "Missing ${Routes.PRODUCT_BATCH_ARG}"
     }
     private val localState = MutableStateFlow(ProductLocalState())
+
+    /** Today per the app clock, for the expiry presets shown in dialogs. */
+    val today: java.time.LocalDate get() = clock.today()
 
     private val itemFlow: Flow<InventoryItem?> = inventoryRepository.observeItem(batchId)
 
@@ -136,6 +141,12 @@ class ProductViewModel @Inject constructor(
         changeQuantity(batchId, batch.quantity - 1)
     }
 
+    /** Corrects the amount upwards — a second pack of the same batch, or a miscount. */
+    fun increment() = runAction(messageRes = R.string.event_quantity_changed) {
+        val batch = inventoryRepository.getBatch(batchId) ?: return@runAction
+        changeQuantity(batchId, batch.quantity + 1)
+    }
+
     /** Detailed mode: set an exact remaining amount (grams, percent, pieces, …). */
     fun setQuantity(value: Double) = runAction(
         offerShopping = value <= 0.0,
@@ -177,6 +188,24 @@ class ProductViewModel @Inject constructor(
                 category = category,
                 expirationDate = expirationDate,
                 note = note,
+            ),
+        )
+    }
+
+    /**
+     * "Bought another one": a second batch of the same product in the same place, so a
+     * weekly repurchase does not mean retyping a form that is already on screen. Only the
+     * expiry differs between packages, so only the expiry is asked for.
+     */
+    fun repeatPurchase(expirationDate: java.time.LocalDate?) = runAction(messageRes = R.string.event_added) {
+        val batch = inventoryRepository.getBatch(batchId) ?: return@runAction
+        addBatch(
+            AddBatchUseCase.Params(
+                productId = batch.productId,
+                storageLocationId = batch.storageLocationId,
+                quantity = 1.0,
+                measurementUnit = batch.measurementUnit,
+                expirationDate = expirationDate,
             ),
         )
     }

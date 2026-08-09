@@ -89,6 +89,17 @@ class AddManualViewModel @Inject constructor(
     fun onName(value: String) = _state.update { it.copy(name = value, nameError = false) }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
     fun onQuantity(value: String) = _state.update { it.copy(quantity = value.filter { c -> c.isDigit() || c == '.' }) }
+
+    /**
+     * Steps the amount by one, never below one — zero packages of something is not a thing
+     * you add to an inventory, and the field stays open for anything unusual.
+     */
+    fun stepQuantity(delta: Int) = _state.update {
+        val current = it.quantity.toDoubleOrNull() ?: 1.0
+        val stepped = (current + delta).coerceAtLeast(1.0)
+        it.copy(quantity = formatAmount(stepped))
+    }
+
     fun onUnit(unit: MeasurementUnit) = _state.update { it.copy(unit = unit) }
     fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id) }
     fun onNote(value: String) = _state.update { it.copy(note = value) }
@@ -175,4 +186,11 @@ class AddManualViewModel @Inject constructor(
     fun declineContribution() = _state.update { it.copy(contributeOffer = null) }
 
     fun consumeMessage() = _state.update { it.copy(message = null) }
+
+    /** Keeps whole amounts free of a trailing ".0" in the text field. */
+    private fun formatAmount(value: Double): String =
+        if (value % 1.0 == 0.0) value.toLong().toString() else value.toString()
+
+    /** Today per the app clock, for the expiry presets. */
+    val today: LocalDate get() = clock.today()
 }

@@ -21,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,10 +34,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.common.InventoryRowCard
+import com.eatbefore.feature.common.rememberQuickActionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,9 +50,21 @@ fun InventoryScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // Separate from uiState: the field must echo keystrokes without the search debounce.
     val queryText by viewModel.queryText.collectAsStateWithLifecycle()
+    val quickActionSignal by viewModel.quickActionSignal.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
     var sortMenuOpen by remember { mutableStateOf(false) }
 
+    val onQuickAction = rememberQuickActionHandler(
+        signal = quickActionSignal,
+        snackbarHostState = snackbarHost,
+        today = viewModel.today,
+        onPerform = viewModel::quickAction,
+        onUndo = viewModel::undoQuickAction,
+        onConsume = viewModel::consumeQuickActionSignal,
+    )
+
     Scaffold(
+        snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.inventory_title)) },
@@ -109,8 +124,33 @@ fun InventoryScreen(
                 }
             }
 
+            // A second row rather than one long one: place and condition are different
+            // questions ("what is in the freezer" vs "what must I deal with today"), and
+            // mixing them into a single strip makes both harder to find.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceXs),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+            ) {
+                StatusFilterChip(R.string.inventory_filter_all, InventoryStatusFilter.ALL, state, viewModel)
+                StatusFilterChip(R.string.inventory_filter_expired, InventoryStatusFilter.EXPIRED, state, viewModel)
+                StatusFilterChip(R.string.inventory_filter_soon, InventoryStatusFilter.SOON, state, viewModel)
+                StatusFilterChip(R.string.inventory_filter_opened, InventoryStatusFilter.OPENED, state, viewModel)
+            }
+
             if (!state.isLoading && state.rows.isEmpty()) {
-                EmptyState(message = stringResource(R.string.inventory_empty))
+                // "Nothing here" and "nothing matches" are different situations; saying
+                // the stock is empty while a filter is on would be plainly wrong.
+                val filtered = state.statusFilter != InventoryStatusFilter.ALL ||
+                    state.selectedLocationId != null ||
+                    queryText.isNotBlank()
+                EmptyState(
+                    message = stringResource(
+                        if (filtered) R.string.inventory_filter_empty else R.string.inventory_empty,
+                    ),
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -118,12 +158,30 @@ fun InventoryScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
                     items(state.rows, key = { it.batchId }) { row ->
-                        InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
+                        InventoryRowCard(
+                            row = row,
+                            onClick = { onOpenBatch(row.batchId) },
+                            onQuickAction = { onQuickAction(it, row.batchId) },
+                        )
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun StatusFilterChip(
+    labelRes: Int,
+    value: InventoryStatusFilter,
+    state: InventoryUiState,
+    viewModel: InventoryViewModel,
+) {
+    FilterChip(
+        selected = state.statusFilter == value,
+        onClick = { viewModel.setStatusFilter(value) },
+        label = { Text(stringResource(labelRes)) },
+    )
 }
 
 @Composable

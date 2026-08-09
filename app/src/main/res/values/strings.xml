@@ -70,6 +70,7 @@
     <string name="home_total_products">Всего продуктов: %1$d</string>
     <string name="home_stat_total">Продуктов дома</string>
     <string name="home_stat_expiring">Скоро истекут</string>
+    <string name="home_stat_expired">Просрочено</string>
     <string name="home_quick_scan">Сканировать</string>
     <string name="home_quick_add_manual">Добавить вручную</string>
     <string name="home_quick_shopping">Список покупок</string>
@@ -81,6 +82,11 @@
     <string name="inventory_search_hint">Поиск по названию или бренду</string>
     <string name="inventory_all_locations">Все места</string>
     <string name="inventory_empty">Здесь появятся ваши продукты.</string>
+    <string name="inventory_filter_all">Все</string>
+    <string name="inventory_filter_expired">Просрочено</string>
+    <string name="inventory_filter_soon">Скоро</string>
+    <string name="inventory_filter_opened">Вскрытые</string>
+    <string name="inventory_filter_empty">По этому фильтру ничего нет.</string>
     <string name="inventory_sort_expiry">По сроку</string>
     <string name="inventory_sort_name">По названию</string>
     <string name="inventory_sort_added">По добавлению</string>
@@ -117,8 +123,13 @@
     <string name="product_action_move">Переместить</string>
     <string name="product_action_edit">Изменить</string>
     <string name="product_action_shopping">В покупки</string>
+    <string name="product_action_repeat">Ещё одна упаковка</string>
+    <string name="product_repeat_title">Ещё одна упаковка</string>
     <string name="product_edit_quantity">Изменить количество</string>
+    <string name="quantity_decrease">Меньше</string>
+    <string name="quantity_increase">Больше</string>
     <string name="product_more_actions">Ещё действия</string>
+    <string name="row_opened">Вскрыто</string>
     <plurals name="product_after_opening_hint">
         <item quantity="one">После вскрытия — использовать за %1$d день</item>
         <item quantity="few">После вскрытия — использовать за %1$d дня</item>
@@ -157,6 +168,11 @@
     <string name="shopping_to_inventory">В запасы</string>
     <string name="shopping_delete">Удалить</string>
     <string name="shopping_moved">Добавлено в запасы</string>
+    <string name="shopping_deleted">Позиция удалена</string>
+    <string name="shopping_cleared">Купленное убрано</string>
+    <string name="shopping_clear_completed">Убрать купленное</string>
+    <string name="shopping_edit">Изменить позицию</string>
+    <string name="shopping_unit">Единица</string>
     <string name="shopping_added">Добавлено в список покупок</string>
     <string name="shopping_offer_title">Добавить в список покупок?</string>
     <string name="shopping_offer_body">Продукт «%1$s» закончился. Добавить его в список покупок?</string>

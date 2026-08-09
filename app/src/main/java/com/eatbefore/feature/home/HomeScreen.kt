@@ -1,5 +1,6 @@
 package com.eatbefore.feature.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,20 +17,24 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
+import com.eatbefore.feature.common.rememberQuickActionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,17 +42,30 @@ fun HomeScreen(
     onScan: () -> Unit,
     onAddManual: () -> Unit,
     onOpenShopping: () -> Unit,
+    onOpenInventory: () -> Unit,
     onOpenBatch: (Long) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val today = androidx.compose.runtime.remember {
+    val quickActionSignal by viewModel.quickActionSignal.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+    val today = remember {
         viewModel.today.format(
             java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", java.util.Locale.getDefault()),
         ).replaceFirstChar { it.uppercase() }
     }
 
+    val onQuickAction = rememberQuickActionHandler(
+        signal = quickActionSignal,
+        snackbarHostState = snackbarHost,
+        today = viewModel.today,
+        onPerform = viewModel::quickAction,
+        onUndo = viewModel::undoQuickAction,
+        onConsume = viewModel::consumeQuickActionSignal,
+    )
+
     Scaffold(
+        snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
         topBar = {
             TopAppBar(
                 title = {
@@ -110,24 +128,53 @@ fun HomeScreen(
                         onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.weight(1f),
                     )
+                    // Only when there is something to answer for. A permanent "0 expired"
+                    // tile is noise; a red one that appears is a message.
+                    if (state.expiredCount > 0) {
+                        HomeStatTile(
+                            value = state.expiredCount,
+                            label = stringResource(R.string.home_stat_expired),
+                            container = MaterialTheme.colorScheme.errorContainer,
+                            onContainer = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                viewModel.requestExpiredFilter()
+                                onOpenInventory()
+                            },
+                        )
+                    }
                 }
             }
 
             if (state.totalCount == 0 && !state.isLoading) {
-                item { EmptyState(message = stringResource(R.string.home_empty)) }
+                item {
+                    EmptyState(
+                        message = stringResource(R.string.home_empty),
+                        actionLabel = stringResource(R.string.home_quick_scan),
+                        onAction = onScan,
+                    )
+                }
             }
 
             if (state.expiringSoon.isNotEmpty()) {
                 item { SectionHeader(stringResource(R.string.home_expiring_section), Icons.Outlined.Schedule) }
                 items(state.expiringSoon, key = { "exp-${it.batchId}" }) { row ->
-                    InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
+                    InventoryRowCard(
+                        row = row,
+                        onClick = { onOpenBatch(row.batchId) },
+                        onQuickAction = { onQuickAction(it, row.batchId) },
+                    )
                 }
             }
 
             if (state.recent.isNotEmpty()) {
                 item { SectionHeader(stringResource(R.string.home_recent_section), Icons.Outlined.AddCircleOutline) }
                 items(state.recent, key = { "rec-${it.batchId}" }) { row ->
-                    InventoryRowCard(row = row, onClick = { onOpenBatch(row.batchId) })
+                    InventoryRowCard(
+                        row = row,
+                        onClick = { onOpenBatch(row.batchId) },
+                        onQuickAction = { onQuickAction(it, row.batchId) },
+                    )
                 }
             }
         }
@@ -141,9 +188,10 @@ private fun HomeStatTile(
     container: androidx.compose.ui.graphics.Color,
     onContainer: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     androidx.compose.material3.Card(
-        modifier = modifier,
+        modifier = if (onClick == null) modifier else modifier.clickable(onClick = onClick),
         shape = Shapes.card,
         colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = container),
     ) {

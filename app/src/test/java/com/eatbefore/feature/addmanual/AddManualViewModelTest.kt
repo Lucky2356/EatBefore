@@ -164,6 +164,40 @@ class AddManualViewModelTest {
         assertEquals("1.5", vm.state.value.quantity)
     }
 
+    @Test
+    fun `the stepper moves the quantity by one`() = runTest {
+        val vm = viewModel()
+
+        vm.stepQuantity(+1)
+
+        assertEquals("2", vm.state.value.quantity)
+    }
+
+    /** Zero packages of something is not a thing anyone adds to an inventory. */
+    @Test
+    fun `the stepper never goes below one`() = runTest {
+        val vm = viewModel()
+
+        vm.stepQuantity(-1)
+        vm.stepQuantity(-1)
+
+        assertEquals("1", vm.state.value.quantity)
+    }
+
+    /** A whole number must not come back as "3.0" in a field the user types into. */
+    @Test
+    fun `the stepper keeps whole amounts free of a decimal tail`() = runTest {
+        val vm = viewModel()
+
+        vm.onQuantity("2.5")
+        vm.stepQuantity(+1)
+
+        assertEquals("3.5", vm.state.value.quantity)
+        vm.onQuantity("2")
+        vm.stepQuantity(+1)
+        assertEquals("3", vm.state.value.quantity)
+    }
+
     /**
      * Nothing may be published without being asked. A product entered by hand, with no
      * barcode, has nothing to contribute anyway — and must not raise the question.

@@ -136,6 +136,9 @@ private fun MainNavigation(
                     onScan = { navController.navigate(Routes.SCANNER) },
                     onAddManual = { navController.navigate(Routes.addManual()) },
                     onOpenShopping = { navController.navigate(Routes.SHOPPING) },
+                    // Through the same path as the bottom bar, so the "expired" tile
+                    // switches tabs instead of stacking a second inventory on the back stack.
+                    onOpenInventory = { navigateTopLevel(TopLevelDestination.INVENTORY) },
                     onOpenBatch = { navController.navigate(Routes.product(it)) },
                 )
             }

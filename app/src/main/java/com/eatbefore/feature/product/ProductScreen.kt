@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LockOpen
@@ -33,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -58,6 +58,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
+import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
+import com.eatbefore.core.designsystem.component.ExpiryOnlyDialog
+import com.eatbefore.core.designsystem.component.QuantityStepper
 import com.eatbefore.core.designsystem.component.StatusBadge
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
@@ -78,6 +82,7 @@ fun ProductScreen(
     val undoLabel = stringResource(R.string.action_undo)
     var showQuantityDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
+    var showRepeatDialog by remember { mutableStateOf(false) }
     // Discarding writes off the whole batch and is easy to hit by accident in a menu.
     var showDiscardConfirm by remember { mutableStateOf(false) }
 
@@ -124,6 +129,18 @@ fun ProductScreen(
                 showEditDialog = false
             },
             onDismiss = { showEditDialog = false },
+        )
+    }
+
+    if (showRepeatDialog) {
+        ExpiryOnlyDialog(
+            title = stringResource(R.string.product_repeat_title),
+            today = viewModel.today,
+            onConfirm = { date ->
+                showRepeatDialog = false
+                viewModel.repeatPurchase(date)
+            },
+            onDismiss = { showRepeatDialog = false },
         )
     }
 
@@ -212,6 +229,10 @@ fun ProductScreen(
                                 showOverflow = false
                                 showMoveMenu = true
                             },
+                            onRepeat = {
+                                showOverflow = false
+                                showRepeatDialog = true
+                            },
                             onDiscard = {
                                 showOverflow = false
                                 showDiscardConfirm = true
@@ -234,7 +255,7 @@ fun ProductScreen(
                 },
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
     ) { padding ->
         val item = state.item
         Column(
@@ -251,6 +272,8 @@ fun ProductScreen(
                     expiryStatus = state.expiryStatus,
                     remainingDays = state.remainingDays,
                     onEditQuantity = { showQuantityDialog = true },
+                    onDecreaseQuantity = viewModel::decrement,
+                    onIncreaseQuantity = viewModel::increment,
                 )
 
                 PrimaryActions(
@@ -276,6 +299,8 @@ private fun ProductHeaderCard(
     expiryStatus: com.eatbefore.domain.model.ExpiryStatus,
     remainingDays: Long?,
     onEditQuantity: () -> Unit,
+    onDecreaseQuantity: () -> Unit,
+    onIncreaseQuantity: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -311,11 +336,15 @@ private fun ProductHeaderCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
             ) {
-                Text(
-                    formatQuantity(item.batch.quantity, item.batch.measurementUnit),
-                    style = MaterialTheme.typography.headlineSmall,
+                QuantityStepper(
+                    text = formatQuantity(item.batch.quantity, item.batch.measurementUnit),
+                    onDecrease = onDecreaseQuantity,
+                    onIncrease = onIncreaseQuantity,
+                    // Reaching zero is "finished", which is its own button with its own
+                    // follow-up question — the stepper must not trigger it by accident.
+                    decreaseEnabled = item.batch.quantity > 1.0,
                 )
                 // An explicit button — the amount used to be a hidden tap target.
                 IconButton(onClick = onEditQuantity) {
@@ -432,6 +461,7 @@ private fun ProductOverflowMenu(
     onDismiss: () -> Unit,
     onEdit: () -> Unit,
     onMove: () -> Unit,
+    onRepeat: () -> Unit,
     onDiscard: () -> Unit,
     onToShopping: () -> Unit,
 ) {
@@ -445,6 +475,11 @@ private fun ProductOverflowMenu(
             text = { Text(stringResource(R.string.product_action_move)) },
             leadingIcon = { Icon(Icons.Outlined.MoveUp, contentDescription = null) },
             onClick = onMove,
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.product_action_repeat)) },
+            leadingIcon = { Icon(Icons.Outlined.AddCircleOutline, contentDescription = null) },
+            onClick = onRepeat,
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.product_action_shopping)) },
@@ -562,26 +597,11 @@ private fun EditDetailsDialog(
     var showDatePicker by remember { mutableStateOf(false) }
 
     if (showDatePicker) {
-        val datePickerState = androidx.compose.material3.rememberDatePickerState(
-            initialSelectedDateMillis = expiry?.toEpochDay()?.times(86_400_000L),
+        ExpiryDatePickerDialog(
+            initial = expiry,
+            onConfirm = { expiry = it },
+            onDismiss = { showDatePicker = false },
         )
-        androidx.compose.material3.DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    expiry = datePickerState.selectedDateMillis
-                        ?.let { java.time.LocalDate.ofEpochDay(it / 86_400_000L) }
-                    showDatePicker = false
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        ) {
-            androidx.compose.material3.DatePicker(state = datePickerState)
-        }
     }
 
     AlertDialog(

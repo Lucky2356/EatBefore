@@ -4,6 +4,7 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToLog
 import androidx.test.platform.app.InstrumentationRegistry
 import com.eatbefore.MainActivity
@@ -80,6 +82,8 @@ class AppFlowTest {
 
     private fun clickText(text: String) = node(text).performClick()
 
+    private fun longClickText(text: String) = node(text).performTouchInput { longClick() }
+
     /** Waits until [text] is gone from the screen. */
     private fun awaitTextGone(text: String) {
         try {
@@ -115,10 +119,10 @@ class AppFlowTest {
     }
 
     /** Adds a product with the given name through the manual form. */
-    private fun addProduct(name: String) {
+    private fun addProduct(name: String, expiryPreset: Int = R.string.add_expiry_week) {
         clickText(string(R.string.home_quick_add_manual))
         typeInto(string(R.string.add_name), name)
-        clickText(string(R.string.add_expiry_week))
+        clickText(string(expiryPreset))
         clickText(string(R.string.action_save))
         awaitText(string(R.string.home_quick_add_manual))
     }
@@ -126,6 +130,23 @@ class AppFlowTest {
     private fun openInventory() {
         clickText(string(R.string.nav_inventory))
         awaitText(string(R.string.inventory_search_hint))
+    }
+
+    /**
+     * Opens the stock list and narrows it down to [name].
+     *
+     * Tests share one real database on the device, so a late test looks at a list holding
+     * everything the earlier ones added. The list is lazy: a row far enough down is not
+     * composed at all, and asserting on it fails for reasons that have nothing to do with
+     * what the test is about. Searching first is also what a person would do.
+     *
+     * Only the first word is typed, so the field's own text can never be mistaken for the
+     * row when asserting on the full name.
+     */
+    private fun findInInventory(name: String) {
+        openInventory()
+        typeInto(string(R.string.inventory_search_hint), name.substringBefore(' '))
+        awaitText(name)
     }
 
     @Test
@@ -143,7 +164,7 @@ class AppFlowTest {
         val name = "Test Milk ${System.currentTimeMillis()}"
         addProduct(name)
 
-        openInventory()
+        findInInventory(name)
         assertVisible(name)
     }
 
@@ -152,7 +173,7 @@ class AppFlowTest {
         skipOnboarding()
         val name = "Test Bread ${System.currentTimeMillis()}"
         addProduct(name)
-        openInventory()
+        findInInventory(name)
         clickText(name)
 
         val full = "1 ${string(R.string.unit_piece)}"
@@ -212,7 +233,7 @@ class AppFlowTest {
         clickIcon(string(R.string.shopping_to_inventory))
         composeRule.waitForIdle()
 
-        openInventory()
+        findInInventory(name)
         assertVisible(name)
     }
 
@@ -237,6 +258,58 @@ class AppFlowTest {
         composeRule.waitForIdle()
         // The screen must survive the theme swap.
         assertVisible(string(R.string.settings_section_appearance))
+    }
+
+    /**
+     * The point of quick actions is that stock changes without opening anything — which is
+     * also why the undo has to be right there. Both halves are checked together.
+     */
+    @Test
+    fun quickAction_writesOffFromTheListAndCanBeUndone() {
+        skipOnboarding()
+        val name = "Quick Yogurt ${System.currentTimeMillis()}"
+        addProduct(name)
+        findInInventory(name)
+
+        longClickText(name)
+        clickText(string(R.string.product_action_finished))
+        awaitTextGone(name)
+
+        clickText(string(R.string.action_undo))
+        awaitText(name)
+    }
+
+    /** Buying another package must add a second batch, not edit the first. */
+    @Test
+    fun repeatPurchase_addsASecondPackage() {
+        skipOnboarding()
+        val name = "Repeat Milk ${System.currentTimeMillis()}"
+        addProduct(name)
+        findInInventory(name)
+
+        longClickText(name)
+        clickText(string(R.string.product_action_repeat))
+        clickText(string(R.string.add_expiry_month))
+        clickText(string(R.string.action_add))
+
+        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
+            composeRule.onAllNodesWithText(name).fetchSemanticsNodes().size == 2
+        }
+    }
+
+    @Test
+    fun statusFilter_keepsOnlyWhatIsRunningOut() {
+        skipOnboarding()
+        val urgent = "Urgent ${System.currentTimeMillis()}"
+        val calm = "Calm ${System.currentTimeMillis()}"
+        addProduct(urgent, expiryPreset = R.string.add_expiry_today)
+        addProduct(calm, expiryPreset = R.string.add_expiry_month)
+        openInventory()
+
+        clickText(string(R.string.inventory_filter_soon))
+
+        awaitTextGone(calm)
+        assertVisible(urgent)
     }
 
     @Test

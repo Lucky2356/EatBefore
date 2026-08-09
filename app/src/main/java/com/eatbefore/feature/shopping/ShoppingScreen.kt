@@ -1,5 +1,7 @@
 package com.eatbefore.feature.shopping
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -11,8 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAddCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inventory2
@@ -20,12 +24,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +52,7 @@ import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.formatQuantity
+import com.eatbefore.core.designsystem.format.shortLabel
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.MeasurementUnit
 
@@ -56,11 +63,19 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
     val message by viewModel.message.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     var showAddDialog by remember { mutableStateOf(false) }
+    var editedRow by remember { mutableStateOf<ShoppingRowUi?>(null) }
 
-    val messageText = message?.let { stringResource(it) }
+    val messageText = message?.let { stringResource(it.textRes) }
+    val undoLabel = stringResource(R.string.action_undo)
     LaunchedEffect(message) {
-        if (messageText != null) {
-            snackbarHost.showSnackbar(messageText)
+        val current = message
+        if (current != null && messageText != null) {
+            val result = snackbarHost.showSnackbar(
+                message = messageText,
+                actionLabel = if (current.undoable) undoLabel else null,
+                withDismissAction = true,
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.undoDelete()
             viewModel.consumeMessage()
         }
     }
@@ -68,6 +83,18 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
     ScreenScaffold(
         title = stringResource(R.string.shopping_title),
         snackbarHostState = snackbarHost,
+        actions = {
+            // Only worth offering once something has been bought; an always-present button
+            // that usually does nothing teaches people to ignore it.
+            if (state.hasCompleted) {
+                IconButton(onClick = viewModel::clearCompleted) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.PlaylistAddCheck,
+                        contentDescription = stringResource(R.string.shopping_clear_completed),
+                    )
+                }
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.shopping_add))
@@ -78,6 +105,8 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
         if (!state.isLoading && isEmpty && state.frequent.isEmpty()) {
             EmptyState(
                 message = stringResource(R.string.shopping_empty),
+                actionLabel = stringResource(R.string.shopping_add),
+                onAction = { showAddDialog = true },
                 modifier = Modifier.padding(padding),
             )
         } else {
@@ -119,6 +148,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
                         ShoppingRow(
                             row = row,
                             onToggle = { viewModel.toggle(row.id) },
+                            onEdit = { editedRow = row },
                             onMoveToStock = { viewModel.moveToStock(row.id) },
                             onDelete = { viewModel.delete(row.id) },
                         )
@@ -129,12 +159,28 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
     }
 
     if (showAddDialog) {
-        AddItemDialog(
-            onAdd = { name, quantity, unit ->
+        ShoppingItemDialog(
+            title = stringResource(R.string.shopping_add),
+            confirmLabel = stringResource(R.string.action_add),
+            edited = null,
+            onConfirm = { name, quantity, unit ->
                 viewModel.addManual(name, quantity, unit)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
+        )
+    }
+
+    editedRow?.let { row ->
+        ShoppingItemDialog(
+            title = stringResource(R.string.shopping_edit),
+            confirmLabel = stringResource(R.string.action_save),
+            edited = row,
+            onConfirm = { name, quantity, unit ->
+                viewModel.updateItem(row.id, name, quantity, unit)
+                editedRow = null
+            },
+            onDismiss = { editedRow = null },
         )
     }
 }
@@ -143,6 +189,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
 private fun ShoppingRow(
     row: ShoppingRowUi,
     onToggle: () -> Unit,
+    onEdit: () -> Unit,
     onMoveToStock: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -151,7 +198,13 @@ private fun ShoppingRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = row.isCompleted, onCheckedChange = { onToggle() })
-        Column(modifier = Modifier.weight(1f)) {
+        // The text itself opens the editor: the checkbox and the two buttons already own
+        // the rest of the row, and a fourth icon would leave nothing for the name.
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onEdit),
+        ) {
             Text(
                 text = row.title,
                 style = MaterialTheme.typography.bodyLarge,
@@ -212,16 +265,26 @@ private fun FrequentSection(
 }
 
 @Composable
-private fun AddItemDialog(
-    onAdd: (String, Double, MeasurementUnit) -> Unit,
+private fun ShoppingItemDialog(
+    title: String,
+    confirmLabel: String,
+    /** The row being corrected, or null when adding a new one. */
+    edited: ShoppingRowUi?,
+    onConfirm: (String, Double, MeasurementUnit) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("1") }
+    var name by remember { mutableStateOf(edited?.title.orEmpty()) }
+    var quantity by remember {
+        val initial = edited?.quantity ?: 1.0
+        mutableStateOf(if (initial % 1.0 == 0.0) initial.toLong().toString() else initial.toString())
+    }
+    var unit by remember { mutableStateOf(edited?.unit ?: MeasurementUnit.PIECE) }
+    // A row that came from the inventory carries the product's own name.
+    val nameEditable = edited == null || edited.isCustom
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.shopping_add)) },
+        title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
                 OutlinedTextField(
@@ -232,6 +295,7 @@ private fun AddItemDialog(
                         capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
                     ),
                     singleLine = true,
+                    enabled = nameEditable,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -242,15 +306,30 @@ private fun AddItemDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // Without this everything was a "piece", so "2 кг картошки" was unwritable.
+                Text(
+                    stringResource(R.string.shopping_unit),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+                ) {
+                    MeasurementUnit.entries.forEach { entry ->
+                        FilterChip(
+                            selected = unit == entry,
+                            onClick = { unit = entry },
+                            label = { Text(entry.shortLabel()) },
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = {
-                    onAdd(name.trim(), quantity.toDoubleOrNull() ?: 1.0, MeasurementUnit.PIECE)
-                },
+                onClick = { onConfirm(name.trim(), quantity.toDoubleOrNull() ?: 1.0, unit) },
                 enabled = name.isNotBlank(),
-            ) { Text(stringResource(R.string.action_add)) }
+            ) { Text(confirmLabel) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }

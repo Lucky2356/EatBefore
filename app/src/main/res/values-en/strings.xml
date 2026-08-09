@@ -69,6 +69,7 @@
     <string name="home_total_products">Products total: %1$d</string>
     <string name="home_stat_total">Products at home</string>
     <string name="home_stat_expiring">Expiring soon</string>
+    <string name="home_stat_expired">Expired</string>
     <string name="home_quick_scan">Scan</string>
     <string name="home_quick_add_manual">Add manually</string>
     <string name="home_quick_shopping">Shopping list</string>
@@ -80,6 +81,11 @@
     <string name="inventory_search_hint">Search by name or brand</string>
     <string name="inventory_all_locations">All places</string>
     <string name="inventory_empty">Your products will show up here.</string>
+    <string name="inventory_filter_all">All</string>
+    <string name="inventory_filter_expired">Expired</string>
+    <string name="inventory_filter_soon">Soon</string>
+    <string name="inventory_filter_opened">Opened</string>
+    <string name="inventory_filter_empty">Nothing matches this filter.</string>
     <string name="inventory_sort_expiry">By expiry</string>
     <string name="inventory_sort_name">By name</string>
     <string name="inventory_sort_added">By date added</string>
@@ -116,8 +122,13 @@
     <string name="product_action_move">Move</string>
     <string name="product_action_edit">Edit</string>
     <string name="product_action_shopping">To shopping</string>
+    <string name="product_action_repeat">One more package</string>
+    <string name="product_repeat_title">One more package</string>
     <string name="product_edit_quantity">Change quantity</string>
+    <string name="quantity_decrease">Less</string>
+    <string name="quantity_increase">More</string>
     <string name="product_more_actions">More actions</string>
+    <string name="row_opened">Opened</string>
     <plurals name="product_after_opening_hint">
         <item quantity="one">Once opened — use within %1$d day</item>
         <item quantity="other">Once opened — use within %1$d days</item>
@@ -154,6 +165,11 @@
     <string name="shopping_to_inventory">To inventory</string>
     <string name="shopping_delete">Delete</string>
     <string name="shopping_moved">Added to inventory</string>
+    <string name="shopping_deleted">Item removed</string>
+    <string name="shopping_cleared">Bought items removed</string>
+    <string name="shopping_clear_completed">Clear bought</string>
+    <string name="shopping_edit">Edit item</string>
+    <string name="shopping_unit">Unit</string>
     <string name="shopping_added">Added to shopping list</string>
     <string name="shopping_offer_title">Add to shopping list?</string>
     <string name="shopping_offer_body">You ran out of “%1$s”. Add it to the shopping list?</string>

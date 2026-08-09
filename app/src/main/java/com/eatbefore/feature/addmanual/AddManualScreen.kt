@@ -27,7 +27,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -35,8 +37,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
+import com.eatbefore.core.designsystem.component.ExpiryPresetChips
+import com.eatbefore.core.designsystem.component.QuantityStepper
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.displayName
+import com.eatbefore.core.designsystem.format.formatDate
 import com.eatbefore.core.designsystem.format.shortLabel
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.MeasurementUnit
@@ -52,6 +58,15 @@ fun AddManualScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        ExpiryDatePickerDialog(
+            initial = state.expirationDate,
+            onConfirm = viewModel::onExpirationDate,
+            onDismiss = { showDatePicker = false },
+        )
+    }
 
     // Saving navigates away, unless we are still asking whether to share the product
     // with the open catalog — that question would be lost on the next screen.
@@ -113,7 +128,12 @@ fun AddManualScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+            QuantityStepper(
+                onDecrease = { viewModel.stepQuantity(-1) },
+                onIncrease = { viewModel.stepQuantity(+1) },
+                decreaseEnabled = (state.quantity.toDoubleOrNull() ?: 0.0) > 1.0,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 OutlinedTextField(
                     value = state.quantity,
                     onValueChange = viewModel::onQuantity,
@@ -155,25 +175,17 @@ fun AddManualScreen(
             }
 
             LabeledSection(stringResource(R.string.add_expiration)) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
-                ) {
-                    ExpiryChip(R.string.add_expiry_today, 0L, viewModel)
-                    ExpiryChip(R.string.add_expiry_tomorrow, 1L, viewModel)
-                    ExpiryChip(R.string.add_expiry_3_days, 3L, viewModel)
-                    ExpiryChip(R.string.add_expiry_week, 7L, viewModel)
-                    ExpiryChip(R.string.add_expiry_month, 30L, viewModel)
-                    FilterChip(
-                        selected = state.expirationDate == null,
-                        onClick = { viewModel.onQuickExpiry(null) },
-                        label = { Text(stringResource(R.string.add_expiry_none)) },
-                    )
-                }
+                ExpiryPresetChips(
+                    selected = state.expirationDate,
+                    today = viewModel.today,
+                    onSelect = viewModel::onExpirationDate,
+                    onPickDate = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             state.expirationDate?.let { date ->
                 Text(
-                    text = "${stringResource(R.string.add_expiration)}: $date",
+                    text = "${stringResource(R.string.add_expiration)}: ${formatDate(date)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -226,20 +238,6 @@ fun AddManualScreen(
             },
         )
     }
-}
-
-@Composable
-private fun ExpiryChip(
-    labelRes: Int,
-    daysFromToday: Long,
-    viewModel: AddManualViewModel,
-) {
-    // The exact chosen date is shown separately below, so chips act as one-tap presets.
-    FilterChip(
-        selected = false,
-        onClick = { viewModel.onQuickExpiry(daysFromToday) },
-        label = { Text(stringResource(labelRes)) },
-    )
 }
 
 @Composable
