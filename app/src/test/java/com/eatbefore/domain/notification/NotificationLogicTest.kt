@@ -48,6 +48,28 @@ class NotificationLogicTest {
         assertTrue(plan.hasContent)
     }
 
+    /**
+     * The reminder must follow the date the food actually goes off. An opened pack with a
+     * distant printed date is the whole point of tracking shelf life after opening — it
+     * belongs in the count, and as "expiring soon", not "fresh".
+     */
+    @Test
+    fun opensPackIsCountedByItsAfterOpeningDate() {
+        val opened = item(today.plusDays(60)).let { existing ->
+            existing.copy(
+                batch = existing.batch.copy(
+                    openedAt = java.time.Instant.EPOCH,
+                    calculatedExpirationAfterOpening = today.plusDays(1),
+                ),
+            )
+        }
+
+        val plan = build(listOf(opened), today, soonThresholdDays = 3)
+
+        assertEquals(1, plan.soonCount)
+        assertEquals(0, plan.expiredCount)
+    }
+
     @Test
     fun emptyWhenNothingRelevant() {
         val plan = build(listOf(item(today.plusDays(30)), item(null)), today, soonThresholdDays = 3)

@@ -56,14 +56,35 @@ interface InventoryBatchDao {
     )
     fun observePresentByLocation(locationId: Long): Flow<List<BatchWithProductAndLocation>>
 
-    /** Present batches with an expiration on/before [thresholdEpochDay]. */
+    /**
+     * Present batches whose *effective* expiration falls on/before [thresholdEpochDay].
+     *
+     * Effective means the earlier of the printed date and the use-by-after-opening date —
+     * the same rule [com.eatbefore.domain.model.InventoryBatch.effectiveExpirationDate]
+     * applies for display. Matching on the printed date alone would hide exactly the
+     * batches the user most needs warning about: an opened pack whose printed date is far
+     * away but which must be eaten this week.
+     *
+     * The COALESCE pair is how SQLite's two-argument MIN handles a NULL: it returns NULL
+     * if either side is, so each side falls back to the other. The WHERE clause guarantees
+     * at least one of the two is present.
+     */
     @Transaction
     @Query(
         """
         SELECT * FROM inventory_batches
         WHERE status IN ('ACTIVE','OPENED','PARTIALLY_USED') AND deleted_at IS NULL
-          AND expiration_date IS NOT NULL AND expiration_date <= :thresholdEpochDay
-        ORDER BY expiration_date ASC
+          AND (
+            (expiration_date IS NOT NULL AND expiration_date <= :thresholdEpochDay)
+            OR (
+              calculated_expiration_after_opening IS NOT NULL
+              AND calculated_expiration_after_opening <= :thresholdEpochDay
+            )
+          )
+        ORDER BY MIN(
+          COALESCE(expiration_date, calculated_expiration_after_opening),
+          COALESCE(calculated_expiration_after_opening, expiration_date)
+        ) ASC
         """,
     )
     fun observeExpiringBefore(thresholdEpochDay: Long): Flow<List<BatchWithProductAndLocation>>

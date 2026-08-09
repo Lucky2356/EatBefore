@@ -97,6 +97,75 @@ class EatBeforeDatabaseTest {
         assertNotNull(db.inventoryBatchDao().getById(batchId))
     }
 
+    /**
+     * The case the printed-date-only query used to miss entirely: a pack with months left
+     * on the label that was opened yesterday and must be eaten now. It is exactly what the
+     * user needs reminding about, and it drives the home screen, the widget and the daily
+     * notification alike.
+     */
+    @Test
+    fun openedPack_dueSoonAfterOpening_isReportedAsExpiring() = runTest {
+        val productId = db.productDao().insert(sampleProduct())
+        val locationId = db.storageLocationDao().getDefault()!!.id
+        db.inventoryBatchDao().insert(
+            sampleBatch(productId, locationId).copy(
+                expirationDate = THRESHOLD + 100,
+                openedAt = 1L,
+                calculatedExpirationAfterOpening = THRESHOLD - 1,
+            ),
+        )
+
+        val expiring = db.inventoryBatchDao().observeExpiringBefore(THRESHOLD).first()
+
+        assertEquals(1, expiring.size)
+    }
+
+    @Test
+    fun unopenedPack_withADistantPrintedDate_isNotReported() = runTest {
+        val productId = db.productDao().insert(sampleProduct())
+        val locationId = db.storageLocationDao().getDefault()!!.id
+        db.inventoryBatchDao().insert(
+            sampleBatch(productId, locationId).copy(expirationDate = THRESHOLD + 100),
+        )
+
+        assertTrue(db.inventoryBatchDao().observeExpiringBefore(THRESHOLD).first().isEmpty())
+    }
+
+    /** No date at all means nothing to warn about — not "expired". */
+    @Test
+    fun batchWithoutAnyDate_isNotReported() = runTest {
+        val productId = db.productDao().insert(sampleProduct())
+        val locationId = db.storageLocationDao().getDefault()!!.id
+        db.inventoryBatchDao().insert(
+            sampleBatch(productId, locationId).copy(expirationDate = null),
+        )
+
+        assertTrue(db.inventoryBatchDao().observeExpiringBefore(THRESHOLD).first().isEmpty())
+    }
+
+    /** Ordering must follow the same earlier-of-the-two rule as the filter. */
+    @Test
+    fun expiringBatches_areOrderedByTheEarlierOfTheTwoDates() = runTest {
+        val locationId = db.storageLocationDao().getDefault()!!.id
+        val printedSoon = db.productDao().insert(sampleProduct().copy(name = "Printed soon"))
+        val openedSooner = db.productDao().insert(sampleProduct().copy(name = "Opened sooner"))
+        db.inventoryBatchDao().insert(
+            sampleBatch(printedSoon, locationId).copy(expirationDate = THRESHOLD - 5),
+        )
+        db.inventoryBatchDao().insert(
+            sampleBatch(openedSooner, locationId).copy(
+                expirationDate = THRESHOLD - 1,
+                openedAt = 1L,
+                calculatedExpirationAfterOpening = THRESHOLD - 9,
+            ),
+        )
+
+        val names = db.inventoryBatchDao().observeExpiringBefore(THRESHOLD).first()
+            .map { it.product.name }
+
+        assertEquals(listOf("Opened sooner", "Printed soon"), names)
+    }
+
     private fun sampleProduct() = ProductEntity(
         barcode = null,
         barcodeType = BarcodeType.NONE,
@@ -132,4 +201,9 @@ class EatBeforeDatabaseTest {
         deletedAt = null,
         updatedAt = 0L,
     )
+
+    private companion object {
+        /** Arbitrary epoch day standing in for "today + the user's soon window". */
+        const val THRESHOLD = 20_000L
+    }
 }
