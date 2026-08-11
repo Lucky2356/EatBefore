@@ -11,9 +11,13 @@
 
 **[⬇ Скачать APK (последний релиз)](https://github.com/Lucky2356/EatBefore/releases/latest)**
 
-| Главная | Запасы | Сканер | Аналитика | Тёмная тема |
-|---|---|---|---|---|
-| ![Главная](docs/screenshots/home.png) | ![Запасы](docs/screenshots/inventory.png) | ![Сканер](docs/screenshots/scanner-found.png) | ![Аналитика](docs/screenshots/analytics.png) | ![Тёмная тема](docs/screenshots/home-dark.png) |
+| Главная | Запасы | Карточка продукта |
+|---|---|---|
+| ![Главная](docs/screenshots/home.png) | ![Запасы](docs/screenshots/inventory.png) | ![Карточка продукта](docs/screenshots/product.png) |
+
+| Разбор пачками | Аналитика | Тёмная тема |
+|---|---|---|
+| ![Разбор пачками](docs/screenshots/selection.png) | ![Аналитика](docs/screenshots/analytics.png) | ![Тёмная тема](docs/screenshots/home-dark.png) |
 
 > **Статус:** весь обязательный объём **P0 реализован и проверен на устройстве** —
 > включая сканер (EAN/QR/DataMatrix и коды «Честного знака»), OCR срока, уведомления,
