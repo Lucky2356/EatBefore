@@ -34,16 +34,41 @@ import javax.inject.Inject
 enum class InventorySort { EXPIRY, NAME, ADDED }
 
 /** Narrows the list to what the user came here to deal with. */
-enum class InventoryStatusFilter { ALL, EXPIRED, SOON, OPENED }
+enum class InventoryStatusFilter {
+    ALL,
+    EXPIRED,
+
+    /**
+     * Everything waiting to be dealt with right now: already off, plus running out today.
+     * This is what the home screen's summary counts, and tapping it lands here — a filter
+     * showing more or fewer items than the number just tapped would make the number
+     * untrustworthy.
+     */
+    TODAY,
+    SOON,
+    OPENED,
+}
+
+/** Rows of one storage place, with the place itself for the heading. */
+data class InventoryGroup(val location: StorageLocation, val rows: List<InventoryRowUi>)
 
 data class InventoryUiState(
     val isLoading: Boolean = true,
     val rows: List<InventoryRowUi> = emptyList(),
+    /**
+     * The same rows split by storage place, in the order the places are listed in
+     * settings. Only used when looking at every place at once — with one place chosen
+     * there would be a single heading repeating what the filter chip already says.
+     */
+    val groups: List<InventoryGroup> = emptyList(),
     val locations: List<StorageLocation> = emptyList(),
     val selectedLocationId: Long? = null,
     val sort: InventorySort = InventorySort.EXPIRY,
     val statusFilter: InventoryStatusFilter = InventoryStatusFilter.ALL,
-)
+) {
+    /** True when the list should show headings rather than one flat run of rows. */
+    val isGrouped: Boolean get() = selectedLocationId == null && groups.isNotEmpty()
+}
 
 /** Sort order and status filter travel together so the state combine stays typed. */
 private data class ViewOptions(
@@ -72,6 +97,17 @@ class InventoryViewModel @Inject constructor(
     private val selectedLocationId = MutableStateFlow<Long?>(null)
     private val query = MutableStateFlow("")
     private val viewOptions = MutableStateFlow(ViewOptions())
+
+    private val _selection = MutableStateFlow<Set<Long>?>(null)
+
+    /**
+     * Batches ticked for a bulk write-off, or null when selection mode is off.
+     *
+     * Kept outside [uiState] deliberately: ticking a checkbox would otherwise re-run the
+     * whole mapping and re-sort the list on every tap. An empty set is a real state — mode
+     * on, nothing picked yet — which null cannot express.
+     */
+    val selection: StateFlow<Set<Long>?> = _selection.asStateFlow()
 
     init {
         // Arriving from the "expired" tile should land on the expired items; asking for a
@@ -113,11 +149,13 @@ class InventoryViewModel @Inject constructor(
             .filter { it.matches(q) }
             .sortedWith(sortComparator(options.sort))
             .map { it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus) }
+        // Filtering after the mapping, because the status is derived there and would
+        // otherwise have to be computed twice with two chances to disagree.
+        val visible = rows.filter { it.matches(options.status) }
         InventoryUiState(
             isLoading = false,
-            // Filtering after the mapping, because the status is derived there and would
-            // otherwise have to be computed twice with two chances to disagree.
-            rows = rows.filter { it.matches(options.status) },
+            rows = visible,
+            groups = visible.groupByLocation(locations),
             locations = locations,
             selectedLocationId = selectedLocationId.value,
             sort = options.sort,
@@ -143,6 +181,30 @@ class InventoryViewModel @Inject constructor(
         viewOptions.update { it.copy(status = value) }
     }
 
+    /** Turns selection mode on with [batchId] already ticked — it is what was long-pressed. */
+    fun startSelection(batchId: Long) {
+        _selection.value = setOf(batchId)
+    }
+
+    fun toggleSelection(batchId: Long) {
+        _selection.update { current ->
+            val selected = current ?: return@update setOf(batchId)
+            if (batchId in selected) selected - batchId else selected + batchId
+        }
+    }
+
+    fun stopSelection() {
+        _selection.value = null
+    }
+
+    /** Writes off everything ticked, then leaves selection mode. */
+    fun applyToSelection(action: QuickAction) {
+        val batchIds = _selection.value?.toList().orEmpty()
+        if (batchIds.isEmpty()) return
+        _selection.value = null
+        viewModelScope.launch { quickActions.performBulk(action, batchIds) }
+    }
+
     fun quickAction(action: QuickAction, batchId: Long, expirationDate: LocalDate? = null) {
         viewModelScope.launch { quickActions.perform(action, batchId, expirationDate) }
     }
@@ -153,9 +215,36 @@ class InventoryViewModel @Inject constructor(
 
     fun consumeQuickActionSignal() = quickActions.consumeSignal()
 
+    /**
+     * Splits rows by storage place, following the order the user arranged the places in.
+     *
+     * Grouping by the rows' own location ids rather than walking [locations]: a batch
+     * sitting in a place that was archived afterwards is still in the fridge in real life,
+     * and dropping it out of the list would hide food the user owns. Such a place has no
+     * entry to sort by, so it goes last.
+     */
+    private fun List<InventoryRowUi>.groupByLocation(
+        locations: List<StorageLocation>,
+    ): List<InventoryGroup> {
+        val byId = locations.associateBy { it.id }
+        val order = locations.withIndex().associate { (index, location) -> location.id to index }
+        return groupBy { it.locationId }
+            .map { (locationId, rows) ->
+                val location = byId[locationId] ?: StorageLocation(
+                    id = locationId,
+                    name = rows.first().locationName,
+                    type = rows.first().locationType,
+                )
+                InventoryGroup(location, rows)
+            }
+            .sortedBy { order[it.location.id] ?: Int.MAX_VALUE }
+    }
+
     private fun InventoryRowUi.matches(filter: InventoryStatusFilter): Boolean = when (filter) {
         InventoryStatusFilter.ALL -> true
         InventoryStatusFilter.EXPIRED -> expiryStatus == ExpiryStatus.EXPIRED
+        InventoryStatusFilter.TODAY ->
+            expiryStatus == ExpiryStatus.EXPIRED || expiryStatus == ExpiryStatus.EXPIRES_TODAY
         // "Soon" is what the reminder would warn about today: the last day counts.
         InventoryStatusFilter.SOON ->
             expiryStatus == ExpiryStatus.EXPIRING_SOON || expiryStatus == ExpiryStatus.EXPIRES_TODAY

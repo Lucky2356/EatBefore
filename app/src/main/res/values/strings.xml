@@ -35,6 +35,7 @@
     <string name="action_cancel">Отмена</string>
     <string name="action_save">Сохранить</string>
     <string name="action_add">Добавить</string>
+    <string name="action_done">Готово</string>
 
     <!-- Measurement units (short labels) -->
     <string name="unit_piece">шт</string>
@@ -67,14 +68,21 @@
     <string name="home_title">Главная</string>
     <string name="home_expiring_section">Скоро испортятся</string>
     <string name="home_recent_section">Недавно добавленные</string>
-    <string name="home_total_products">Всего продуктов: %1$d</string>
-    <string name="home_stat_total">Продуктов дома</string>
-    <string name="home_stat_expiring">Скоро истекут</string>
-    <string name="home_stat_expired">Просрочено</string>
-    <string name="home_quick_scan">Сканировать</string>
-    <string name="home_quick_add_manual">Добавить вручную</string>
-    <string name="home_quick_shopping">Список покупок</string>
-    <string name="home_quick_expiring">Истекающие</string>
+    <string name="home_quick_scan">Сканер</string>
+    <string name="home_quick_add_manual">Добавить</string>
+    <string name="home_quick_shopping">Покупки</string>
+    <plurals name="home_needs_attention">
+        <item quantity="one">Разобрать сегодня: %1$d продукт</item>
+        <item quantity="few">Разобрать сегодня: %1$d продукта</item>
+        <item quantity="many">Разобрать сегодня: %1$d продуктов</item>
+        <item quantity="other">Разобрать сегодня: %1$d продукта</item>
+    </plurals>
+    <plurals name="home_products_at_home">
+        <item quantity="one">%1$d продукт дома</item>
+        <item quantity="few">%1$d продукта дома</item>
+        <item quantity="many">%1$d продуктов дома</item>
+        <item quantity="other">%1$d продукта дома</item>
+    </plurals>
     <string name="home_empty">Добавьте первый продукт, чтобы начать учёт.</string>
 
     <!-- Inventory -->
@@ -84,9 +92,17 @@
     <string name="inventory_empty">Здесь появятся ваши продукты.</string>
     <string name="inventory_filter_all">Все</string>
     <string name="inventory_filter_expired">Просрочено</string>
+    <string name="inventory_filter_today">Разобрать</string>
     <string name="inventory_filter_soon">Скоро</string>
     <string name="inventory_filter_opened">Вскрытые</string>
     <string name="inventory_filter_empty">По этому фильтру ничего нет.</string>
+    <string name="inventory_select">Выбрать несколько</string>
+    <plurals name="inventory_selected">
+        <item quantity="one">Выбран %1$d</item>
+        <item quantity="few">Выбрано %1$d</item>
+        <item quantity="many">Выбрано %1$d</item>
+        <item quantity="other">Выбрано %1$d</item>
+    </plurals>
     <string name="inventory_sort_expiry">По сроку</string>
     <string name="inventory_sort_name">По названию</string>
     <string name="inventory_sort_added">По добавлению</string>
@@ -171,6 +187,8 @@
     <string name="shopping_deleted">Позиция удалена</string>
     <string name="shopping_cleared">Купленное убрано</string>
     <string name="shopping_clear_completed">Убрать купленное</string>
+    <string name="shopping_share">Поделиться списком</string>
+    <string name="shopping_share_title">Купить:</string>
     <string name="shopping_edit">Изменить позицию</string>
     <string name="shopping_unit">Единица</string>
     <string name="shopping_added">Добавлено в список покупок</string>

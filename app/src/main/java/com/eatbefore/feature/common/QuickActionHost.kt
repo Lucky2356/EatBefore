@@ -33,6 +33,7 @@ fun rememberQuickActionHandler(
     onPerform: (QuickAction, Long, LocalDate?) -> Unit,
     onUndo: () -> Unit,
     onConsume: () -> Unit,
+    onStartSelection: ((Long) -> Unit)? = null,
 ): (QuickAction, Long) -> Unit {
     var pendingRepeatBatchId by remember { mutableStateOf<Long?>(null) }
 
@@ -62,12 +63,13 @@ fun rememberQuickActionHandler(
     }
 
     val perform by rememberUpdatedState(onPerform)
+    val startSelection by rememberUpdatedState(onStartSelection)
     return remember {
         { action: QuickAction, batchId: Long ->
-            if (action == QuickAction.REPEAT) {
-                pendingRepeatBatchId = batchId
-            } else {
-                perform(action, batchId, null)
+            when {
+                action == QuickAction.REPEAT -> pendingRepeatBatchId = batchId
+                action == QuickAction.SELECT -> startSelection?.invoke(batchId)
+                else -> perform(action, batchId, null)
             }
         }
     }

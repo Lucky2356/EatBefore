@@ -2,11 +2,14 @@ package com.eatbefore.feature.common
 
 import androidx.annotation.StringRes
 import com.eatbefore.R
+import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
+import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
 import com.eatbefore.domain.usecase.OpenBatchUseCase
+import com.eatbefore.domain.usecase.RestoreBatchUseCase
 import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,8 +17,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** What a long press on a stock row can do without opening the product. */
-enum class QuickAction { OPEN, DECREMENT, FINISHED, TO_SHOPPING, REPEAT }
+/**
+ * What a long press on a stock row can do without opening the product.
+ *
+ * [SELECT] is the odd one out: it changes nothing in the inventory, it turns the screen's
+ * selection mode on. It rides along here so the menu has one callback instead of two, and
+ * the screen intercepts it before it ever reaches [QuickActions].
+ */
+enum class QuickAction { OPEN, DECREMENT, FINISHED, DISCARD, TO_SHOPPING, REPEAT, SELECT }
 
 /**
  * A finished quick action, waiting to be shown as a snackbar.
@@ -40,6 +49,8 @@ class QuickActions @Inject constructor(
     private val changeQuantity: ChangeQuantityUseCase,
     private val addToShoppingList: AddToShoppingListUseCase,
     private val addBatch: AddBatchUseCase,
+    private val markStatus: MarkBatchStatusUseCase,
+    private val restoreBatch: RestoreBatchUseCase,
     private val undoLastAction: UndoLastActionUseCase,
 ) {
 
@@ -47,6 +58,9 @@ class QuickActions @Inject constructor(
     val signal: StateFlow<QuickActionSignal?> = _signal.asStateFlow()
 
     private var counter = 0L
+
+    /** Batches written off by the last bulk action, kept until its undo is answered. */
+    private var bulkBatchIds: List<Long>? = null
 
     /**
      * Runs [action] against [batchId]. [expirationDate] is only read by
@@ -67,6 +81,11 @@ class QuickActions @Inject constructor(
 
             QuickAction.FINISHED -> record(R.string.event_consumed) {
                 changeQuantity(batchId, 0.0)
+                true
+            }
+
+            QuickAction.DISCARD -> record(R.string.event_discarded) {
+                markStatus(batchId, BatchStatus.DISCARDED)
                 true
             }
 
@@ -96,15 +115,61 @@ class QuickActions @Inject constructor(
                 )
                 true
             }
+
+            // Intercepted by the screen (see rememberQuickActionHandler): it is a mode,
+            // not a change to any batch.
+            QuickAction.SELECT -> Unit
         }
     }
 
+    /**
+     * Writes off several batches at once.
+     *
+     * The ids are remembered so [undo] can put back *all* of them: the undo chain reverses
+     * one event, which after a bulk write-off would restore one item out of four and leave
+     * the user worse off than with no undo at all.
+     */
+    suspend fun performBulk(action: QuickAction, batchIds: List<Long>) {
+        require(action == QuickAction.FINISHED || action == QuickAction.DISCARD) {
+            "Only writing off makes sense in bulk, not $action"
+        }
+        val done = batchIds.filter { batchId ->
+            runCatching {
+                when (action) {
+                    QuickAction.DISCARD -> markStatus(batchId, BatchStatus.DISCARDED)
+                    else -> changeQuantity(batchId, 0.0)
+                }
+            }.isSuccess
+        }
+        if (done.isEmpty()) return
+
+        bulkBatchIds = done
+        _signal.value = QuickActionSignal(
+            messageRes = if (action == QuickAction.DISCARD) {
+                R.string.event_discarded
+            } else {
+                R.string.event_consumed
+            },
+            undoable = true,
+            id = ++counter,
+        )
+    }
+
     suspend fun undo() {
-        runCatching { undoLastAction() }
+        val bulk = bulkBatchIds
+        if (bulk != null) {
+            // Restoring by id rather than replaying the undo chain: the chain only knows
+            // about the last event, and here there were several.
+            bulkBatchIds = null
+            bulk.forEach { batchId -> runCatching { restoreBatch(batchId) } }
+        } else {
+            runCatching { undoLastAction() }
+        }
         _signal.value = null
     }
 
     fun consumeSignal() {
+        bulkBatchIds = null
         _signal.value = null
     }
 
@@ -121,6 +186,9 @@ class QuickActions @Inject constructor(
     ) {
         runCatching { block() }.onSuccess { changed ->
             if (!changed) return
+            // A single action supersedes any pending bulk one: undo must reverse what the
+            // snackbar on screen is actually offering to reverse.
+            bulkBatchIds = null
             _signal.value = QuickActionSignal(
                 messageRes = messageRes,
                 undoable = undoable,

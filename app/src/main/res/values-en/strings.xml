@@ -34,6 +34,7 @@
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="action_add">Add</string>
+    <string name="action_done">Done</string>
 
     <!-- Measurement units (short labels) -->
     <string name="unit_piece">pcs</string>
@@ -66,14 +67,17 @@
     <string name="home_title">Home</string>
     <string name="home_expiring_section">Expiring soon</string>
     <string name="home_recent_section">Recently added</string>
-    <string name="home_total_products">Products total: %1$d</string>
-    <string name="home_stat_total">Products at home</string>
-    <string name="home_stat_expiring">Expiring soon</string>
-    <string name="home_stat_expired">Expired</string>
     <string name="home_quick_scan">Scan</string>
-    <string name="home_quick_add_manual">Add manually</string>
-    <string name="home_quick_shopping">Shopping list</string>
-    <string name="home_quick_expiring">Expiring</string>
+    <string name="home_quick_add_manual">Add</string>
+    <string name="home_quick_shopping">Shopping</string>
+    <plurals name="home_needs_attention">
+        <item quantity="one">%1$d product to deal with today</item>
+        <item quantity="other">%1$d products to deal with today</item>
+    </plurals>
+    <plurals name="home_products_at_home">
+        <item quantity="one">%1$d product at home</item>
+        <item quantity="other">%1$d products at home</item>
+    </plurals>
     <string name="home_empty">Add your first product to start tracking.</string>
 
     <!-- Inventory -->
@@ -83,9 +87,15 @@
     <string name="inventory_empty">Your products will show up here.</string>
     <string name="inventory_filter_all">All</string>
     <string name="inventory_filter_expired">Expired</string>
+    <string name="inventory_filter_today">To deal with</string>
     <string name="inventory_filter_soon">Soon</string>
     <string name="inventory_filter_opened">Opened</string>
     <string name="inventory_filter_empty">Nothing matches this filter.</string>
+    <string name="inventory_select">Select several</string>
+    <plurals name="inventory_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
     <string name="inventory_sort_expiry">By expiry</string>
     <string name="inventory_sort_name">By name</string>
     <string name="inventory_sort_added">By date added</string>
@@ -168,6 +178,8 @@
     <string name="shopping_deleted">Item removed</string>
     <string name="shopping_cleared">Bought items removed</string>
     <string name="shopping_clear_completed">Clear bought</string>
+    <string name="shopping_share">Share the list</string>
+    <string name="shopping_share_title">To buy:</string>
     <string name="shopping_edit">Edit item</string>
     <string name="shopping_unit">Unit</string>
     <string name="shopping_added">Added to shopping list</string>

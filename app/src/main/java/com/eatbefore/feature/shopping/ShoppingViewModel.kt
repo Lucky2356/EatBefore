@@ -213,6 +213,28 @@ class ShoppingViewModel @Inject constructor(
         _message.value = null
     }
 
+    /**
+     * The list as plain text, for handing to whoever is going to the shop.
+     *
+     * A pure function taking its localized pieces as arguments rather than reaching for
+     * resources itself: this is the part worth a test, and a test cannot run a composable.
+     * Bought items are left out — what is sent is what still needs buying.
+     */
+    fun buildShareText(title: String, unitLabel: (MeasurementUnit) -> String): String {
+        val lines = uiState.value.groups
+            .flatMap { (_, rows) -> rows }
+            .filterNot { it.isCompleted }
+            .map { row ->
+                val amount = if (row.quantity % 1.0 == 0.0) {
+                    row.quantity.toLong().toString()
+                } else {
+                    row.quantity.toString()
+                }
+                "— ${row.title}, $amount ${unitLabel(row.unit)}"
+            }
+        return if (lines.isEmpty()) title else (listOf(title) + lines).joinToString("\n")
+    }
+
     private fun notify(textRes: Int, undoable: Boolean = false) {
         _message.value = ShoppingMessage(textRes, undoable, ++messageCounter)
     }

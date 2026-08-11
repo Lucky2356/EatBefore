@@ -96,6 +96,18 @@ class AppFlowTest {
         }
     }
 
+    private fun awaitSubstring(text: String) {
+        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
+            composeRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun awaitSubstringGone(text: String) {
+        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
+            composeRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
     /** Clicks an icon-only control, which carries its label as a content description. */
     private fun clickIcon(description: String) {
         composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
@@ -295,6 +307,48 @@ class AppFlowTest {
         composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
             composeRule.onAllNodesWithText(name).fetchSemanticsNodes().size == 2
         }
+    }
+
+    /**
+     * Sorting out a fridge full of spoiled food is the reason bulk exists, and undoing it
+     * has to bring back everything — half a rollback would be worse than none.
+     */
+    @Test
+    fun bulkWriteOff_canBeUndoneForEveryRow() {
+        skipOnboarding()
+        val first = "Bulk One ${System.currentTimeMillis()}"
+        val second = "Bulk Two ${System.currentTimeMillis()}"
+        addProduct(first)
+        addProduct(second)
+        findInInventory("Bulk")
+
+        longClickText(first)
+        clickText(string(R.string.inventory_select))
+        clickText(second)
+        clickText(string(R.string.product_action_discard))
+
+        awaitTextGone(first)
+        awaitTextGone(second)
+
+        clickText(string(R.string.action_undo))
+        awaitText(first)
+        assertVisible(second)
+    }
+
+    /** Headings appear when looking at every place, and step aside once one is chosen. */
+    @Test
+    fun inventory_isGroupedByPlaceUntilOneIsChosen() {
+        skipOnboarding()
+        addProduct("Grouped ${System.currentTimeMillis()}")
+        openInventory()
+
+        // The heading carries its count after a separator; the filter chip is the bare
+        // name. Matching on the separator tells them apart without counting nodes.
+        val heading = string(R.string.storage_fridge) + " · "
+        awaitSubstring(heading)
+
+        clickText(string(R.string.storage_fridge))
+        awaitSubstringGone(heading)
     }
 
     @Test

@@ -190,6 +190,51 @@ class ShoppingViewModelTest {
         assertEquals(2.0, edited.quantity, 0.0)
     }
 
+    /** What gets sent to whoever is going to the shop. */
+    @Test
+    fun `the shared text lists what is left to buy, with amounts`() = runTest {
+        shopping.items[2L] = ShoppingListItem(
+            id = 2L,
+            customName = "Картошка",
+            quantity = 2.0,
+            measurementUnit = MeasurementUnit.KILOGRAM,
+            addedAt = clock.now(),
+        )
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+
+            val text = vm.buildShareText("Купить:") { unit -> unit.name.lowercase() }
+
+            assertEquals(
+                listOf("Купить:", "— Картошка, 2 kilogram", "— Хлеб, 2 piece"),
+                text.lines(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Already bought is not "to buy" — sending it would send the wrong errand. */
+    @Test
+    fun `bought items are left out of the shared text`() = runTest {
+        shopping.items[2L] = ShoppingListItem(
+            id = 2L,
+            customName = "Сыр",
+            isCompleted = true,
+            addedAt = clock.now(),
+        )
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+
+            val text = vm.buildShareText("Купить:") { "шт" }
+
+            assertFalse(text.contains("Сыр"))
+            assertTrue(text.contains("Хлеб"))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     @Test
     fun `adding a regular purchase reports it without an undo`() = runTest {
         val vm = viewModel()
@@ -221,4 +266,13 @@ class ShoppingViewModelTest {
 
         assertEquals(first + 1, vm.message.value!!.id)
     }
+}
+
+/** State flows conflate and replay, so filter for the interesting item rather than index. */
+private suspend fun <T> app.cash.turbine.ReceiveTurbine<T>.awaitItemWhere(predicate: (T) -> Boolean): T {
+    repeat(20) {
+        val item = awaitItem()
+        if (predicate(item)) return item
+    }
+    error("No matching item")
 }

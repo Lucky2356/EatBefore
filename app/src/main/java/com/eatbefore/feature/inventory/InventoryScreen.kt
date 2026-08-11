@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -19,17 +21,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,6 +46,8 @@ import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.common.InventoryRowCard
+import com.eatbefore.feature.common.InventoryRowUi
+import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.rememberQuickActionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,6 +63,8 @@ fun InventoryScreen(
     val snackbarHost = remember { SnackbarHostState() }
     var sortMenuOpen by remember { mutableStateOf(false) }
 
+    val selection by viewModel.selection.collectAsStateWithLifecycle()
+
     val onQuickAction = rememberQuickActionHandler(
         signal = quickActionSignal,
         snackbarHostState = snackbarHost,
@@ -61,14 +72,53 @@ fun InventoryScreen(
         onPerform = viewModel::quickAction,
         onUndo = viewModel::undoQuickAction,
         onConsume = viewModel::consumeQuickActionSignal,
+        onStartSelection = viewModel::startSelection,
     )
 
+    // Leaving selection mode is what Back means while it is on — it is a mode, and a mode
+    // the system Back gesture cannot escape is a trap.
+    androidx.activity.compose.BackHandler(enabled = selection != null) {
+        viewModel.stopSelection()
+    }
+
+    val selected = selection
     Scaffold(
         snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
+        bottomBar = {
+            if (selected != null) {
+                SelectionBar(
+                    count = selected.size,
+                    onFinished = { viewModel.applyToSelection(QuickAction.FINISHED) },
+                    onDiscard = { viewModel.applyToSelection(QuickAction.DISCARD) },
+                )
+            }
+        },
         topBar = {
+            // While selecting, the bar reports the count and offers the way out — the
+            // Android convention, and the only layout where the count and the actions both
+            // fit without wrapping.
             TopAppBar(
-                title = { Text(stringResource(R.string.inventory_title)) },
+                title = {
+                    Text(
+                        if (selected == null) {
+                            stringResource(R.string.inventory_title)
+                        } else {
+                            pluralStringResource(R.plurals.inventory_selected, selected.size, selected.size)
+                        },
+                    )
+                },
+                navigationIcon = {
+                    if (selected != null) {
+                        IconButton(onClick = viewModel::stopSelection) {
+                            Icon(
+                                Icons.Outlined.Close,
+                                contentDescription = stringResource(R.string.action_done),
+                            )
+                        }
+                    }
+                },
                 actions = {
+                    if (selected != null) return@TopAppBar
                     IconButton(onClick = { sortMenuOpen = true }) {
                         Icon(
                             Icons.AutoMirrored.Outlined.Sort,
@@ -135,6 +185,7 @@ fun InventoryScreen(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 StatusFilterChip(R.string.inventory_filter_all, InventoryStatusFilter.ALL, state, viewModel)
+                StatusFilterChip(R.string.inventory_filter_today, InventoryStatusFilter.TODAY, state, viewModel)
                 StatusFilterChip(R.string.inventory_filter_expired, InventoryStatusFilter.EXPIRED, state, viewModel)
                 StatusFilterChip(R.string.inventory_filter_soon, InventoryStatusFilter.SOON, state, viewModel)
                 StatusFilterChip(R.string.inventory_filter_opened, InventoryStatusFilter.OPENED, state, viewModel)
@@ -157,17 +208,113 @@ fun InventoryScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
-                    items(state.rows, key = { it.batchId }) { row ->
-                        InventoryRowCard(
-                            row = row,
-                            onClick = { onOpenBatch(row.batchId) },
-                            onQuickAction = { onQuickAction(it, row.batchId) },
-                        )
+                    if (state.isGrouped) {
+                        state.groups.forEach { group ->
+                            item(key = "place-${group.location.id}") {
+                                GroupHeading(
+                                    title = group.location.displayName(),
+                                    count = group.rows.size,
+                                )
+                            }
+                            items(group.rows, key = { it.batchId }) { row ->
+                                StockRow(
+                                    row = row,
+                                    selection = selection,
+                                    onOpenBatch = onOpenBatch,
+                                    onQuickAction = onQuickAction,
+                                    onToggle = viewModel::toggleSelection,
+                                    // The heading above already names the place.
+                                    showLocation = false,
+                                )
+                            }
+                        }
+                    } else {
+                        items(state.rows, key = { it.batchId }) { row ->
+                            StockRow(
+                                row = row,
+                                selection = selection,
+                                onOpenBatch = onOpenBatch,
+                                onQuickAction = onQuickAction,
+                                onToggle = viewModel::toggleSelection,
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * What to do with everything ticked. Sits at the bottom, within thumb reach, and holds the
+ * only way out of the mode besides Back — a mode with no visible exit is a trap.
+ */
+@Composable
+private fun SelectionBar(
+    count: Int,
+    onFinished: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    Surface(tonalElevation = Dimens.spaceXs) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+        ) {
+            TextButton(
+                onClick = onFinished,
+                enabled = count > 0,
+                modifier = Modifier.weight(1f),
+            ) { Text(stringResource(R.string.product_action_finished)) }
+            TextButton(
+                onClick = onDiscard,
+                enabled = count > 0,
+                modifier = Modifier.weight(1f),
+            ) { Text(stringResource(R.string.product_action_discard)) }
+        }
+    }
+}
+
+/**
+ * One stock row, which means something different depending on the mode: normally a tap
+ * opens the product, while a selection is running it ticks the row instead.
+ */
+@Composable
+private fun StockRow(
+    row: InventoryRowUi,
+    selection: Set<Long>?,
+    onOpenBatch: (Long) -> Unit,
+    onQuickAction: (QuickAction, Long) -> Unit,
+    onToggle: (Long) -> Unit,
+    showLocation: Boolean = true,
+) {
+    InventoryRowCard(
+        row = row,
+        onClick = {
+            if (selection == null) onOpenBatch(row.batchId) else onToggle(row.batchId)
+        },
+        // No long-press menu while selecting: the row already has one job.
+        onQuickAction = if (selection == null) {
+            { onQuickAction(it, row.batchId) }
+        } else {
+            null
+        },
+        showLocation = showLocation,
+        selected = selection?.contains(row.batchId),
+    )
+}
+
+@Composable
+private fun GroupHeading(title: String, count: Int) {
+    Text(
+        text = "$title · $count",
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(top = Dimens.spaceSm),
+    )
 }
 
 @Composable

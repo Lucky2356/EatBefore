@@ -10,7 +10,9 @@ import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.CalculateExpirationAfterOpeningUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
+import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
 import com.eatbefore.domain.usecase.OpenBatchUseCase
+import com.eatbefore.domain.usecase.RestoreBatchUseCase
 import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeHistoryRepository
@@ -71,6 +73,8 @@ class QuickActionsTest {
             changeQuantity = ChangeQuantityUseCase(inventory, clock),
             addToShoppingList = AddToShoppingListUseCase(shopping, history, clock),
             addBatch = AddBatchUseCase(products, inventory, clock),
+            markStatus = MarkBatchStatusUseCase(inventory, clock),
+            restoreBatch = RestoreBatchUseCase(inventory, clock),
             undoLastAction = UndoLastActionUseCase(history, inventory, clock),
         )
     }
@@ -139,6 +143,60 @@ class QuickActionsTest {
         val added = inventory.batches.values.single { it.id != batchId }
         assertEquals(BatchStatus.ARCHIVED, added.status)
         assertEquals(BatchStatus.ACTIVE, batch().status)
+    }
+
+    /**
+     * The whole reason bulk exists: sorting out a fridge full of spoiled food. Undoing it
+     * has to bring back every item, not the last one — half a rollback is worse than none.
+     */
+    @Test
+    fun `undo after a bulk write-off restores every batch`() = runTest {
+        val ids = (2L..4L).map { id ->
+            inventory.batches[id] = batch().copy(id = id)
+            id
+        }
+
+        quickActions.performBulk(QuickAction.DISCARD, ids)
+        assertTrue(ids.all { inventory.batches.getValue(it).status == BatchStatus.DISCARDED })
+
+        quickActions.undo()
+
+        assertTrue(ids.all { inventory.batches.getValue(it).status.isPresent })
+        assertTrue(ids.all { inventory.batches.getValue(it).deletedAt == null })
+    }
+
+    @Test
+    fun `a bulk write-off empties every selected batch`() = runTest {
+        inventory.batches[2L] = batch().copy(id = 2L)
+
+        quickActions.performBulk(QuickAction.FINISHED, listOf(batchId, 2L))
+
+        assertEquals(0.0, inventory.batches.getValue(batchId).quantity, 0.0)
+        assertEquals(0.0, inventory.batches.getValue(2L).quantity, 0.0)
+    }
+
+    /** Nothing happened, so there is nothing to announce and nothing to undo. */
+    @Test
+    fun `a bulk action over batches that are all gone says nothing`() = runTest {
+        quickActions.performBulk(QuickAction.DISCARD, listOf(998L, 999L))
+
+        assertNull(quickActions.signal.value)
+    }
+
+    /**
+     * The snackbar on screen belongs to the newest action. If a single action follows a
+     * bulk one, undo must reverse that single action — not resurrect the earlier batch.
+     */
+    @Test
+    fun `a later single action takes over the undo`() = runTest {
+        inventory.batches[2L] = batch().copy(id = 2L)
+        quickActions.performBulk(QuickAction.DISCARD, listOf(2L))
+
+        quickActions.perform(QuickAction.DECREMENT, batchId)
+        quickActions.undo()
+
+        assertEquals(2.0, batch().quantity, 0.0)
+        assertEquals(BatchStatus.DISCARDED, inventory.batches.getValue(2L).status)
     }
 
     @Test

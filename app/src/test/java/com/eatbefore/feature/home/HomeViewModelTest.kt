@@ -103,11 +103,43 @@ class HomeViewModelTest {
         }
     }
 
+    /** The headline number: what has gone off, plus what runs out before the day is over. */
     @Test
-    fun `tapping the expired tile asks the stock list to open filtered`() = runTest {
-        viewModel().requestExpiredFilter()
+    fun `the summary counts what is off and what runs out today`() = runTest {
+        inventory.expiringItems.value = listOf(
+            item(1, today.minusDays(2)),
+            item(2, today),
+            item(3, today.plusDays(2)),
+        )
 
-        assertEquals(InventoryStatusFilter.EXPIRED, filterRequest.pending.value)
+        viewModel().uiState.test {
+            val state = awaitItemWhere { !it.isLoading }
+            assertEquals(2, state.needsAttentionCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Zero means the home screen shows no banner at all — see HomeScreen. */
+    @Test
+    fun `nothing urgent means nothing to lead with`() = runTest {
+        inventory.expiringItems.value = listOf(item(1, today.plusDays(2)))
+
+        viewModel().uiState.test {
+            val state = awaitItemWhere { !it.isLoading }
+            assertEquals(0, state.needsAttentionCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * The filter must show exactly what the banner counted. Landing on a list holding
+     * more or fewer items than the number just tapped makes the number untrustworthy.
+     */
+    @Test
+    fun `tapping the summary asks the stock list for the same set`() = runTest {
+        viewModel().requestAttentionFilter()
+
+        assertEquals(InventoryStatusFilter.TODAY, filterRequest.pending.value)
     }
 }
 
