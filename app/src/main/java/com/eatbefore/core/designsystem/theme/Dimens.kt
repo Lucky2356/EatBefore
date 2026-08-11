@@ -36,7 +36,22 @@ object Dimens {
     val primaryActionHeight = 72.dp
 
     /** Product thumbnail in a list row. */
-    val thumbnailSize = 56.dp
+    val thumbnailSize = 46.dp
+
+    /** Icon inside a badge or inline with body text. */
+    val iconSm = 16.dp
+
+    /** Icon inside a list row's leading square, and in menus. */
+    val iconMd = 24.dp
+
+    /** The tonal square of a quick action on the home screen. */
+    val quickActionSize = 60.dp
+
+    /** Icon inside that square. */
+    val iconLg = 28.dp
+
+    /** Illustration in an empty or error state. */
+    val iconXl = 56.dp
 
     /** Scrollable preview of the diagnostics log — enough to judge it, not enough to bury the buttons. */
     val diagnosticsPreviewHeight = 240.dp

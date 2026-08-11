@@ -367,7 +367,10 @@ private fun ProductHeaderCard(
                 Text(
                     text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    // Neutral on purpose: the status beside the amount already says how
+                    // urgent this is, and colouring the same fact twice — in green, while
+                    // the list paints it crimson — only invites doubt about which is right.
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.End,
                 )

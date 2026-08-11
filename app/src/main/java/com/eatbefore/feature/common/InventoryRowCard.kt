@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AcUnit
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.Kitchen
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Place
@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warehouse
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -43,12 +44,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.eatbefore.R
-import com.eatbefore.core.designsystem.component.StatusBadge
+import com.eatbefore.core.designsystem.component.toVisual
 import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.LocalStatusColors
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.StorageType
 
 private fun StorageType.icon(): ImageVector = when (this) {
@@ -73,6 +75,8 @@ fun InventoryRowCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onQuickAction: ((QuickAction) -> Unit)? = null,
+    showLocation: Boolean = true,
+    selected: Boolean? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
@@ -93,23 +97,29 @@ fun InventoryRowCard(
                     }
                 },
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = Shapes.card,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = if (selected == true) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            },
         ),
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(Dimens.spaceMd),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
+            // In selection mode the tick takes the thumbnail's place rather than sitting
+            // beside it: the row keeps its height, and what a tap does now is unmistakable.
+            if (selected != null) {
+                Checkbox(checked = selected, onCheckedChange = { onClick() })
+            }
             Box(
                 modifier = Modifier
-                    .size(46.dp)
-                    .background(
-                        MaterialTheme.colorScheme.secondaryContainer,
-                        RoundedCornerShape(14.dp),
-                    ),
+                    .size(Dimens.thumbnailSize)
+                    .background(MaterialTheme.colorScheme.secondaryContainer, Shapes.control),
                 contentAlignment = Alignment.Center,
             ) {
                 if (row.imageUri != null) {
@@ -118,8 +128,8 @@ fun InventoryRowCard(
                         model = row.imageUri,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(46.dp)
-                            .clip(RoundedCornerShape(14.dp)),
+                            .size(Dimens.thumbnailSize)
+                            .clip(Shapes.control),
                         contentScale = ContentScale.Crop,
                     )
                 } else {
@@ -137,11 +147,6 @@ fun InventoryRowCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val locationLabel =
-                    com.eatbefore.core.designsystem.format.storageDisplayName(
-                        row.locationName,
-                        row.locationType,
-                    )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
@@ -152,27 +157,27 @@ fun InventoryRowCard(
                         Icon(
                             imageVector = Icons.Outlined.LockOpen,
                             contentDescription = stringResource(R.string.row_opened),
-                            modifier = Modifier.size(14.dp),
+                            modifier = Modifier.size(Dimens.iconSm),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    val amount = formatQuantity(row.quantity, row.unit)
+                    val location = com.eatbefore.core.designsystem.format.storageDisplayName(
+                        row.locationName,
+                        row.locationType,
+                    )
                     Text(
-                        text = "${formatQuantity(row.quantity, row.unit)} · $locationLabel",
+                        // The place is dropped when the list is already grouped by it —
+                        // repeating the group heading on every one of its rows is noise.
+                        text = if (showLocation) "$amount · $location" else amount,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                remainingText(row.remainingDays)?.let { remaining ->
-                    Text(
-                        text = remaining,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
-            StatusBadge(status = row.expiryStatus)
+            RowStatus(status = row.expiryStatus, remainingDays = row.remainingDays)
 
             if (onQuickAction != null) {
                 QuickActionMenu(
@@ -186,6 +191,56 @@ fun InventoryRowCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * The right-hand end of a row: how long this batch has left.
+ *
+ * One element, not two. The row used to carry both "169 days left" and a filled «Fresh»
+ * pill, which say the same thing — and the pill said it louder, so four healthy products
+ * shouted while the one going off did not stand out. Now only the weight changes: a plain
+ * label when there is nothing to do, a filled one when there is. The text always carries
+ * the number, so it says strictly more than the status word it replaced.
+ */
+@Composable
+private fun RowStatus(
+    status: com.eatbefore.domain.model.ExpiryStatus,
+    remainingDays: Long?,
+) {
+    val visual = status.toVisual()
+    val text = remainingText(remainingDays) ?: stringResource(R.string.status_no_date)
+
+    if (!visual.needsAttention) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            // Three weights in all: a pill for what must be dealt with today, the status
+            // colour for what is running out, plain grey for everything else.
+            color = if (status == com.eatbefore.domain.model.ExpiryStatus.EXPIRING_SOON) {
+                visual.color
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        return
+    }
+
+    val onStatus = LocalStatusColors.current.onStatus
+    Row(
+        modifier = Modifier
+            .background(visual.color, Shapes.pill)
+            .padding(horizontal = Dimens.spaceSm, vertical = Dimens.spaceXs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+    ) {
+        Icon(
+            imageVector = visual.icon,
+            contentDescription = null,
+            tint = onStatus,
+            modifier = Modifier.size(Dimens.iconSm),
+        )
+        Text(text = text, color = onStatus, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -219,6 +274,11 @@ private fun QuickActionMenu(
             labelRes = R.string.product_action_repeat,
             icon = Icons.Outlined.AddCircleOutline,
             onClick = { onAction(QuickAction.REPEAT) },
+        )
+        QuickActionItem(
+            labelRes = R.string.inventory_select,
+            icon = Icons.Outlined.Checklist,
+            onClick = { onAction(QuickAction.SELECT) },
         )
         QuickActionItem(
             labelRes = R.string.product_action_shopping,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Schedule
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,7 +74,13 @@ fun HomeScreen(
                     Column {
                         Text(stringResource(R.string.home_title))
                         Text(
-                            today,
+                            // The stock count used to be a tile of its own. It is context,
+                            // not a call to action, and it belongs next to the date.
+                            "$today · " + pluralStringResource(
+                                R.plurals.home_products_at_home,
+                                state.totalCount,
+                                state.totalCount,
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -109,40 +117,17 @@ fun HomeScreen(
                 }
             }
 
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
-                ) {
-                    HomeStatTile(
-                        value = state.totalCount,
-                        label = stringResource(R.string.home_stat_total),
-                        container = MaterialTheme.colorScheme.primaryContainer,
-                        onContainer = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.weight(1f),
+            // One line, and only when it has something to say. The band of tiles it
+            // replaced spent a quarter of the screen announcing "nothing to do".
+            if (state.needsAttentionCount > 0) {
+                item {
+                    AttentionBanner(
+                        count = state.needsAttentionCount,
+                        onClick = {
+                            viewModel.requestAttentionFilter()
+                            onOpenInventory()
+                        },
                     )
-                    HomeStatTile(
-                        value = state.expiringSoon.size,
-                        label = stringResource(R.string.home_stat_expiring),
-                        container = MaterialTheme.colorScheme.tertiaryContainer,
-                        onContainer = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.weight(1f),
-                    )
-                    // Only when there is something to answer for. A permanent "0 expired"
-                    // tile is noise; a red one that appears is a message.
-                    if (state.expiredCount > 0) {
-                        HomeStatTile(
-                            value = state.expiredCount,
-                            label = stringResource(R.string.home_stat_expired),
-                            container = MaterialTheme.colorScheme.errorContainer,
-                            onContainer = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                viewModel.requestExpiredFilter()
-                                onOpenInventory()
-                            },
-                        )
-                    }
                 }
             }
 
@@ -181,27 +166,40 @@ fun HomeScreen(
     }
 }
 
+/**
+ * The one thing the home screen leads with: how much is waiting to be dealt with, and a
+ * way straight to it. Shown only when the count is above zero — see the call site.
+ */
 @Composable
-private fun HomeStatTile(
-    value: Int,
-    label: String,
-    container: androidx.compose.ui.graphics.Color,
-    onContainer: androidx.compose.ui.graphics.Color,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-) {
+private fun AttentionBanner(count: Int, onClick: () -> Unit) {
     androidx.compose.material3.Card(
-        modifier = if (onClick == null) modifier else modifier.clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = Shapes.card,
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = container),
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+        ),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg)) {
-            Text(
-                text = value.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = onContainer,
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
+        ) {
+            androidx.compose.material3.Icon(
+                Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
             )
-            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = onContainer)
+            Text(
+                text = pluralStringResource(R.plurals.home_needs_attention, count, count),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f),
+            )
+            androidx.compose.material3.Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+            )
         }
     }
 }

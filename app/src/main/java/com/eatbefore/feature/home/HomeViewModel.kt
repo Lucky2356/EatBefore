@@ -32,6 +32,12 @@ data class HomeUiState(
     val recent: List<InventoryRowUi> = emptyList(),
     /** Already past its date — counted separately, because it needs a different reaction. */
     val expiredCount: Int = 0,
+    /**
+     * What is waiting to be dealt with right now: already off, plus what runs out today.
+     * The one number the home screen leads with — and when it is zero it says nothing at
+     * all, because "nothing to do" does not deserve a quarter of the screen.
+     */
+    val needsAttentionCount: Int = 0,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -72,6 +78,9 @@ class HomeViewModel @Inject constructor(
             // Counted over everything, not just the ten shown, or the tile would understate
             // the problem exactly when there is most of it.
             expiredCount = expiringRows.count { it.expiryStatus == ExpiryStatus.EXPIRED },
+            needsAttentionCount = expiringRows.count {
+                it.expiryStatus == ExpiryStatus.EXPIRED || it.expiryStatus == ExpiryStatus.EXPIRES_TODAY
+            },
             expiringSoon = expiringRows.take(EXPIRING_LIMIT),
             recent = recent.map { it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus) },
         )
@@ -81,8 +90,11 @@ class HomeViewModel @Inject constructor(
         initialValue = HomeUiState(),
     )
 
-    /** Asks the inventory tab to open showing only what has already gone off. */
-    fun requestExpiredFilter() = filterRequest.request(InventoryStatusFilter.EXPIRED)
+    /**
+     * Asks the inventory tab to open on exactly what the summary counted. A filter that
+     * showed more or less than the number just tapped would make the number untrustworthy.
+     */
+    fun requestAttentionFilter() = filterRequest.request(InventoryStatusFilter.TODAY)
 
     fun quickAction(action: QuickAction, batchId: Long, expirationDate: LocalDate? = null) {
         viewModelScope.launch { quickActions.perform(action, batchId, expirationDate) }

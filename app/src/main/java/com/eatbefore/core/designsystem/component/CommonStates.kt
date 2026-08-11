@@ -18,8 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.theme.Dimens
 
 /** Centered empty state with an icon, message, and optional call to action. */
 @Composable
@@ -33,14 +33,14 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(Dimens.spaceXxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(Dimens.iconXl),
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
@@ -48,10 +48,10 @@ fun EmptyState(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = Dimens.spaceLg),
         )
         if (actionLabel != null && onAction != null) {
-            OutlinedButton(onClick = onAction, modifier = Modifier.padding(top = 16.dp)) {
+            OutlinedButton(onClick = onAction, modifier = Modifier.padding(top = Dimens.spaceLg)) {
                 Text(actionLabel)
             }
         }
@@ -68,24 +68,24 @@ fun ErrorState(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .padding(Dimens.spaceXxl),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
             imageVector = Icons.Outlined.ErrorOutline,
             contentDescription = null,
-            modifier = Modifier.size(56.dp),
+            modifier = Modifier.size(Dimens.iconXl),
             tint = MaterialTheme.colorScheme.error,
         )
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp),
+            modifier = Modifier.padding(top = Dimens.spaceLg),
         )
         if (onRetry != null) {
-            OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
+            OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = Dimens.spaceLg)) {
                 Text(stringResourceCompat(R.string.action_retry))
             }
         }

@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -35,13 +34,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.StatTile
+import com.eatbefore.core.designsystem.component.StatTone
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.LocalStatusColors
@@ -180,15 +180,11 @@ private fun SummaryContent(summary: AnalyticsSummary) {
         StatTile(
             label = stringResource(R.string.analytics_added),
             value = summary.addedCount,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            onColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.weight(1f),
         )
         StatTile(
             label = stringResource(R.string.analytics_consumed),
             value = summary.consumedCount,
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            onColor = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier = Modifier.weight(1f),
         )
     }
@@ -196,18 +192,18 @@ private fun SummaryContent(summary: AnalyticsSummary) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
+        // These two are the only numbers here that are bad news — and only when they are
+        // not zero. Nothing wasted is a good week, and it used to be painted pink.
         StatTile(
             label = stringResource(R.string.analytics_discarded),
             value = summary.discardedCount,
-            color = MaterialTheme.colorScheme.errorContainer,
-            onColor = MaterialTheme.colorScheme.onErrorContainer,
+            tone = StatTone.ATTENTION,
             modifier = Modifier.weight(1f),
         )
         StatTile(
             label = stringResource(R.string.analytics_expired),
             value = summary.expiredCount,
-            color = MaterialTheme.colorScheme.tertiaryContainer,
-            onColor = MaterialTheme.colorScheme.onTertiaryContainer,
+            tone = StatTone.ATTENTION,
             modifier = Modifier.weight(1f),
         )
     }
@@ -329,33 +325,6 @@ private fun LegendDot(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(modifier = Modifier.size(10.dp).background(color, RoundedCornerShape(50)))
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun StatTile(
-    label: String,
-    value: Int,
-    color: Color,
-    onColor: Color,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-        ) {
-            Text(
-                text = value.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = onColor,
-                textAlign = TextAlign.Start,
-            )
-            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = onColor)
-        }
     }
 }
 
