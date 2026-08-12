@@ -67,7 +67,14 @@ class InventoryFlowIntegrationTest {
             .build()
 
         val products = ProductRepositoryImpl(db.productDao())
-        inventory = InventoryRepositoryImpl(db, db.inventoryBatchDao(), db.inventoryEventDao())
+        inventory = InventoryRepositoryImpl(
+            db,
+            db.inventoryBatchDao(),
+            db.inventoryEventDao(),
+            // Redrawing a home-screen widget has no meaning in a JVM test; what matters
+            // here is the data, and the notifier is covered by its own test.
+            stockChangeNotifier = {},
+        )
         val history = HistoryRepositoryImpl(db.inventoryEventDao())
         val merge = MergeSameProductUseCase(products)
         addManual = AddManualProductUseCase(products, inventory, merge, clock)

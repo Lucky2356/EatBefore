@@ -2,6 +2,7 @@ package com.eatbefore.di
 
 import com.eatbefore.core.sync.SafSyncFolderResolver
 import com.eatbefore.core.sync.SyncFolderResolver
+import com.eatbefore.core.widget.StockChangeNotifier
 import com.eatbefore.data.ocr.MlKitExpiryDateOcrProvider
 import com.eatbefore.data.repository.HistoryRepositoryImpl
 import com.eatbefore.data.repository.InventoryRepositoryImpl
@@ -14,6 +15,7 @@ import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.feature.widget.WidgetStockChangeNotifier
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -41,6 +43,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindInventoryRepository(impl: InventoryRepositoryImpl): InventoryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStockChangeNotifier(impl: WidgetStockChangeNotifier): StockChangeNotifier
 
     @Binds
     @Singleton

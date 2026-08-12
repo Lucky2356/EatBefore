@@ -5,6 +5,7 @@ import com.eatbefore.core.database.EatBeforeDatabase
 import com.eatbefore.core.database.dao.InventoryBatchDao
 import com.eatbefore.core.database.dao.InventoryEventDao
 import com.eatbefore.core.database.relation.BatchWithProductAndLocation
+import com.eatbefore.core.widget.StockChangeNotifier
 import com.eatbefore.data.mapper.toDomain
 import com.eatbefore.data.mapper.toEntity
 import com.eatbefore.domain.model.InventoryBatch
@@ -19,6 +20,7 @@ class InventoryRepositoryImpl @Inject constructor(
     private val db: EatBeforeDatabase,
     private val batchDao: InventoryBatchDao,
     private val eventDao: InventoryEventDao,
+    private val stockChangeNotifier: StockChangeNotifier,
 ) : InventoryRepository {
 
     private fun BatchWithProductAndLocation.toItem(): InventoryItem = InventoryItem(
@@ -55,10 +57,16 @@ class InventoryRepositoryImpl @Inject constructor(
     override suspend fun addBatchWithEvent(
         batch: InventoryBatch,
         buildEvent: (batchId: Long) -> InventoryEvent,
-    ): Long = db.withTransaction {
-        val newId = batchDao.insert(batch.toEntity())
-        eventDao.insert(buildEvent(newId).toEntity())
-        newId
+    ): Long {
+        val newId = db.withTransaction {
+            val id = batchDao.insert(batch.toEntity())
+            eventDao.insert(buildEvent(id).toEntity())
+            id
+        }
+        // After the transaction, not inside it: the widget reads the database, and reading
+        // it from within the write would either see the old state or deadlock.
+        stockChangeNotifier.onStockChanged()
+        return newId
     }
 
     override suspend fun updateBatchWithEvent(batch: InventoryBatch, event: InventoryEvent) {
@@ -66,5 +74,6 @@ class InventoryRepositoryImpl @Inject constructor(
             batchDao.update(batch.toEntity())
             eventDao.insert(event.toEntity())
         }
+        stockChangeNotifier.onStockChanged()
     }
 }
