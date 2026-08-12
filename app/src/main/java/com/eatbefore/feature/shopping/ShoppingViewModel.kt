@@ -3,6 +3,7 @@ package com.eatbefore.feature.shopping
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.domain.model.MeasurementUnit
+import com.eatbefore.domain.model.ShoppingPriority
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
@@ -35,6 +36,8 @@ data class ShoppingRowUi(
      * everywhere else it appears.
      */
     val isCustom: Boolean,
+    /** Urgent items sort to the top of their category and are marked in the row. */
+    val isUrgent: Boolean,
 )
 
 /** A product the household buys regularly, offered for one-tap re-adding. */
@@ -93,6 +96,7 @@ class ShoppingViewModel @Inject constructor(
                 category = product?.category,
                 isCompleted = item.isCompleted,
                 isCustom = item.productId == null,
+                isUrgent = item.priority == ShoppingPriority.HIGH,
             )
         }
         val groups = rows
@@ -101,7 +105,12 @@ class ShoppingViewModel @Inject constructor(
             .sortedWith(compareBy(nullsLast()) { it.first?.lowercase() })
             .map { (category, groupRows) ->
                 category to groupRows.sortedWith(
-                    compareBy<ShoppingRowUi> { it.isCompleted }.thenBy { it.title.lowercase() },
+                    // Bought last, urgent first, then alphabetically: the list is read
+                    // while walking through a shop, and what must not be forgotten
+                    // belongs where the eye lands first.
+                    compareBy<ShoppingRowUi> { it.isCompleted }
+                        .thenByDescending { it.isUrgent }
+                        .thenBy { it.title.lowercase() },
                 )
             }
         // Don't suggest what is already on the list.
@@ -120,7 +129,7 @@ class ShoppingViewModel @Inject constructor(
         initialValue = ShoppingUiState(),
     )
 
-    fun addManual(name: String, quantity: Double, unit: MeasurementUnit) {
+    fun addManual(name: String, quantity: Double, unit: MeasurementUnit, isUrgent: Boolean = false) {
         if (name.isBlank()) return
         viewModelScope.launch {
             runCatching {
@@ -129,6 +138,7 @@ class ShoppingViewModel @Inject constructor(
                         customName = name,
                         quantity = quantity,
                         measurementUnit = unit,
+                        priority = if (isUrgent) ShoppingPriority.HIGH else ShoppingPriority.NORMAL,
                     ),
                 )
             }
@@ -188,13 +198,20 @@ class ShoppingViewModel @Inject constructor(
      * by a product carries that product's name, and renaming it here would rename it in
      * the inventory too.
      */
-    fun updateItem(id: Long, name: String, quantity: Double, unit: MeasurementUnit) {
+    fun updateItem(
+        id: Long,
+        name: String,
+        quantity: Double,
+        unit: MeasurementUnit,
+        isUrgent: Boolean,
+    ) {
         viewModelScope.launch {
             val item = shoppingListRepository.getById(id) ?: return@launch
             val edited = item.copy(
                 customName = if (item.productId == null) name.trim().ifBlank { item.customName } else item.customName,
                 quantity = quantity.coerceAtLeast(1.0),
                 measurementUnit = unit,
+                priority = if (isUrgent) ShoppingPriority.HIGH else ShoppingPriority.NORMAL,
             )
             runCatching { shoppingListRepository.upsert(edited) }
         }

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.outlined.PlaylistAddCheck
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -184,8 +185,8 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
             title = stringResource(R.string.shopping_add),
             confirmLabel = stringResource(R.string.action_add),
             edited = null,
-            onConfirm = { name, quantity, unit ->
-                viewModel.addManual(name, quantity, unit)
+            onConfirm = { name, quantity, unit, urgent ->
+                viewModel.addManual(name, quantity, unit, urgent)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false },
@@ -197,8 +198,8 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
             title = stringResource(R.string.shopping_edit),
             confirmLabel = stringResource(R.string.action_save),
             edited = row,
-            onConfirm = { name, quantity, unit ->
-                viewModel.updateItem(row.id, name, quantity, unit)
+            onConfirm = { name, quantity, unit, urgent ->
+                viewModel.updateItem(row.id, name, quantity, unit, urgent)
                 editedRow = null
             },
             onDismiss = { editedRow = null },
@@ -219,6 +220,14 @@ private fun ShoppingRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = row.isCompleted, onCheckedChange = { onToggle() })
+        if (row.isUrgent && !row.isCompleted) {
+            Icon(
+                Icons.Outlined.PriorityHigh,
+                contentDescription = stringResource(R.string.shopping_urgent),
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(Dimens.iconSm),
+            )
+        }
         // The text itself opens the editor: the checkbox and the two buttons already own
         // the rest of the row, and a fourth icon would leave nothing for the name.
         Column(
@@ -291,7 +300,7 @@ private fun ShoppingItemDialog(
     confirmLabel: String,
     /** The row being corrected, or null when adding a new one. */
     edited: ShoppingRowUi?,
-    onConfirm: (String, Double, MeasurementUnit) -> Unit,
+    onConfirm: (String, Double, MeasurementUnit, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf(edited?.title.orEmpty()) }
@@ -300,6 +309,7 @@ private fun ShoppingItemDialog(
         mutableStateOf(if (initial % 1.0 == 0.0) initial.toLong().toString() else initial.toString())
     }
     var unit by remember { mutableStateOf(edited?.unit ?: MeasurementUnit.PIECE) }
+    var urgent by remember { mutableStateOf(edited?.isUrgent == true) }
     // A row that came from the inventory carries the product's own name.
     val nameEditable = edited == null || edited.isCustom
 
@@ -344,11 +354,23 @@ private fun ShoppingItemDialog(
                         )
                     }
                 }
+                // Urgent items rise to the top of their category — what must not be
+                // forgotten should not depend on where the alphabet puts it.
+                FilterChip(
+                    selected = urgent,
+                    onClick = { urgent = !urgent },
+                    label = { Text(stringResource(R.string.shopping_urgent)) },
+                    leadingIcon = if (urgent) {
+                        { Icon(Icons.Outlined.PriorityHigh, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name.trim(), quantity.toDoubleOrNull() ?: 1.0, unit) },
+                onClick = { onConfirm(name.trim(), quantity.toDoubleOrNull() ?: 1.0, unit, urgent) },
                 enabled = name.isNotBlank(),
             ) { Text(confirmLabel) }
         },

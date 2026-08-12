@@ -5,6 +5,7 @@ import com.eatbefore.R
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.ShoppingListItem
+import com.eatbefore.domain.model.ShoppingPriority
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.DeleteShoppingItemUseCase
 import com.eatbefore.domain.usecase.MoveShoppingItemToInventoryUseCase
@@ -164,7 +165,7 @@ class ShoppingViewModelTest {
     fun `editing a free-typed row changes its name, amount and unit`() = runTest {
         val vm = viewModel()
 
-        vm.updateItem(itemId, name = "Батон", quantity = 3.0, unit = MeasurementUnit.KILOGRAM)
+        vm.updateItem(itemId, name = "Батон", quantity = 3.0, unit = MeasurementUnit.KILOGRAM, isUrgent = false)
         advance()
 
         val edited = shopping.items.getValue(itemId)
@@ -182,7 +183,7 @@ class ShoppingViewModelTest {
         shopping.items[2L] = ShoppingListItem(id = 2L, productId = 5L, quantity = 1.0, addedAt = clock.now())
         val vm = viewModel()
 
-        vm.updateItem(2L, name = "Что-то другое", quantity = 2.0, unit = MeasurementUnit.LITER)
+        vm.updateItem(2L, name = "Что-то другое", quantity = 2.0, unit = MeasurementUnit.LITER, isUrgent = false)
         advance()
 
         val edited = shopping.items.getValue(2L)
@@ -231,6 +232,69 @@ class ShoppingViewModelTest {
 
             assertFalse(text.contains("Сыр"))
             assertTrue(text.contains("Хлеб"))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * The list is read while walking through a shop, so what must not be forgotten has to
+     * sit where the eye lands first — not wherever the alphabet puts it.
+     */
+    @Test
+    fun `urgent items sort above the rest of their category`() = runTest {
+        // "Ямс" sorts last alphabetically, so its position proves the priority did it.
+        shopping.items[2L] = ShoppingListItem(
+            id = 2L,
+            customName = "Ямс",
+            priority = ShoppingPriority.HIGH,
+            addedAt = clock.now(),
+        )
+
+        viewModel().uiState.test {
+            val rows = awaitItemWhere { state -> state.groups.any { it.second.size == 2 } }
+                .groups.first().second
+            assertEquals(listOf("Ямс", "Хлеб"), rows.map { it.title })
+            assertTrue(rows.first().isUrgent)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `marking an item urgent is stored`() = runTest {
+        val vm = viewModel()
+
+        vm.updateItem(itemId, name = "Хлеб", quantity = 2.0, unit = MeasurementUnit.PIECE, isUrgent = true)
+        advance()
+
+        assertEquals(ShoppingPriority.HIGH, shopping.items.getValue(itemId).priority)
+    }
+
+    @Test
+    fun `clearing the urgent mark is stored too`() = runTest {
+        shopping.items[itemId] = shopping.items.getValue(itemId).copy(priority = ShoppingPriority.HIGH)
+        val vm = viewModel()
+
+        vm.updateItem(itemId, name = "Хлеб", quantity = 2.0, unit = MeasurementUnit.PIECE, isUrgent = false)
+        advance()
+
+        assertEquals(ShoppingPriority.NORMAL, shopping.items.getValue(itemId).priority)
+    }
+
+    /** Bought items drop below everything, urgent or not — they are done with. */
+    @Test
+    fun `an urgent item that was bought still sorts last`() = runTest {
+        shopping.items[2L] = ShoppingListItem(
+            id = 2L,
+            customName = "Ямс",
+            priority = ShoppingPriority.HIGH,
+            isCompleted = true,
+            addedAt = clock.now(),
+        )
+
+        viewModel().uiState.test {
+            val rows = awaitItemWhere { state -> state.groups.any { it.second.size == 2 } }
+                .groups.first().second
+            assertEquals(listOf("Хлеб", "Ямс"), rows.map { it.title })
             cancelAndIgnoreRemainingEvents()
         }
     }
