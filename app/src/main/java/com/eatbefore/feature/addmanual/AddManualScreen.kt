@@ -127,6 +127,15 @@ fun AddManualScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedTextField(
+                value = state.barcode,
+                onValueChange = viewModel::onBarcode,
+                label = { Text(stringResource(R.string.add_barcode)) },
+                supportingText = { Text(stringResource(R.string.add_barcode_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             QuantityStepper(
                 onDecrease = { viewModel.stepQuantity(-1) },

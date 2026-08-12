@@ -112,6 +112,8 @@
     <string name="add_name">Название</string>
     <string name="add_brand">Бренд</string>
     <string name="add_category">Категория</string>
+    <string name="add_barcode">Штрихкод</string>
+    <string name="add_barcode_hint">Необязательно. С ним товар можно отправить в общий каталог</string>
     <string name="add_quantity">Количество</string>
     <string name="add_unit">Единица измерения</string>
     <string name="add_location">Место хранения</string>
@@ -191,6 +193,7 @@
     <string name="shopping_share_title">Купить:</string>
     <string name="shopping_edit">Изменить позицию</string>
     <string name="shopping_unit">Единица</string>
+    <string name="shopping_urgent">Срочно</string>
     <string name="shopping_added">Добавлено в список покупок</string>
     <string name="shopping_offer_title">Добавить в список покупок?</string>
     <string name="shopping_offer_body">Продукт «%1$s» закончился. Добавить его в список покупок?</string>
@@ -396,6 +399,14 @@
     <string name="settings_off_account_none">Не привязан — отправка товаров недоступна</string>
     <string name="settings_off_account_linked">Привязан: %1$s</string>
     <string name="settings_off_account_unlink">Отвязать</string>
+    <string name="settings_off_check">Проверить связь</string>
+    <string name="settings_off_check_desc">Спросить у каталога, принимает ли он вашу учётную запись</string>
+    <string name="settings_off_check_running">Проверяем…</string>
+    <string name="settings_off_check_ok">Каталог принимает вашу учётную запись</string>
+    <string name="settings_off_check_auth_failed">Каталог не принял логин или пароль</string>
+    <string name="settings_off_check_not_configured">Введите логин и пароль</string>
+    <string name="settings_off_check_failed">Не удалось связаться с каталогом. Проверьте сеть</string>
+    <string name="settings_off_account_needs_password">Введите пароль заново — сохранённый больше не читается</string>
     <string name="settings_off_account_help">Нужен бесплатный аккаунт на openfoodfacts.org: база не принимает анонимные записи. Пароль хранится в зашифрованном виде на устройстве.</string>
     <string name="settings_off_username">Имя пользователя</string>
     <string name="settings_off_password">Пароль</string>

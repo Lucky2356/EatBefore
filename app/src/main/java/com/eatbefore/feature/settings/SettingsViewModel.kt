@@ -14,6 +14,8 @@ import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.core.sync.SyncManager
 import com.eatbefore.core.sync.SyncResult
 import com.eatbefore.core.sync.SyncScheduler
+import com.eatbefore.domain.catalog.CatalogContributor
+import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.StorageLocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,6 +40,7 @@ class SettingsViewModel @Inject constructor(
     private val diagnostics: DiagnosticsLog,
     private val syncManager: SyncManager,
     private val syncScheduler: SyncScheduler,
+    private val catalogContributor: CatalogContributor,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -88,6 +91,45 @@ class SettingsViewModel @Inject constructor(
                 R.string.settings_off_removed
             } else {
                 R.string.settings_off_saved
+            }
+            refreshCatalogAccountUsable()
+        }
+    }
+
+    /**
+     * Whether the stored account is usable at all — the username is kept in plain
+     * preferences, but the password is encrypted with a key that does not survive
+     * reinstalling the app. Settings used to say "linked" purely from the username, so an
+     * account whose password could no longer be read looked perfectly fine while quietly
+     * doing nothing.
+     */
+    private val _catalogAccountUsable = MutableStateFlow(true)
+    val catalogAccountUsable: StateFlow<Boolean> = _catalogAccountUsable.asStateFlow()
+
+    private val _isCheckingCatalog = MutableStateFlow(false)
+    val isCheckingCatalog: StateFlow<Boolean> = _isCheckingCatalog.asStateFlow()
+
+    init {
+        viewModelScope.launch { refreshCatalogAccountUsable() }
+    }
+
+    private suspend fun refreshCatalogAccountUsable() {
+        _catalogAccountUsable.value = catalogContributor.isConfigured()
+    }
+
+    /** Asks the catalog whether the account works, and says so plainly either way. */
+    fun checkCatalogAccount() {
+        if (_isCheckingCatalog.value) return
+        _isCheckingCatalog.value = true
+        viewModelScope.launch {
+            val result = catalogContributor.checkAccount()
+            refreshCatalogAccountUsable()
+            _isCheckingCatalog.value = false
+            _message.value = when (result) {
+                ContributionResult.Success -> R.string.settings_off_check_ok
+                ContributionResult.AuthFailed -> R.string.settings_off_check_auth_failed
+                ContributionResult.NotConfigured -> R.string.settings_off_check_not_configured
+                is ContributionResult.Failed -> R.string.settings_off_check_failed
             }
         }
     }

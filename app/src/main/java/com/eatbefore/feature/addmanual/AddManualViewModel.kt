@@ -26,6 +26,8 @@ import javax.inject.Inject
 data class AddManualUiState(
     val name: String = "",
     val brand: String = "",
+    /** Empty unless scanned or typed; a product with one can be offered to the catalog. */
+    val barcode: String = "",
     val quantity: String = "1",
     val unit: MeasurementUnit = MeasurementUnit.PIECE,
     val locations: List<StorageLocation> = emptyList(),
@@ -58,8 +60,13 @@ class AddManualViewModel @Inject constructor(
     private val clock: AppClock,
 ) : ViewModel() {
 
-    /** Optional barcode passed when arriving from the scanner (unknown product). */
-    private val barcode: String? = savedStateHandle[Routes.ADD_MANUAL_ARG_BARCODE]
+    /**
+     * The barcode. Pre-filled when arriving from the scanner with a code the catalog did
+     * not know, and typed by hand otherwise — until it was editable, a product added
+     * without the scanner could never be offered to the catalog at all, no matter how
+     * correctly the account was set up.
+     */
+    private val scannedBarcode: String? = savedStateHandle[Routes.ADD_MANUAL_ARG_BARCODE]
 
     /** Expiration extracted from a scanned GS1 code (Честный знак), if any. */
     private val expiryFromCode: LocalDate? =
@@ -67,7 +74,9 @@ class AddManualViewModel @Inject constructor(
             ?.takeIf { it >= 0 }
             ?.let(LocalDate::ofEpochDay)
 
-    private val _state = MutableStateFlow(AddManualUiState(expirationDate = expiryFromCode))
+    private val _state = MutableStateFlow(
+        AddManualUiState(expirationDate = expiryFromCode, barcode = scannedBarcode.orEmpty()),
+    )
     val state: StateFlow<AddManualUiState> = _state.asStateFlow()
 
     init {
@@ -88,6 +97,10 @@ class AddManualViewModel @Inject constructor(
 
     fun onName(value: String) = _state.update { it.copy(name = value, nameError = false) }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
+
+    // Barcodes are digits and, for Честный знак, a few symbols; whitespace never belongs.
+    fun onBarcode(value: String) =
+        _state.update { it.copy(barcode = value.take(MAX_BARCODE_LENGTH).filterNot { c -> c.isWhitespace() }) }
     fun onQuantity(value: String) = _state.update { it.copy(quantity = value.filter { c -> c.isDigit() || c == '.' }) }
 
     /**
@@ -120,6 +133,7 @@ class AddManualViewModel @Inject constructor(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val quantity = current.quantity.toDoubleOrNull() ?: 1.0
+            val barcode = current.barcode.trim().ifBlank { null }
             val id = addManualProduct(
                 AddManualProductUseCase.Params(
                     name = current.name,
@@ -133,17 +147,15 @@ class AddManualViewModel @Inject constructor(
                     note = current.note.ifBlank { null },
                 ),
             )
-            // Offer to publish only for a barcode the catalog missed, and only when the
-            // user has linked an account — otherwise just hint that it is possible.
-            val offer = barcode
-                ?.takeIf { it.isNotBlank() }
-                ?.let { code ->
-                    if (catalogContributor.isConfigured()) {
-                        ContributeOffer(name = current.name.trim(), barcode = code)
-                    } else {
-                        null
-                    }
+            // Offer to publish any product that carries a barcode, however it got there,
+            // and only when an account is actually usable — otherwise say nothing.
+            val offer = barcode?.let { code ->
+                if (catalogContributor.isConfigured()) {
+                    ContributeOffer(name = current.name.trim(), barcode = code)
+                } else {
+                    null
                 }
+            }
 
             _state.update {
                 it.copy(
@@ -193,4 +205,9 @@ class AddManualViewModel @Inject constructor(
 
     /** Today per the app clock, for the expiry presets. */
     val today: LocalDate get() = clock.today()
+
+    private companion object {
+        /** Long enough for a Честный знак payload, short enough to stay a barcode. */
+        const val MAX_BARCODE_LENGTH = 128
+    }
 }

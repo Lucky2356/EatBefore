@@ -80,6 +80,8 @@ fun SettingsScreen(
     val locations by viewModel.locations.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val isSyncing by viewModel.isSyncing.collectAsStateWithLifecycle()
+    val catalogAccountUsable by viewModel.catalogAccountUsable.collectAsStateWithLifecycle()
+    val isCheckingCatalog by viewModel.isCheckingCatalog.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val context = LocalContext.current
     var showTimePicker by remember { mutableStateOf(false) }
@@ -348,11 +350,32 @@ fun SettingsScreen(
                 HorizontalDivider()
                 SettingActionRow(
                     title = stringResource(R.string.settings_off_account),
-                    subtitle = prefs.offUsername
-                        ?.let { stringResource(R.string.settings_off_account_linked, it) }
-                        ?: stringResource(R.string.settings_off_account_none),
+                    // The username alone is not proof the account works: the password is
+                    // encrypted with a key that dies with the app installation, and saying
+                    // "linked" when it can no longer be read is how a silently useless
+                    // account looked perfectly healthy.
+                    subtitle = prefs.offUsername.let { username ->
+                        when {
+                            username == null -> stringResource(R.string.settings_off_account_none)
+                            !catalogAccountUsable ->
+                                stringResource(R.string.settings_off_account_needs_password)
+                            else -> stringResource(R.string.settings_off_account_linked, username)
+                        }
+                    },
                     onClick = { showOffAccountDialog = true },
                 )
+                if (prefs.offUsername != null) {
+                    HorizontalDivider()
+                    SettingActionRow(
+                        title = stringResource(R.string.settings_off_check),
+                        subtitle = if (isCheckingCatalog) {
+                            stringResource(R.string.settings_off_check_running)
+                        } else {
+                            stringResource(R.string.settings_off_check_desc)
+                        },
+                        onClick = viewModel::checkCatalogAccount,
+                    )
+                }
             }
 
             SectionCard(title = stringResource(R.string.settings_section_about)) {

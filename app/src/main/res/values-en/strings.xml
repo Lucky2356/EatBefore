@@ -105,6 +105,8 @@
     <string name="add_name">Name</string>
     <string name="add_brand">Brand</string>
     <string name="add_category">Category</string>
+    <string name="add_barcode">Barcode</string>
+    <string name="add_barcode_hint">Optional. With one, the product can be sent to the shared catalog</string>
     <string name="add_quantity">Quantity</string>
     <string name="add_unit">Unit</string>
     <string name="add_location">Storage place</string>
@@ -182,6 +184,7 @@
     <string name="shopping_share_title">To buy:</string>
     <string name="shopping_edit">Edit item</string>
     <string name="shopping_unit">Unit</string>
+    <string name="shopping_urgent">Urgent</string>
     <string name="shopping_added">Added to shopping list</string>
     <string name="shopping_offer_title">Add to shopping list?</string>
     <string name="shopping_offer_body">You ran out of “%1$s”. Add it to the shopping list?</string>
@@ -379,6 +382,14 @@
     <string name="settings_off_account_none">Not linked — sending products is unavailable</string>
     <string name="settings_off_account_linked">Linked: %1$s</string>
     <string name="settings_off_account_unlink">Unlink</string>
+    <string name="settings_off_check">Check the connection</string>
+    <string name="settings_off_check_desc">Ask the catalog whether it accepts your account</string>
+    <string name="settings_off_check_running">Checking…</string>
+    <string name="settings_off_check_ok">The catalog accepts your account</string>
+    <string name="settings_off_check_auth_failed">The catalog rejected the username or password</string>
+    <string name="settings_off_check_not_configured">Enter a username and password</string>
+    <string name="settings_off_check_failed">Could not reach the catalog. Check the network</string>
+    <string name="settings_off_account_needs_password">Enter the password again — the stored one can no longer be read</string>
     <string name="settings_off_account_help">Requires a free account at openfoodfacts.org: the database does not accept anonymous writes. The password is stored encrypted on this device.</string>
     <string name="settings_off_username">Username</string>
     <string name="settings_off_password">Password</string>
