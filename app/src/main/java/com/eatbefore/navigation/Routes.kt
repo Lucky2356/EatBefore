@@ -36,6 +36,17 @@ object Routes {
 
     const val OCR = "ocr_expiry"
 
+    /**
+     * The camera opened to answer "is this already at home?" — it hands the code back to
+     * the stock list instead of adding anything. A route of its own rather than an
+     * argument on [SCANNER]: that one is a tab, and giving a tab a mode would leave the
+     * bottom bar highlighted while the screen does something else entirely.
+     */
+    const val SCAN_LOOKUP = "scan_lookup"
+
+    /** Key used to hand a scanned barcode back to the stock search. */
+    const val SCAN_LOOKUP_RESULT = "scan_lookup_result"
+
     /** Key used to hand a recognized expiry date (epoch day) back to the add screen. */
     const val OCR_RESULT_EPOCH_DAY = "ocr_result_epoch_day"
 }

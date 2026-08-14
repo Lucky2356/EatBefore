@@ -308,4 +308,24 @@ class ScannerViewModelTest {
         vm.toggleTorch()
         assertFalse(vm.state.value.torchEnabled)
     }
+
+    /**
+     * The stock search matches barcodes, so scanning at the shelf hands it the *product*
+     * code. A «Честный знак» payload is a whole document — searching for it verbatim would
+     * find nothing at all, which reads exactly like "we don't have it".
+     */
+    @Test
+    fun `a lookup scan yields the product code, not the whole payload`() {
+        val gs = ''.toString()
+        val chestnyZnak = "010462001770053121JgXJ5.T" + gs + "93dGVz"
+
+        // The form the catalog and the stored products are keyed by: the 14-digit
+        // GTIN with its leading zero dropped, as everywhere else in the app.
+        assertEquals("4620017700531", lookupCodeOf(chestnyZnak))
+    }
+
+    @Test
+    fun `an ordinary barcode is passed through unchanged`() {
+        assertEquals("4620017700531", lookupCodeOf("4620017700531"))
+    }
 }

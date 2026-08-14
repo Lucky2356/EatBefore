@@ -83,6 +83,8 @@
 
     <!-- Inventory -->
     <string name="inventory_title">Inventory</string>
+    <string name="inventory_search_by_code">Search by barcode</string>
+    <string name="inventory_search_clear">Clear search</string>
     <string name="inventory_search_hint">Search by name or brand</string>
     <string name="inventory_all_locations">All places</string>
     <string name="inventory_empty">Your products will show up here.</string>
@@ -249,6 +251,7 @@
     <!-- Scanner -->
     <string name="scanner_title">Scanning</string>
     <string name="scanner_hint">Point the camera at a barcode or QR code</string>
+    <string name="scanner_lookup_hint">Point at a barcode — I will tell you if it is at home</string>
     <string name="scanner_torch">Flashlight</string>
     <string name="scanner_manual">Enter code manually</string>
     <string name="scanner_manual_hint">Barcode</string>

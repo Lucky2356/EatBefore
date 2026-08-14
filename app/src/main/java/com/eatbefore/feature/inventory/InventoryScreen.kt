@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +56,9 @@ import com.eatbefore.feature.common.rememberQuickActionHandler
 @Composable
 fun InventoryScreen(
     onOpenBatch: (Long) -> Unit,
+    onScanToSearch: () -> Unit,
+    scannedCode: String?,
+    onScannedCodeUsed: () -> Unit,
     viewModel: InventoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -64,6 +69,15 @@ fun InventoryScreen(
     var sortMenuOpen by remember { mutableStateOf(false) }
 
     val selection by viewModel.selection.collectAsStateWithLifecycle()
+
+    // A code scanned at the shelf becomes the search term. Cleared straight away, or
+    // returning to this tab later would silently re-run a search the user has moved on from.
+    LaunchedEffect(scannedCode) {
+        if (scannedCode != null) {
+            viewModel.setQuery(scannedCode)
+            onScannedCodeUsed()
+        }
+    }
 
     val onQuickAction = rememberQuickActionHandler(
         signal = quickActionSignal,
@@ -149,6 +163,26 @@ fun InventoryScreen(
                 onValueChange = viewModel::setQuery,
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                trailingIcon = {
+                    // "Do we already have this?" asked at the shelf in a shop. The search
+                    // has always matched barcodes; until now there was no way to get one in
+                    // without typing thirteen digits.
+                    if (queryText.isBlank()) {
+                        IconButton(onClick = onScanToSearch) {
+                            Icon(
+                                Icons.Outlined.QrCodeScanner,
+                                contentDescription = stringResource(R.string.inventory_search_by_code),
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = { viewModel.setQuery("") }) {
+                            Icon(
+                                Icons.Outlined.Close,
+                                contentDescription = stringResource(R.string.inventory_search_clear),
+                            )
+                        }
+                    }
+                },
                 placeholder = { Text(stringResource(R.string.inventory_search_hint)) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             )

@@ -59,12 +59,21 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 
+/**
+ * The camera screen.
+ *
+ * Passing [onCodeFound] switches it to lookup mode: the code is handed straight back to
+ * whoever opened the screen and nothing is looked up, added or offered to the catalog.
+ * That is what "is this already in the fridge?" needs — the question asked standing in
+ * front of the shelf in a shop, where adding the product is exactly the wrong outcome.
+ */
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ScannerScreen(
     onOpenBatch: (Long) -> Unit,
     onAddManual: (barcode: String?, expiryEpochDay: Long?) -> Unit,
     viewModel: ScannerViewModel = hiltViewModel(),
+    onCodeFound: ((String) -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
@@ -87,16 +96,20 @@ fun ScannerScreen(
         actions = {
             // Without the camera there is nothing to toggle, so the actions stay hidden.
             if (cameraPermission.status.isGranted) {
-                IconButton(onClick = { viewModel.setBatchMode(!state.batchMode) }) {
-                    Icon(
-                        Icons.Outlined.ShoppingBag,
-                        contentDescription = stringResource(R.string.scanner_batch_mode),
-                        tint = if (state.batchMode) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            LocalContentColor.current
-                        },
-                    )
+                // Batch mode adds a package per scan, which is the opposite of what a
+                // lookup is for.
+                if (onCodeFound == null) {
+                    IconButton(onClick = { viewModel.setBatchMode(!state.batchMode) }) {
+                        Icon(
+                            Icons.Outlined.ShoppingBag,
+                            contentDescription = stringResource(R.string.scanner_batch_mode),
+                            tint = if (state.batchMode) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                LocalContentColor.current
+                            },
+                        )
+                    }
                 }
                 IconButton(onClick = viewModel::toggleTorch) {
                     Icon(
@@ -115,15 +128,23 @@ fun ScannerScreen(
                 if (state.isScanning) {
                     CameraPreview(
                         torchEnabled = state.torchEnabled,
-                        onCode = viewModel::onCodeDetected,
+                        onCode = { scanned ->
+                            if (onCodeFound == null) {
+                                viewModel.onCodeDetected(scanned)
+                            } else {
+                                // A «Честный знак» payload is a whole document; the search
+                                // field wants the product code inside it.
+                                onCodeFound(lookupCodeOf(scanned.value))
+                            }
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
                 ScanOverlay(
-                    hint = if (state.batchMode) {
-                        stringResource(R.string.scanner_batch_hint)
-                    } else {
-                        stringResource(R.string.scanner_hint)
+                    hint = when {
+                        onCodeFound != null -> stringResource(R.string.scanner_lookup_hint)
+                        state.batchMode -> stringResource(R.string.scanner_batch_hint)
+                        else -> stringResource(R.string.scanner_hint)
                     },
                 )
                 if (state.batchMode) {
@@ -185,7 +206,7 @@ fun ScannerScreen(
                 ManualCodeDialog(
                     onSubmit = { code ->
                         showManualDialog = false
-                        viewModel.onManualCode(code)
+                        if (onCodeFound == null) viewModel.onManualCode(code) else onCodeFound(lookupCodeOf(code))
                     },
                     onDismiss = { showManualDialog = false },
                 )

@@ -143,8 +143,34 @@ private fun MainNavigation(
                 )
             }
 
-            composable(Routes.INVENTORY) {
-                InventoryScreen(onOpenBatch = { navController.navigate(Routes.product(it)) })
+            composable(Routes.INVENTORY) { entry ->
+                // Same handshake as the OCR screen: the camera writes its answer into this
+                // entry's saved state and pops, so the code survives the screen that read it.
+                val scannedCode by entry.savedStateHandle
+                    .getStateFlow<String?>(Routes.SCAN_LOOKUP_RESULT, null)
+                    .collectAsStateWithLifecycle()
+                InventoryScreen(
+                    onOpenBatch = { navController.navigate(Routes.product(it)) },
+                    onScanToSearch = { navController.navigate(Routes.SCAN_LOOKUP) },
+                    scannedCode = scannedCode,
+                    onScannedCodeUsed = {
+                        entry.savedStateHandle[Routes.SCAN_LOOKUP_RESULT] = null
+                    },
+                )
+            }
+
+            composable(Routes.SCAN_LOOKUP) {
+                ScannerScreen(
+                    onOpenBatch = { navController.navigate(Routes.product(it)) },
+                    onAddManual = { barcode, expiryEpochDay ->
+                        navController.navigate(Routes.addManual(barcode, expiryEpochDay))
+                    },
+                    onCodeFound = { code ->
+                        navController.previousBackStackEntry?.savedStateHandle
+                            ?.set(Routes.SCAN_LOOKUP_RESULT, code)
+                        navController.popBackStack()
+                    },
+                )
             }
 
             composable(Routes.SCANNER) {

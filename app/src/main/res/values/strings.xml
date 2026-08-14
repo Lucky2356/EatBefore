@@ -88,6 +88,8 @@
 
     <!-- Inventory -->
     <string name="inventory_title">Запасы</string>
+    <string name="inventory_search_by_code">Найти по штрихкоду</string>
+    <string name="inventory_search_clear">Очистить поиск</string>
     <string name="inventory_search_hint">Поиск по названию или бренду</string>
     <string name="inventory_all_locations">Все места</string>
     <string name="inventory_empty">Здесь появятся ваши продукты.</string>
@@ -260,6 +262,7 @@
     <!-- Scanner -->
     <string name="scanner_title">Сканирование</string>
     <string name="scanner_hint">Наведите камеру на штрихкод или QR-код</string>
+    <string name="scanner_lookup_hint">Наведите на штрихкод — покажу, есть ли это дома</string>
     <string name="scanner_torch">Фонарик</string>
     <string name="scanner_manual">Ввести код вручную</string>
     <string name="scanner_manual_hint">Штрихкод</string>

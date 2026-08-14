@@ -46,6 +46,15 @@ sealed interface ScanResolution {
     ) : ScanResolution
 }
 
+/**
+ * The product code inside a scanned payload.
+ *
+ * A «Честный знак» DataMatrix is a whole document — GTIN, serial, expiry, crypto tail —
+ * and only the GTIN identifies the product. Anything else is passed through unchanged,
+ * which is what an ordinary EAN needs. The payload is never executed or fetched.
+ */
+fun lookupCodeOf(raw: String): String = Gs1Parser.parse(raw)?.normalizedGtin ?: raw
+
 data class ScannerUiState(
     val isScanning: Boolean = true,
     val isResolving: Boolean = false,
@@ -87,7 +96,7 @@ class ScannerViewModel @Inject constructor(
         // «Честный знак» / GS1 DataMatrix and QR: extract the GTIN (product code) and,
         // when encoded, the expiration date. The payload itself is never executed.
         val gs1 = Gs1Parser.parse(scanned.value)
-        val lookupCode = gs1?.normalizedGtin ?: scanned.value
+        val lookupCode = lookupCodeOf(scanned.value)
         val expiry = gs1?.expirationDate
 
         _state.update { it.copy(isScanning = false, isResolving = true) }
