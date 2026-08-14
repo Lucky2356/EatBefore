@@ -1,8 +1,11 @@
 package com.eatbefore.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeTimeoutException
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -14,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.printToLog
+import androidx.compose.ui.test.swipeUp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.eatbefore.MainActivity
 import com.eatbefore.R
@@ -70,14 +74,44 @@ class AppFlowTest {
         }
     }
 
+    /** A form or settings list — the thing that has to move to bring a control on screen. */
+    private val verticalScroller =
+        SemanticsMatcher.keyIsDefined(SemanticsProperties.VerticalScrollAxisRange)
+
+    private fun isDisplayed(text: String) =
+        runCatching { composeRule.onAllNodesWithText(text).onFirst().assertIsDisplayed() }.isSuccess
+
+    /**
+     * Swipes the form up until [text] is genuinely on screen, the way a person scrolls.
+     *
+     * A control below the fold is still *clickable* as far as Compose's test API is
+     * concerned: the tap is dispatched at its layout coordinates, which are past the
+     * bottom edge, and nothing receives it. That is how the expiry chips came to be tapped
+     * without effect — the product then saved with no date at all, and the loss only
+     * surfaced screens later as a row a status filter appeared to have hidden. The tall
+     * phone this is usually run on hid it; the short one CI uses did not.
+     *
+     * [performScrollTo] is not enough on its own: it moves only the *nearest* scrollable
+     * ancestor, which for a chip is the horizontally scrolling row it sits in.
+     */
+    private fun bringOnScreen(text: String) {
+        repeat(MAX_SWIPES) {
+            if (isDisplayed(text)) return
+            if (composeRule.onAllNodes(verticalScroller).fetchSemanticsNodes().isEmpty()) return
+            composeRule.onAllNodes(verticalScroller).onFirst().performTouchInput { swipeUp() }
+            composeRule.waitForIdle()
+        }
+    }
+
     // Several labels legitimately appear twice (a quick action and a nav tab both read
     // "Scan"), so tests always act on the first match rather than demanding uniqueness.
-    // Forms and settings scroll, so bring the target into view first; performScrollTo
-    // throws when the node isn't inside a scrollable, which is fine to ignore.
+    // Forms and settings scroll, so bring the target into view first — sideways within its
+    // own row, then by scrolling the form itself.
     private fun node(text: String): SemanticsNodeInteraction {
         awaitText(text)
+        runCatching { composeRule.onAllNodesWithText(text).onFirst().performScrollTo() }
+        bringOnScreen(text)
         return composeRule.onAllNodesWithText(text).onFirst()
-            .also { runCatching { it.performScrollTo() } }
     }
 
     private fun clickText(text: String) = node(text).performClick()
@@ -135,6 +169,10 @@ class AppFlowTest {
         clickText(string(R.string.home_quick_add_manual))
         typeInto(string(R.string.add_name), name)
         clickText(string(expiryPreset))
+        // The chip has to come back selected. A tap that misses leaves the product with no
+        // expiry date at all, and the product still saves — so the loss surfaces screens
+        // later, as a row that a status filter appears to have hidden.
+        composeRule.onAllNodesWithText(string(expiryPreset)).onFirst().assertIsSelected()
         clickText(string(R.string.action_save))
         awaitText(string(R.string.home_quick_add_manual))
     }
@@ -392,5 +430,8 @@ class AppFlowTest {
          * the shopping-list test flaky elsewhere, which teaches everyone to ignore red.
          */
         const val UI_TIMEOUT_MS = 30_000L
+
+        /** Enough to cross the longest form in the app twice over; a wrong target never ends. */
+        const val MAX_SWIPES = 8
     }
 }
