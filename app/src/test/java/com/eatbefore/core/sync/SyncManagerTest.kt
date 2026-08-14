@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.documentfile.provider.DocumentFile
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.eatbefore.core.common.storage.FolderResolver
 import com.eatbefore.core.database.EatBeforeDatabase
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.diagnostics.DiagnosticsLog
@@ -33,7 +34,7 @@ import java.io.File
  * alone, was checked only by hand on two devices. That is how both v1.4.0 defects reached
  * users.
  *
- * A real temporary directory stands in for the SAF folder (see [SyncFolderResolver]). It
+ * A real temporary directory stands in for the SAF folder (see [FolderResolver]). It
  * is not a cloud drive, so it cannot reproduce a half-synced file — but everything about
  * *which* files this code touches is exactly the same.
  */
@@ -60,7 +61,10 @@ class SyncManagerTest {
         db = Room.inMemoryDatabaseBuilder(context, EatBeforeDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        prefsFile = File(context.cacheDir, "sync-test.preferences_pb").apply { delete() }
+        // A name per test: DataStore keeps a process-wide registry of the files it has
+        // open and frees an entry only once the owning scope has finished cancelling,
+        // so a fixed name makes the *next* test fail for what this one did.
+        prefsFile = File(context.cacheDir, "sync-test-${System.nanoTime()}.preferences_pb")
         preferences = UserPreferencesRepository(
             dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile },
             secretCipher = SecretCipher(),

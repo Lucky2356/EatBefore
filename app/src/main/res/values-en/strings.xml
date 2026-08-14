@@ -232,6 +232,9 @@
     <string name="settings_export_desc">Save all data to a file</string>
     <string name="settings_import">Import from file</string>
     <string name="settings_import_desc">Replace data with the backup contents</string>
+    <string name="settings_restore_auto">Restore from a copy</string>
+    <string name="settings_restore_auto_desc">Automatic copies from the chosen folder</string>
+    <string name="settings_restore_auto_empty">No copies yet. The first one appears after the next automatic save.</string>
     <string name="backup_export_done">Backup saved</string>
     <string name="backup_export_error">Could not save the backup</string>
     <string name="backup_import_done">Data restored</string>

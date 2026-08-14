@@ -243,6 +243,9 @@
     <string name="settings_export_desc">Сохранить все данные в файл</string>
     <string name="settings_import">Импорт из файла</string>
     <string name="settings_import_desc">Заменить данные содержимым копии</string>
+    <string name="settings_restore_auto">Восстановить из копии</string>
+    <string name="settings_restore_auto_desc">Автоматические копии из выбранной папки</string>
+    <string name="settings_restore_auto_empty">Копий пока нет. Первая появится после ближайшего автоматического сохранения.</string>
     <string name="backup_export_done">Резервная копия сохранена</string>
     <string name="backup_export_error">Не удалось сохранить копию</string>
     <string name="backup_import_done">Данные восстановлены</string>

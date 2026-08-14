@@ -3,6 +3,7 @@ package com.eatbefore.core.sync
 import android.content.Context
 import androidx.documentfile.provider.DocumentFile
 import com.eatbefore.core.common.dispatcher.IoDispatcher
+import com.eatbefore.core.common.storage.FolderResolver
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.diagnostics.DiagnosticsLog
@@ -47,7 +48,7 @@ class SyncManager @Inject constructor(
     private val engine: SyncEngine,
     private val preferences: UserPreferencesRepository,
     private val diagnostics: DiagnosticsLog,
-    private val folderResolver: SyncFolderResolver,
+    private val folderResolver: FolderResolver,
     private val deviceIdProvider: DeviceIdProvider,
     private val json: Json,
     private val clock: AppClock,

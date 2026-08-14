@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.R
+import com.eatbefore.core.backup.AutoBackupCatalog
+import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.datastore.ThemeMode
@@ -37,6 +39,7 @@ class SettingsViewModel @Inject constructor(
     private val preferences: UserPreferencesRepository,
     private val storageLocations: StorageLocationRepository,
     private val backupManager: BackupManager,
+    private val autoBackupCatalog: AutoBackupCatalog,
     private val diagnostics: DiagnosticsLog,
     private val syncManager: SyncManager,
     private val syncScheduler: SyncScheduler,
@@ -59,6 +62,22 @@ class SettingsViewModel @Inject constructor(
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
+
+    /**
+     * Copies the automatic backup has written, newest first. Loaded on demand — the folder
+     * lives behind SAF and listing it is a real filesystem call, not something to repeat
+     * every time the settings screen recomposes.
+     */
+    private val _autoBackups = MutableStateFlow<List<AutoBackupEntry>?>(null)
+    val autoBackups: StateFlow<List<AutoBackupEntry>?> = _autoBackups.asStateFlow()
+
+    fun loadAutoBackups() {
+        viewModelScope.launch { _autoBackups.value = autoBackupCatalog.list() }
+    }
+
+    fun clearAutoBackups() {
+        _autoBackups.value = null
+    }
 
     private val _message = MutableStateFlow<Int?>(null)
     val message: StateFlow<Int?> = _message.asStateFlow()

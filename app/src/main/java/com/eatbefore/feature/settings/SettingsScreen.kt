@@ -56,6 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.BuildConfig
 import com.eatbefore.R
+import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.component.ScreenScaffold
@@ -90,6 +91,7 @@ fun SettingsScreen(
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var showOffAccountDialog by remember { mutableStateOf(false) }
     var showDeviceNameDialog by remember { mutableStateOf(false) }
+    val autoBackups by viewModel.autoBackups.collectAsStateWithLifecycle()
     var diagnosticsReport by remember { mutableStateOf<String?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -292,6 +294,16 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_import_desc),
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 )
+                // Only when there is a folder to read: without one there are no automatic
+                // copies, and a row that always opens an empty list is a dead end.
+                if (prefs.autoBackupFolderUri != null) {
+                    HorizontalDivider()
+                    SettingActionRow(
+                        title = stringResource(R.string.settings_restore_auto),
+                        subtitle = stringResource(R.string.settings_restore_auto_desc),
+                        onClick = viewModel::loadAutoBackups,
+                    )
+                }
             }
 
             SectionCard(title = stringResource(R.string.settings_section_sharing)) {
@@ -505,6 +517,19 @@ fun SettingsScreen(
         )
     }
 
+    autoBackups?.let { entries ->
+        AutoBackupListDialog(
+            entries = entries,
+            onDismiss = viewModel::clearAutoBackups,
+            onPick = { entry ->
+                viewModel.clearAutoBackups()
+                // Straight into the same confirmation the file picker leads to: this is
+                // the same destructive import, and it deserves the same question.
+                pendingImportUri = entry.uri
+            },
+        )
+    }
+
     // Importing rewrites user data — always ask, and let them add instead of replace.
     pendingImportUri?.let { uri ->
         AlertDialog(
@@ -584,6 +609,47 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+/**
+ * The automatic copies, newest first, with the moment each was taken.
+ *
+ * Deliberately plain: this dialog is read when something has gone wrong, and the only
+ * decision worth offering is which day to go back to.
+ */
+@Composable
+private fun AutoBackupListDialog(
+    entries: List<AutoBackupEntry>,
+    onDismiss: () -> Unit,
+    onPick: (AutoBackupEntry) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_restore_auto)) },
+        text = {
+            if (entries.isEmpty()) {
+                // The folder may be there while the first backup has not run yet, or the
+                // permission may have been revoked — either way there is nothing to offer.
+                Text(stringResource(R.string.settings_restore_auto_empty))
+            } else {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                ) {
+                    entries.forEach { entry ->
+                        SettingActionRow(
+                            title = formatDateTime(java.time.Instant.ofEpochMilli(entry.writtenAtEpochMillis)),
+                            subtitle = entry.name,
+                            onClick = { onPick(entry) },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 /**

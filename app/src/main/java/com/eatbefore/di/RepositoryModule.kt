@@ -1,7 +1,7 @@
 package com.eatbefore.di
 
-import com.eatbefore.core.sync.SafSyncFolderResolver
-import com.eatbefore.core.sync.SyncFolderResolver
+import com.eatbefore.core.common.storage.FolderResolver
+import com.eatbefore.core.common.storage.SafFolderResolver
 import com.eatbefore.core.widget.StockChangeNotifier
 import com.eatbefore.data.ocr.MlKitExpiryDateOcrProvider
 import com.eatbefore.data.repository.HistoryRepositoryImpl
@@ -28,7 +28,7 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindSyncFolderResolver(impl: SafSyncFolderResolver): SyncFolderResolver
+    abstract fun bindFolderResolver(impl: SafFolderResolver): FolderResolver
 
     @Binds
     @Singleton
