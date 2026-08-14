@@ -46,6 +46,12 @@
             android:name=".core.notifications.SnoozeReceiver"
             android:exported="false" />
 
+        <!-- "Ate it" / "threw it out" straight from the reminder, when it is about one
+             product. Not exported: only our own PendingIntent may write off stock. -->
+        <receiver
+            android:name=".core.notifications.ExpiryActionReceiver"
+            android:exported="false" />
+
         <!-- Home-screen widget: what expires soonest. Exported so the launcher can host it. -->
         <receiver
             android:name=".feature.widget.ExpiringWidgetReceiver"

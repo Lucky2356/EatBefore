@@ -311,6 +311,8 @@
     </plurals>
     <string name="notif_action_open_list">Open list</string>
     <string name="notif_action_snooze">Not today</string>
+    <string name="notif_action_consumed">Ate it</string>
+    <string name="notif_action_discarded">Threw it out</string>
     <string name="notif_line_expired">Expired: %1$d</string>
     <string name="notif_line_today">Expiring today: %1$d</string>
     <string name="notif_line_soon">Expiring soon: %1$d</string>

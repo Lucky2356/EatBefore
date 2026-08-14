@@ -328,6 +328,8 @@
     </plurals>
     <string name="notif_action_open_list">Открыть список</string>
     <string name="notif_action_snooze">Не сегодня</string>
+    <string name="notif_action_consumed">Съели</string>
+    <string name="notif_action_discarded">Выбросили</string>
     <string name="notif_line_expired">Просрочено: %1$d</string>
     <string name="notif_line_today">Истекает сегодня: %1$d</string>
     <string name="notif_line_soon">Скоро истекает: %1$d</string>

@@ -20,14 +20,35 @@ class BuildExpiryNotificationUseCase @Inject constructor(private val determineEx
         var expired = 0
         var todayCount = 0
         var soon = 0
+        val counted = mutableListOf<InventoryItem>()
         for (item in items) {
-            when (determineExpiryStatus.forDate(item.batch.effectiveExpirationDate, today, soonThresholdDays)) {
-                ExpiryStatus.EXPIRED -> expired++
-                ExpiryStatus.EXPIRES_TODAY -> todayCount++
-                ExpiryStatus.EXPIRING_SOON -> soon++
-                ExpiryStatus.FRESH, ExpiryStatus.NO_DATE -> Unit
+            val status = determineExpiryStatus.forDate(item.batch.effectiveExpirationDate, today, soonThresholdDays)
+            val relevant = when (status) {
+                ExpiryStatus.EXPIRED -> {
+                    expired++
+                    true
+                }
+                ExpiryStatus.EXPIRES_TODAY -> {
+                    todayCount++
+                    true
+                }
+                ExpiryStatus.EXPIRING_SOON -> {
+                    soon++
+                    true
+                }
+                ExpiryStatus.FRESH, ExpiryStatus.NO_DATE -> false
             }
+            if (relevant) counted += item
         }
-        return ExpiryNotificationPlan(expiredCount = expired, todayCount = todayCount, soonCount = soon)
+        // Named only when it is the whole notification: the shade's buttons act on one
+        // batch, and they must act on the batch the text is about.
+        val single = counted.singleOrNull()
+        return ExpiryNotificationPlan(
+            expiredCount = expired,
+            todayCount = todayCount,
+            soonCount = soon,
+            singleBatchId = single?.batch?.id,
+            singleProductName = single?.product?.name,
+        )
     }
 }

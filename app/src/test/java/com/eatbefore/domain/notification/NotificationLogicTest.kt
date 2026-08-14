@@ -70,6 +70,43 @@ class NotificationLogicTest {
         assertEquals(0, plan.expiredCount)
     }
 
+    /**
+     * With one product the shade can offer "ate it" and "threw it out", so the plan has to
+     * say which batch those buttons act on — and name it, since "1 продукт" would send the
+     * user into the app to find out which.
+     */
+    @Test
+    fun singleProduct_isNamedSoTheShadeCanActOnIt() {
+        val milk = item(today).let {
+            it.copy(batch = it.batch.copy(id = 42), product = Product(name = "Молоко"))
+        }
+
+        val plan = build(listOf(milk, item(today.plusDays(30))), today, soonThresholdDays = 3)
+
+        assertEquals(42L, plan.singleBatchId)
+        assertEquals("Молоко", plan.singleProductName)
+    }
+
+    /**
+     * With several, the buttons would have to pick one silently. Writing off the wrong
+     * carton of milk is worse than making the user open the app.
+     */
+    @Test
+    fun severalProducts_leaveNothingForTheShadeToActOn() {
+        val plan = build(listOf(item(today), item(today.minusDays(1))), today, soonThresholdDays = 3)
+
+        assertEquals(null, plan.singleBatchId)
+        assertEquals(2, plan.total)
+    }
+
+    /** What is fresh or dateless is not part of the reminder, so it cannot be its subject. */
+    @Test
+    fun theNamedBatchIsOneTheReminderCounted() {
+        val plan = build(listOf(item(today.plusDays(60)), item(null)), today, soonThresholdDays = 3)
+
+        assertEquals(null, plan.singleBatchId)
+    }
+
     @Test
     fun emptyWhenNothingRelevant() {
         val plan = build(listOf(item(today.plusDays(30)), item(null)), today, soonThresholdDays = 3)

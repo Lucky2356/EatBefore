@@ -95,17 +95,39 @@ class ExpiryNotifier @Inject constructor(@ApplicationContext private val context
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(summary)
+            // With one product the shade can name it; "1 продукт" would make the user open
+            // the app to find out which.
+            .setContentTitle(plan.singleProductName ?: summary)
             .setContentText(details.replace("\n", " · "))
             .setStyle(NotificationCompat.BigTextStyle().bigText(details))
             .setContentIntent(pendingIntent)
-            .addAction(
+
+        // Three actions is the most the shade shows. About one product, the two that
+        // finish the errand outright come first; about several, there is nothing to act on
+        // without guessing which, so the list is the only useful answer.
+        if (plan.singleBatchId != null) {
+            builder
+                .addAction(
+                    0,
+                    context.getString(R.string.notif_action_consumed),
+                    batchAction(ExpiryActionReceiver.ACTION_CONSUMED, plan.singleBatchId, REQUEST_CONSUMED),
+                )
+                .addAction(
+                    0,
+                    context.getString(R.string.notif_action_discarded),
+                    batchAction(ExpiryActionReceiver.ACTION_DISCARDED, plan.singleBatchId, REQUEST_DISCARDED),
+                )
+        } else {
+            builder.addAction(
                 0,
                 context.getString(R.string.notif_action_open_list),
                 inventoryPendingIntent,
             )
+        }
+
+        val notification = builder
             .addAction(
                 0,
                 context.getString(R.string.notif_action_snooze),
@@ -119,6 +141,24 @@ class ExpiryNotifier @Inject constructor(@ApplicationContext private val context
         runCatching { NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification) }
     }
 
+    /**
+     * A shade button that writes off one batch. The batch id travels in the intent rather
+     * than being remembered here: the reminder can sit unanswered for hours, and by then
+     * the process that posted it is long gone.
+     */
+    private fun batchAction(action: String, batchId: Long, requestCode: Int): PendingIntent =
+        PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            Intent(context, ExpiryActionReceiver::class.java).apply {
+                this.action = action
+                putExtra(ExpiryActionReceiver.EXTRA_BATCH_ID, batchId)
+            },
+            // UPDATE_CURRENT so yesterday's pending intent cannot act on yesterday's batch:
+            // the request code is reused, and the newest extras must win.
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+
     companion object {
         const val NOTIFICATION_ID = 1001
 
@@ -128,5 +168,7 @@ class ExpiryNotifier @Inject constructor(@ApplicationContext private val context
         private const val CHANNEL_ID = "expiry_reminders"
         private const val REQUEST_OPEN_INVENTORY = 1
         private const val REQUEST_SNOOZE = 2
+        private const val REQUEST_CONSUMED = 3
+        private const val REQUEST_DISCARDED = 4
     }
 }
