@@ -255,6 +255,54 @@ class SyncEngineTest {
         assertEquals("my-device", journal.events.first().deviceId)
     }
 
+    /**
+     * The exchange used to build the merged batch with these five fields set to null, so
+     * the other phone showed an opened pack with no after-opening deadline and lost the
+     * price and the purchase date outright. Nothing complained: the batch arrived, just
+     * emptier than it left.
+     */
+    @Test
+    fun `price, purchase date and the after-opening deadline survive an exchange`() = runTest {
+        seedLocal()
+        val journal = peerJournal().let { base ->
+            base.copy(
+                batches = base.batches.map {
+                    it.copy(
+                        purchaseDate = 20_000L,
+                        recommendedUseAfterOpeningDays = 3,
+                        calculatedExpirationAfterOpening = 20_010L,
+                        price = 99.5,
+                        currency = "RUB",
+                    )
+                },
+            )
+        }
+
+        engine.merge(journal)
+
+        val stored = db.inventoryBatchDao().getByUuid("b-1")!!
+        assertEquals(20_000L, stored.purchaseDate)
+        assertEquals(3, stored.recommendedUseAfterOpeningDays)
+        assertEquals(20_010L, stored.calculatedExpirationAfterOpening)
+        assertEquals(99.5, stored.price!!, 0.001)
+        assertEquals("RUB", stored.currency)
+    }
+
+    /** …and they have to survive the way back out again, or the next exchange drops them. */
+    @Test
+    fun `a price we know is published back to the household`() = runTest {
+        seedLocal()
+        engine.merge(
+            peerJournal().let { base ->
+                base.copy(batches = base.batches.map { it.copy(price = 42.0, currency = "RUB") })
+            },
+        )
+
+        val republished = engine.buildOwnJournal("my-device")
+
+        assertEquals(42.0, republished.batches.first { it.uuid == "b-1" }.price!!, 0.001)
+    }
+
     /** A round trip through the journal must not change what the data means. */
     @Test
     fun `a peer merging our journal ends up with the same batch`() = runTest {

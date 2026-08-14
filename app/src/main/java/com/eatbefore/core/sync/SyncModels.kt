@@ -65,6 +65,17 @@ data class SyncBatch(
     val note: String?,
     val deletedAt: Long?,
     val updatedAt: Long,
+    /**
+     * Everything below was dropped on the way through the exchange until now: the merge
+     * built a batch with these set to null, so the other phone showed an opened pack with
+     * no use-by-after-opening deadline and lost the price and purchase date outright.
+     * Defaulted so a journal written by an older version still reads.
+     */
+    val purchaseDate: Long? = null,
+    val recommendedUseAfterOpeningDays: Int? = null,
+    val calculatedExpirationAfterOpening: Long? = null,
+    val price: Double? = null,
+    val currency: String? = null,
 )
 
 @Serializable

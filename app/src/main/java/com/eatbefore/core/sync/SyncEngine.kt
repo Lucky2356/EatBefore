@@ -211,6 +211,11 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         note = note,
         deletedAt = deletedAt,
         updatedAt = updatedAt,
+        purchaseDate = purchaseDate,
+        recommendedUseAfterOpeningDays = recommendedUseAfterOpeningDays,
+        calculatedExpirationAfterOpening = calculatedExpirationAfterOpening,
+        price = price,
+        currency = currency,
     )
 
     private fun SyncBatch.toEntity(productId: Long, locationId: Long) = InventoryBatchEntity(
@@ -220,16 +225,16 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         quantity = quantity,
         initialQuantity = initialQuantity,
         measurementUnit = enumOr(measurementUnit, MeasurementUnit.PIECE),
-        purchaseDate = null,
+        purchaseDate = purchaseDate,
         addedAt = addedAt,
         expirationDate = expirationDate,
         openedAt = openedAt,
-        recommendedUseAfterOpeningDays = null,
-        calculatedExpirationAfterOpening = null,
+        recommendedUseAfterOpeningDays = recommendedUseAfterOpeningDays,
+        calculatedExpirationAfterOpening = calculatedExpirationAfterOpening,
         status = enumOr(status, BatchStatus.ACTIVE),
         note = note,
-        price = null,
-        currency = null,
+        price = price,
+        currency = currency,
         deletedAt = deletedAt,
         updatedAt = updatedAt,
     )
