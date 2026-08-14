@@ -40,11 +40,25 @@
 Hilt и проходит даже с несовместимой парой. Проверять надо задачей, которая
 запускает `hiltJavaCompile` — например `:app:assembleDebug`.
 
+## Перепроверка 15.08.2026
+
+Проверялось сборкой, а не чтением списков версий.
+
+| Обновление | Итог |
+|---|---|
+| **Gradle 8.11.1 → 9.6.1** | **взято.** AGP 8.10.1 с ним работает: собрались debug, release (R8), модуль `:baselineprofile`, прошли detekt, spotless, lint, 352 юнит- и 18 инструментальных тестов |
+| **okhttp 4.12.0 → 5.4.0** | **взято.** Проверено не только сборкой: на эмуляторе реальный запрос к Open Food Facts по коду `4620017700531` вернул товар |
+| **mockk 1.13.13 → 1.14.11** | **взято**, тесты зелёные |
+| `androidx.core(-ktx)` 1.19.0 | **нельзя**: `checkDebugAarMetadata` требует AGP 9.1.0+ |
+| AGP 9.3.1 | **нельзя**, причины прежние: detekt по-прежнему 1.23.8 (новее релизов нет), `androidx.baselineprofile` не знает AGP 9 |
+
+То есть блокер один и тот же — detekt и Baseline Profile, — а Gradle 9 к нему,
+вопреки ожиданию, не привязан: он поднялся отдельно и без потерь.
 ## Что стоит на этих версиях сейчас
 
-Kotlin 2.3.21, KSP 2.3.10, Hilt 2.58, AGP 8.10.1, compileSdk 36, Gradle 8.11.1,
+Kotlin 2.3.21, KSP 2.3.10, Hilt 2.58, AGP 8.10.1, compileSdk 36, Gradle 9.6.1,
 Compose BOM 2026.06.01, Room 2.8.4, WorkManager 2.11.2, CameraX 1.6.1,
-spotless 8.8.0.
+okhttp 5.4.0, spotless 8.8.0, detekt 1.23.8, mockk 1.14.11.
 
 ## Когда возвращаться к AGP 9
 
@@ -54,5 +68,5 @@ spotless 8.8.0.
 1. убрать блокировки из `.github/dependabot.yml`;
 2. убрать плагин `org.jetbrains.kotlin.android` из модулей — AGP 9 подключает
    Kotlin сам;
-3. поднять Gradle до 9.x, compileSdk до 37;
+3. поднять compileSdk до 37 (Gradle 9 уже стоит);
 4. проверять `:app:assembleDebug`, а не только компиляцию Kotlin.
