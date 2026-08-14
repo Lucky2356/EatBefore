@@ -28,6 +28,12 @@ import javax.inject.Inject
 data class HomeUiState(
     val isLoading: Boolean = true,
     val totalCount: Int = 0,
+    /**
+     * The single thing to eat today. The screen could already say what is going off; this
+     * says what to do about it, which is a different question and the one asked at six in
+     * the evening with the fridge open.
+     */
+    val eatFirst: InventoryRowUi? = null,
     val expiringSoon: List<InventoryRowUi> = emptyList(),
     val recent: List<InventoryRowUi> = emptyList(),
     /** Already past its date — counted separately, because it needs a different reaction. */
@@ -72,16 +78,20 @@ class HomeViewModel @Inject constructor(
         val expiringRows = expiring.map {
             it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus)
         }
+        val eatFirst = expiringRows.pickEatFirst()
         HomeUiState(
             isLoading = false,
             totalCount = count,
+            eatFirst = eatFirst,
             // Counted over everything, not just the ten shown, or the tile would understate
             // the problem exactly when there is most of it.
             expiredCount = expiringRows.count { it.expiryStatus == ExpiryStatus.EXPIRED },
             needsAttentionCount = expiringRows.count {
                 it.expiryStatus == ExpiryStatus.EXPIRED || it.expiryStatus == ExpiryStatus.EXPIRES_TODAY
             },
-            expiringSoon = expiringRows.take(EXPIRING_LIMIT),
+            // Whatever the card is showing is left out of the list under it: the same row
+            // twice, once as an instruction and once as an item, reads as two products.
+            expiringSoon = expiringRows.filterNot { it.batchId == eatFirst?.batchId }.take(EXPIRING_LIMIT),
             recent = recent.map { it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus) },
         )
     }.stateIn(
@@ -105,6 +115,21 @@ class HomeViewModel @Inject constructor(
     }
 
     fun consumeQuickActionSignal() = quickActions.consumeSignal()
+
+    /**
+     * What to eat first among the things going off.
+     *
+     * An opened pack wins over a sealed one even if the sealed one expires sooner: opening
+     * it started a clock the printed date knows nothing about, and half a carton of milk
+     * left open is what actually gets thrown away. Within that, the nearest date. Batches
+     * with no date at all cannot be ranked and are never picked — the card would be
+     * telling the user to hurry for no stated reason.
+     */
+    private fun List<InventoryRowUi>.pickEatFirst(): InventoryRowUi? = this
+        .filter { it.remainingDays != null }
+        .minWithOrNull(
+            compareByDescending<InventoryRowUi> { it.isOpened }.thenBy { it.remainingDays },
+        )
 
     private companion object {
         const val RECENT_LIMIT = 5

@@ -79,6 +79,7 @@
         <item quantity="other">%1$d products at home</item>
     </plurals>
     <string name="home_empty">Add your first product to start tracking.</string>
+    <string name="home_eat_first">Eat this first</string>
 
     <!-- Inventory -->
     <string name="inventory_title">Inventory</string>

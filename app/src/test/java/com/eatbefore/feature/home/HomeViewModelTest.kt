@@ -20,6 +20,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import java.time.LocalDate
@@ -35,7 +36,10 @@ class HomeViewModelTest {
     private val inventory = FakeInventoryRepository()
     private val filterRequest = InventoryFilterRequest()
 
-    private fun item(id: Long, expiry: LocalDate) = InventoryItem(
+    private fun opened(item: InventoryItem) =
+        item.copy(batch = item.batch.copy(openedAt = clock.now()))
+
+    private fun item(id: Long, expiry: LocalDate?) = InventoryItem(
         batch = InventoryBatch(
             id = id,
             productId = id,
@@ -127,6 +131,65 @@ class HomeViewModelTest {
         viewModel().uiState.test {
             val state = awaitItemWhere { !it.isLoading }
             assertEquals(0, state.needsAttentionCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * An opened pack beats a sealed one that expires sooner: opening it started a clock
+     * the printed date knows nothing about, and half a carton left open is what actually
+     * gets thrown away.
+     */
+    @Test
+    fun `the card picks an opened pack over a sealed one expiring sooner`() = runTest {
+        inventory.expiringItems.value = listOf(
+            item(1, today.plusDays(1)),
+            opened(item(2, today.plusDays(3))),
+        )
+
+        viewModel().uiState.test {
+            val state = awaitItemWhere { it.eatFirst != null }
+            assertEquals(2L, state.eatFirst?.batchId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `among equals the nearest date wins`() = runTest {
+        inventory.expiringItems.value = listOf(
+            item(1, today.plusDays(3)),
+            item(2, today),
+            item(3, today.plusDays(1)),
+        )
+
+        viewModel().uiState.test {
+            val state = awaitItemWhere { it.eatFirst != null }
+            assertEquals(2L, state.eatFirst?.batchId)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** The same row as a card and as a list item reads as two different products. */
+    @Test
+    fun `what the card shows is not repeated in the list below it`() = runTest {
+        inventory.expiringItems.value = listOf(item(1, today), item(2, today.plusDays(2)))
+
+        viewModel().uiState.test {
+            val state = awaitItemWhere { it.eatFirst != null }
+            assertEquals(1L, state.eatFirst?.batchId)
+            assertEquals(listOf(2L), state.expiringSoon.map { it.batchId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Nothing to say beats "hurry up" with no date to hurry towards. */
+    @Test
+    fun `a batch without a date is never the one to eat first`() = runTest {
+        inventory.expiringItems.value = listOf(item(1, expiry = null))
+
+        viewModel().uiState.test {
+            val state = awaitItemWhere { !it.isLoading }
+            assertNull(state.eatFirst)
             cancelAndIgnoreRemainingEvents()
         }
     }

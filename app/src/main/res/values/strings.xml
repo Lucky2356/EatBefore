@@ -84,6 +84,7 @@
         <item quantity="other">%1$d продукта дома</item>
     </plurals>
     <string name="home_empty">Добавьте первый продукт, чтобы начать учёт.</string>
+    <string name="home_eat_first">Съешьте первым</string>
 
     <!-- Inventory -->
     <string name="inventory_title">Запасы</string>

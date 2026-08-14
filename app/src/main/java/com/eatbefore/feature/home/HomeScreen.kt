@@ -13,8 +13,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -33,9 +35,13 @@ import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
+import com.eatbefore.core.designsystem.format.remainingText
+import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
+import com.eatbefore.feature.common.InventoryRowUi
+import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.rememberQuickActionHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -131,6 +137,16 @@ fun HomeScreen(
                 }
             }
 
+            state.eatFirst?.let { row ->
+                item {
+                    EatFirstCard(
+                        row = row,
+                        onOpen = { onOpenBatch(row.batchId) },
+                        onFinished = { onQuickAction(QuickAction.FINISHED, row.batchId) },
+                    )
+                }
+            }
+
             if (state.totalCount == 0 && !state.isLoading) {
                 item {
                     EmptyState(
@@ -200,6 +216,76 @@ private fun AttentionBanner(count: Int, onClick: () -> Unit) {
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onErrorContainer,
             )
+        }
+    }
+}
+
+/**
+ * One product and one decision: eat this before anything else, or say it is gone.
+ *
+ * The screen already listed what is going off; a list is a report, not an instruction, and
+ * at six in the evening with the fridge open the question is which of five things to take
+ * out. The row is deliberately not another [InventoryRowCard] — it carries a heading and
+ * an action button, and looking like the list beneath it would hide exactly what makes it
+ * different.
+ */
+@Composable
+private fun EatFirstCard(row: InventoryRowUi, onOpen: () -> Unit, onFinished: () -> Unit) {
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
+        shape = Shapes.card,
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+        ) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+            ) {
+                androidx.compose.material3.Icon(
+                    Icons.Outlined.Restaurant,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Text(
+                    text = stringResource(R.string.home_eat_first),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+            Text(
+                text = row.productName,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            Text(
+                text = listOfNotNull(
+                    // An opened pack is why this one was picked over a sealed one that
+                    // expires sooner, so it says so rather than leaving the order unexplained.
+                    if (row.isOpened) stringResource(R.string.row_opened) else null,
+                    remainingText(row.remainingDays),
+                    storageDisplayName(row.locationName, row.locationType),
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            androidx.compose.material3.FilledTonalButton(
+                onClick = onFinished,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                androidx.compose.material3.Icon(
+                    Icons.Outlined.TaskAlt,
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = Dimens.spaceSm),
+                )
+                Text(stringResource(R.string.product_action_finished))
+            }
         }
     }
 }
