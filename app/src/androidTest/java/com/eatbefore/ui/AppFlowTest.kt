@@ -354,11 +354,18 @@ class AppFlowTest {
     @Test
     fun statusFilter_keepsOnlyWhatIsRunningOut() {
         skipOnboarding()
-        val urgent = "Urgent ${System.currentTimeMillis()}"
-        val calm = "Calm ${System.currentTimeMillis()}"
+        // One stamp for both, so searching for it narrows the shared list down to exactly
+        // this test's two rows. Without that the list holds everything the earlier tests
+        // added, and a lazy list simply does not compose a row far enough down — which
+        // fails as "the filter hid it" when nothing of the sort happened.
+        val stamp = System.currentTimeMillis().toString()
+        val urgent = "Urgent $stamp"
+        val calm = "Calm $stamp"
         addProduct(urgent, expiryPreset = R.string.add_expiry_today)
         addProduct(calm, expiryPreset = R.string.add_expiry_month)
         openInventory()
+        typeInto(string(R.string.inventory_search_hint), stamp)
+        awaitText(calm)
 
         clickText(string(R.string.inventory_filter_soon))
 
