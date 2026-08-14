@@ -7,10 +7,12 @@ import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.ShoppingListItem
+import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
+import com.eatbefore.domain.repository.StorageLocationRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -180,5 +182,37 @@ class FakeShoppingListRepository(val items: MutableMap<Long, ShoppingListItem> =
 
     override suspend fun delete(item: ShoppingListItem) {
         items.remove(item.id)
+    }
+}
+
+/**
+ * Storage places, with the one rule that actually matters: exactly one is the default.
+ *
+ * A [MutableStateFlow] rather than a snapshot — screens here add, rename and archive
+ * places and then read the list back, which a one-shot flow cannot express.
+ */
+class FakeStorageLocationRepository(initial: List<StorageLocation> = emptyList()) : StorageLocationRepository {
+
+    val locations = MutableStateFlow(initial)
+    private var nextId = (initial.maxOfOrNull { it.id } ?: 0L) + 1
+
+    override fun observeActive(): Flow<List<StorageLocation>> =
+        locations.map { list -> list.filterNot { it.isArchived } }
+
+    override fun observeAll(): Flow<List<StorageLocation>> = locations
+
+    override suspend fun getById(id: Long): StorageLocation? = locations.value.firstOrNull { it.id == id }
+
+    override suspend fun getDefault(): StorageLocation? = locations.value.firstOrNull { it.isDefault }
+
+    override suspend fun setDefault(id: Long) {
+        locations.value = locations.value.map { it.copy(isDefault = it.id == id) }
+    }
+
+    override suspend fun upsert(location: StorageLocation): Long {
+        val id = if (location.id == 0L) nextId++ else location.id
+        val stored = location.copy(id = id)
+        locations.value = locations.value.filterNot { it.id == id } + stored
+        return id
     }
 }
