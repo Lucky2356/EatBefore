@@ -13,6 +13,7 @@ import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.domain.shelflife.TypicalShelfLife
 import com.eatbefore.domain.usecase.AddManualProductUseCase
 import com.eatbefore.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +35,11 @@ data class AddManualUiState(
     val locations: List<StorageLocation> = emptyList(),
     val selectedLocationId: Long? = null,
     val expirationDate: LocalDate? = null,
+    /**
+     * Typical days this kind of food keeps, when the name matches something known. Offered
+     * as one more expiry chip; null means no suggestion rather than a made-up one.
+     */
+    val suggestedShelfLifeDays: Int? = null,
     val note: String = "",
     /**
      * What it cost. Optional and asked for last: it is the one field that pays for itself
@@ -101,7 +107,16 @@ class AddManualViewModel @Inject constructor(
         }
     }
 
-    fun onName(value: String) = _state.update { it.copy(name = value, nameError = false) }
+    fun onName(value: String) = _state.update {
+        it.copy(
+            name = value,
+            nameError = false,
+            // Recomputed as the name is typed: the suggestion is only useful while the
+            // expiry is still being chosen, and by then the name is what identifies the
+            // product — the category is rarely filled in by hand.
+            suggestedShelfLifeDays = TypicalShelfLife.suggestDays(value),
+        )
+    }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
 
     // Barcodes are digits and, for Честный знак, a few symbols; whitespace never belongs.

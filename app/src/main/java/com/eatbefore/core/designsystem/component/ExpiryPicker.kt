@@ -60,11 +60,24 @@ fun ExpiryPresetChips(
     onSelect: (LocalDate?) -> Unit,
     onPickDate: () -> Unit,
     modifier: Modifier = Modifier,
+    suggestedDays: Int? = null,
 ) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
     ) {
+        // First, because it is the only chip that knows anything about *this* product: the
+        // fixed presets are the same for milk and for buckwheat. Labelled as a typical
+        // figure and never applied on its own — a date entered on the user's behalf would
+        // make the app warn about the wrong day with complete confidence.
+        if (suggestedDays != null) {
+            val suggested = today.plusDays(suggestedDays.toLong())
+            FilterChip(
+                selected = selected == suggested,
+                onClick = { onSelect(suggested) },
+                label = { Text(stringResource(R.string.add_expiry_typical, suggestedDays)) },
+            )
+        }
         PRESETS.forEach { (days, labelRes) ->
             val date = today.plusDays(days)
             FilterChip(

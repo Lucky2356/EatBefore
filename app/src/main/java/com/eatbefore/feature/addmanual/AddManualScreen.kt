@@ -191,6 +191,7 @@ fun AddManualScreen(
                     onSelect = viewModel::onExpirationDate,
                     onPickDate = { showDatePicker = true },
                     modifier = Modifier.fillMaxWidth(),
+                    suggestedDays = state.suggestedShelfLifeDays,
                 )
             }
             state.expirationDate?.let { date ->

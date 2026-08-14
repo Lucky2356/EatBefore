@@ -125,6 +125,7 @@
     <string name="add_expiry_week">Через неделю</string>
     <string name="add_expiry_month">Через месяц</string>
     <string name="add_expiry_none">Без срока</string>
+    <string name="add_expiry_typical">Обычно %1$d дн.</string>
     <string name="add_price">Цена, %1$s</string>
     <string name="add_price_hint">Необязательно. Нужна, чтобы показать, на сколько выброшено</string>
     <string name="add_saved">Продукт добавлен</string>

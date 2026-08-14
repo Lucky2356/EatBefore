@@ -118,6 +118,7 @@
     <string name="add_expiry_week">In a week</string>
     <string name="add_expiry_month">In a month</string>
     <string name="add_expiry_none">No date</string>
+    <string name="add_expiry_typical">Usually %1$d d.</string>
     <string name="add_price">Price, %1$s</string>
     <string name="add_price_hint">Optional. Needed to show how much went into the bin</string>
     <string name="add_saved">Product added</string>

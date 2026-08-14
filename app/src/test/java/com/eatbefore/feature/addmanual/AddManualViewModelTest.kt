@@ -355,4 +355,38 @@ class AddManualViewModelTest {
 
         assertNull(vm.state.value.expirationDate)
     }
+
+    /**
+     * The fixed presets are the same for milk and for buckwheat. The suggestion is the
+     * only chip that knows anything about this product, and it follows the name as it is
+     * typed — by the time the expiry is chosen, the name is all the screen has.
+     */
+    @Test
+    fun `a known product suggests how long it usually keeps`() = runTest {
+        val vm = viewModel()
+
+        vm.onName("Молоко 3,2%")
+
+        assertEquals(7, vm.state.value.suggestedShelfLifeDays)
+    }
+
+    @Test
+    fun `an unknown product suggests nothing rather than an average`() = runTest {
+        val vm = viewModel()
+
+        vm.onName("Вкусняшка")
+
+        assertNull(vm.state.value.suggestedShelfLifeDays)
+    }
+
+    /** Nothing is applied on its own: a wrong date entered for the user would then be
+     * warned about with complete confidence. */
+    @Test
+    fun `the suggestion does not set the date by itself`() = runTest {
+        val vm = viewModel()
+
+        vm.onName("Молоко")
+
+        assertNull(vm.state.value.expirationDate)
+    }
 }
