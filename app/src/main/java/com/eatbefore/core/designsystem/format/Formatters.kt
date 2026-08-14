@@ -6,11 +6,13 @@ import com.eatbefore.R
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.model.StorageType
+import java.text.NumberFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Currency
 import java.util.Locale
 
 /**
@@ -32,6 +34,30 @@ fun formatDateTime(instant: Instant, zone: ZoneId = ZoneId.systemDefault()): Str
 fun formatDate(date: LocalDate): String = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
     .withLocale(Locale.getDefault())
     .format(date)
+
+/**
+ * The currency of the phone's locale, stored alongside a price so a number is never left
+ * without its unit. Falls back to the rouble: the app is Russian-first, and a price with
+ * no currency at all is worse than one that may need correcting.
+ */
+fun defaultCurrencyCode(): String = runCatching {
+    Currency.getInstance(Locale.getDefault()).currencyCode
+}.getOrDefault(FALLBACK_CURRENCY)
+
+/** Just the symbol ("₽", "€"), for labelling the price field. */
+fun currencySymbol(code: String? = null): String = runCatching {
+    Currency.getInstance(code ?: defaultCurrencyCode()).getSymbol(Locale.getDefault())
+}.getOrDefault(code.orEmpty())
+
+/** A price with its currency, rounded to whole units — kopecks are noise in a fridge. */
+fun formatMoney(amount: Double, code: String?): String = runCatching {
+    NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
+        currency = Currency.getInstance(code ?: defaultCurrencyCode())
+        maximumFractionDigits = if (amount % 1.0 == 0.0) 0 else 2
+    }.format(amount)
+}.getOrDefault("$amount ${code.orEmpty()}".trim())
+
+private const val FALLBACK_CURRENCY = "RUB"
 
 /** Short, localized unit label. */
 @Composable

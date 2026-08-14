@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.R
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.core.designsystem.format.defaultCurrencyCode
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.ContributionResult
@@ -34,6 +35,11 @@ data class AddManualUiState(
     val selectedLocationId: Long? = null,
     val expirationDate: LocalDate? = null,
     val note: String = "",
+    /**
+     * What it cost. Optional and asked for last: it is the one field that pays for itself
+     * only later, when the analytics screen can say how much went into the bin.
+     */
+    val price: String = "",
     val isSaving: Boolean = false,
     val nameError: Boolean = false,
     val savedBatchId: Long? = null,
@@ -116,6 +122,13 @@ class AddManualViewModel @Inject constructor(
     fun onUnit(unit: MeasurementUnit) = _state.update { it.copy(unit = unit) }
     fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id) }
     fun onNote(value: String) = _state.update { it.copy(note = value) }
+
+    // Comma is what a Russian keyboard offers for a decimal; accept it as a full stop
+    // rather than silently dropping the kopecks the user typed.
+    fun onPrice(value: String) = _state.update {
+        it.copy(price = value.replace(',', '.').filter { c -> c.isDigit() || c == '.' })
+    }
+
     fun onExpirationDate(date: LocalDate?) = _state.update { it.copy(expirationDate = date) }
 
     /** Quick expiry presets relative to today. Null clears the date. */
@@ -145,6 +158,8 @@ class AddManualViewModel @Inject constructor(
                     measurementUnit = current.unit,
                     expirationDate = current.expirationDate,
                     note = current.note.ifBlank { null },
+                    price = current.price.toDoubleOrNull()?.takeIf { it > 0 },
+                    currency = current.price.toDoubleOrNull()?.let { defaultCurrencyCode() },
                 ),
             )
             // Offer to publish any product that carries a barcode, however it got there,

@@ -47,13 +47,22 @@ class AnalyticsViewModel @Inject constructor(
 
     private val period = MutableStateFlow(AnalyticsPeriod.MONTH)
 
+    /**
+     * Products together with whatever prices exist. Folded into one flow because the state
+     * combine already takes the five typed arguments it is allowed.
+     */
+    private val catalog = combine(
+        productRepository.observeAll(),
+        inventoryRepository.observePrices(),
+    ) { products, prices -> products.associateBy { it.id } to prices }
+
     val uiState: StateFlow<AnalyticsUiState> = combine(
         historyRepository.observeAll(),
-        productRepository.observeAll(),
+        catalog,
         inventoryRepository.observePresentByExpiry(),
         storageLocationRepository.observeActive(),
         period,
-    ) { events, products, items, locations, activePeriod ->
+    ) { events, (productsById, prices), items, locations, activePeriod ->
         val from = activePeriod.days
             ?.let { clock.now().minus(it, ChronoUnit.DAYS) }
             ?: Instant.EPOCH
@@ -61,7 +70,7 @@ class AnalyticsViewModel @Inject constructor(
         AnalyticsUiState(
             isLoading = false,
             period = activePeriod,
-            summary = buildAnalytics(events, products.associateBy { it.id }, from, clock.zone()),
+            summary = buildAnalytics(events, productsById, from, clock.zone(), prices),
             byLocation = locations
                 .map { it to (countByLocationId[it.id] ?: 0) }
                 .filter { it.second > 0 }

@@ -71,6 +71,29 @@ class InventoryUseCasesTest {
         assertEquals(1, products.observeAllCount())
     }
 
+    /**
+     * The column existed from the first migration and nothing ever wrote to it. Today is
+     * right almost always — food is recorded on the way in from the shop — and the card
+     * lets it be corrected when it is not.
+     */
+    @Test
+    fun addManual_recordsWhenItWasBought() = runTest {
+        val batchId = addManual(AddManualProductUseCase.Params(name = "Milk", storageLocationId = 1))
+
+        assertEquals(clock.today(), inventory.getBatch(batchId)!!.purchaseDate)
+    }
+
+    @Test
+    fun addManual_keepsAPurchaseDateTheCallerKnows() = runTest {
+        val bought = clock.today().minusDays(3)
+
+        val batchId = addManual(
+            AddManualProductUseCase.Params(name = "Milk", storageLocationId = 1, purchaseDate = bought),
+        )
+
+        assertEquals(bought, inventory.getBatch(batchId)!!.purchaseDate)
+    }
+
     @Test
     fun addManual_reusesExistingProductCard() = runTest {
         addManual(AddManualProductUseCase.Params(name = "Milk", brand = "Farm", storageLocationId = 1))

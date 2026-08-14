@@ -41,6 +41,7 @@ import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
 import com.eatbefore.core.designsystem.component.ExpiryPresetChips
 import com.eatbefore.core.designsystem.component.QuantityStepper
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.format.currencySymbol
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
 import com.eatbefore.core.designsystem.format.shortLabel
@@ -213,6 +214,18 @@ fun AddManualScreen(
                 value = state.note,
                 onValueChange = viewModel::onNote,
                 label = { Text(stringResource(R.string.add_note)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Optional, and last on the screen on purpose: nothing here blocks saving, and
+            // the reward for filling it in arrives later, on the analytics screen.
+            OutlinedTextField(
+                value = state.price,
+                onValueChange = viewModel::onPrice,
+                label = { Text(stringResource(R.string.add_price, currencySymbol())) },
+                supportingText = { Text(stringResource(R.string.add_price_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
 

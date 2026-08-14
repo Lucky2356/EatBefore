@@ -45,13 +45,72 @@ class UpdateItemDetailsUseCaseTest {
         useCase = UpdateItemDetailsUseCase(products, inventory, clock)
     }
 
+    /** The unchanged form as the screen would submit it; each test copies what it changes. */
+    private val unchanged = UpdateItemDetailsUseCase.Params(
+        batchId = 1,
+        name = "Milk",
+        brand = "Old",
+        category = "Dairy",
+        expirationDate = originalExpiry,
+        note = null,
+    )
+
     private fun params(
         name: String = "Milk",
         brand: String? = "Old",
         category: String? = "Dairy",
         expiry: LocalDate? = originalExpiry,
         note: String? = null,
-    ) = UpdateItemDetailsUseCase.Params(1, name, brand, category, expiry, note)
+    ) = unchanged.copy(
+        name = name,
+        brand = brand,
+        category = category,
+        expirationDate = expiry,
+        note = note,
+    )
+
+    @Test
+    fun `a price typed on the card is stored with its currency`() = runTest {
+        useCase(unchanged.copy(price = 89.0, currency = "RUB"))
+
+        val batch = inventory.getBatch(1)!!
+        assertEquals(89.0, batch.price!!, 0.001)
+        assertEquals("RUB", batch.currency)
+    }
+
+    /** Clearing the field is a real answer; a currency with nothing to price is not. */
+    @Test
+    fun `clearing the price clears the currency with it`() = runTest {
+        useCase(unchanged.copy(price = 89.0, currency = "RUB"))
+
+        useCase(unchanged.copy(price = null, currency = "RUB"))
+
+        val batch = inventory.getBatch(1)!!
+        assertNull(batch.price)
+        assertNull(batch.currency)
+    }
+
+    /**
+     * A jar bought on holiday stays priced in euros: the caller passes the phone's current
+     * currency, and it must not silently re-denominate what is already there.
+     */
+    @Test
+    fun `an existing currency is not overwritten by the phone's default`() = runTest {
+        inventory.batches[1] = inventory.getBatch(1)!!.copy(price = 5.0, currency = "EUR")
+
+        useCase(unchanged.copy(price = 6.0, currency = "RUB"))
+
+        assertEquals("EUR", inventory.getBatch(1)!!.currency)
+    }
+
+    @Test
+    fun `the purchase date can be corrected`() = runTest {
+        val bought = LocalDate.parse("2026-07-28")
+
+        useCase(unchanged.copy(purchaseDate = bought))
+
+        assertEquals(bought, inventory.getBatch(1)!!.purchaseDate)
+    }
 
     @Test
     fun updatesProductCardFields() = runTest {

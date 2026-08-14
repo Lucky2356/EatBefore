@@ -6,10 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.eatbefore.R
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.core.designsystem.format.defaultCurrencyCode
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
+import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
@@ -23,6 +25,8 @@ import com.eatbefore.domain.usecase.MoveBatchUseCase
 import com.eatbefore.domain.usecase.OpenBatchUseCase
 import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import com.eatbefore.domain.usecase.UpdateItemDetailsUseCase
+import com.eatbefore.feature.common.InventoryRowUi
+import com.eatbefore.feature.common.toRowUi
 import com.eatbefore.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,12 +43,26 @@ import kotlinx.coroutines.launch
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+/**
+ * How much of this product is at home in total, across every present batch.
+ *
+ * Null when the batches are measured in different units — half a litre plus one package is
+ * not a number, and inventing one would be worse than saying nothing.
+ */
+data class BatchTotal(val quantity: Double, val unit: MeasurementUnit)
+
 data class ProductUiState(
     val isLoading: Boolean = true,
     val item: InventoryItem? = null,
     val expiryStatus: ExpiryStatus = ExpiryStatus.NO_DATE,
     val remainingDays: Long? = null,
+    /** Other packs of the same product still at home, soonest to expire first. */
+    val otherBatches: List<InventoryRowUi> = emptyList(),
+    /** Total across this batch and the others, when they share a unit. */
+    val total: BatchTotal? = null,
     val history: List<InventoryEvent> = emptyList(),
+    /** Names of the other household devices, so history rows can be signed. */
+    val peerNames: Map<String, String> = emptyMap(),
     val locations: List<StorageLocation> = emptyList(),
     /** Timestamp of the last undoable action; drives a one-shot Undo snackbar. */
     val undoableActionAt: Long? = null,
@@ -64,6 +82,36 @@ private data class ProductLocalState(
     val actionMessageRes: Int? = null,
     val offerShoppingList: Boolean = false,
 )
+
+/** What the product — as opposed to this one batch — has attached to it. */
+private data class ProductContext(val history: List<InventoryEvent> = emptyList(), val batches: List<InventoryItem> = emptyList())
+
+/**
+ * The other packs of this product still at home, soonest to expire first.
+ *
+ * The query returns every batch ever recorded for the product, so the consumed and the
+ * discarded are dropped here: this list answers "what else is in the fridge", not "what
+ * did we once buy" — that is what the history below it is for. Batches without a date sort
+ * last, since an unknown date is not an urgent one.
+ */
+private fun ProductContext.otherPresentBatches(current: InventoryItem): List<InventoryItem> =
+    batches
+        .filter { it.batch.id != current.batch.id && it.batch.status.isPresent && it.batch.deletedAt == null }
+        .sortedWith(
+            compareBy(nullsLast()) { it.batch.effectiveExpirationDate },
+        )
+
+/**
+ * How much of the product is at home altogether — null unless there is more than one pack
+ * and they are all measured the same way. Adding half a litre to one package would produce
+ * a number that means nothing.
+ */
+private fun totalOf(items: List<InventoryItem>): BatchTotal? {
+    if (items.size < 2) return null
+    val unit = items.first().batch.measurementUnit
+    if (items.any { it.batch.measurementUnit != unit }) return null
+    return BatchTotal(items.sumOf { it.batch.quantity }, unit)
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -95,17 +143,30 @@ class ProductViewModel @Inject constructor(
 
     private val itemFlow: Flow<InventoryItem?> = inventoryRepository.observeItem(batchId)
 
-    private val historyFlow: Flow<List<InventoryEvent>> = itemFlow.flatMapLatest { item ->
-        if (item == null) flowOf(emptyList()) else historyRepository.observeForProduct(item.product.id)
+    /**
+     * Everything that hangs off the *product* rather than this one batch: its history and
+     * its other packs. Both need the product id, which only arrives with the item, and
+     * folding them together here keeps the state combine within its five typed arguments.
+     */
+    private val contextFlow: Flow<ProductContext> = itemFlow.flatMapLatest { item ->
+        if (item == null) {
+            flowOf(ProductContext())
+        } else {
+            combine(
+                historyRepository.observeForProduct(item.product.id),
+                inventoryRepository.observeAllForProduct(item.product.id),
+            ) { history, batches -> ProductContext(history, batches) }
+        }
     }
 
     val uiState: StateFlow<ProductUiState> = combine(
         itemFlow,
-        historyFlow,
+        contextFlow,
         storageLocationRepository.observeActive(),
         preferences.preferences,
         localState,
-    ) { item, history, locations, prefs, local ->
+    ) { item, context, locations, prefs, local ->
+        val history = context.history
         if (item == null) {
             ProductUiState(
                 isLoading = false,
@@ -115,12 +176,18 @@ class ProductViewModel @Inject constructor(
             )
         } else {
             val effective = item.batch.effectiveExpirationDate
+            val others = context.otherPresentBatches(item)
             ProductUiState(
                 isLoading = false,
                 item = item,
                 expiryStatus = determineExpiryStatus.forDate(effective, clock.today(), prefs.soonThresholdDays),
                 remainingDays = effective?.let { ChronoUnit.DAYS.between(clock.today(), it) },
+                otherBatches = others.map {
+                    it.toRowUi(clock.today(), prefs.soonThresholdDays, determineExpiryStatus)
+                },
+                total = totalOf(listOf(item) + others),
                 history = history,
+                peerNames = prefs.peerNames,
                 locations = locations,
                 undoableActionAt = local.undoableActionAt,
                 actionMessageRes = local.actionMessageRes,
@@ -179,6 +246,8 @@ class ProductViewModel @Inject constructor(
         category: String?,
         expirationDate: java.time.LocalDate?,
         note: String?,
+        price: Double?,
+        purchaseDate: java.time.LocalDate?,
     ) = runAction(messageRes = R.string.event_updated) {
         updateItemDetails(
             UpdateItemDetailsUseCase.Params(
@@ -188,6 +257,11 @@ class ProductViewModel @Inject constructor(
                 category = category,
                 expirationDate = expirationDate,
                 note = note,
+                price = price,
+                // Only used when the batch has no currency yet — an existing one is kept,
+                // so a price typed abroad does not silently become roubles at home.
+                currency = defaultCurrencyCode(),
+                purchaseDate = purchaseDate,
             ),
         )
     }

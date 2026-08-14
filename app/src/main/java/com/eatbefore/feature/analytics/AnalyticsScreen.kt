@@ -43,6 +43,7 @@ import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.component.StatTile
 import com.eatbefore.core.designsystem.component.StatTone
 import com.eatbefore.core.designsystem.format.displayName
+import com.eatbefore.core.designsystem.format.formatMoney
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.LocalStatusColors
 import com.eatbefore.domain.model.StorageLocation
@@ -206,6 +207,35 @@ private fun SummaryContent(summary: AnalyticsSummary) {
             tone = StatTone.ATTENTION,
             modifier = Modifier.weight(1f),
         )
+    }
+
+    // The one number that makes waste feel like waste. Shown with its coverage: prices are
+    // optional, so a bare total would read as the whole loss when it may be a third of it.
+    summary.wastedMoney?.let { money ->
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(Dimens.spaceLg),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+            ) {
+                Text(
+                    stringResource(
+                        R.string.analytics_wasted_money,
+                        formatMoney(money.amount, money.currency),
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = statusColors.expired,
+                )
+                Text(
+                    stringResource(
+                        R.string.analytics_wasted_money_coverage,
+                        money.coveredBatches,
+                        money.wastedBatches,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 
     summary.usedInTimePercent?.let { percent ->

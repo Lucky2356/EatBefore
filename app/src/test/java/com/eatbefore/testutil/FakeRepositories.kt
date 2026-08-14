@@ -1,5 +1,6 @@
 package com.eatbefore.testutil
 
+import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
@@ -12,7 +13,6 @@ import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
@@ -72,9 +72,23 @@ class FakeInventoryRepository(
         presentItems.map { items -> items.filter { it.location.id == locationId } }
 
     override fun observeExpiringBefore(thresholdEpochDay: Long): Flow<List<InventoryItem>> = expiringItems
-    override fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>> = emptyFlow()
+
+    /**
+     * Every batch ever recorded for a product, terminal ones included — the real query
+     * filters nothing, and the product screen relies on doing that itself.
+     */
+    val productBatches = MutableStateFlow<List<InventoryItem>>(emptyList())
+
+    override fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>> =
+        productBatches.map { items -> items.filter { it.product.id == productId } }
+
     override fun observeRecent(limit: Int): Flow<List<InventoryItem>> = recentItems.map { it.take(limit) }
     override fun observePresentCount(): Flow<Int> = presentItems.map { it.size }
+
+    /** Prices, keyed by batch id, for the money side of analytics. */
+    val prices = MutableStateFlow<Map<Long, BatchPrice>>(emptyMap())
+
+    override fun observePrices(): Flow<Map<Long, BatchPrice>> = prices
 
     /**
      * What the product screen is looking at. A StateFlow rather than a plain map: the

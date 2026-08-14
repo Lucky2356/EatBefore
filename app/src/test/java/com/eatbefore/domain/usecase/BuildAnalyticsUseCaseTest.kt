@@ -1,5 +1,6 @@
 package com.eatbefore.domain.usecase
 
+import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.Product
@@ -17,8 +18,13 @@ class BuildAnalyticsUseCaseTest {
     private val useCase = BuildAnalyticsUseCase()
     private val from: Instant = Instant.parse("2026-07-01T00:00:00Z")
 
-    private fun event(type: EventType, productId: Long = 1, at: String = "2026-07-10T10:00:00Z") = InventoryEvent(
-        inventoryBatchId = 1,
+    private fun event(
+        type: EventType,
+        productId: Long = 1,
+        at: String = "2026-07-10T10:00:00Z",
+        batchId: Long = 1,
+    ) = InventoryEvent(
+        inventoryBatchId = batchId,
         productId = productId,
         eventType = type,
         createdAt = Instant.parse(at),
@@ -29,6 +35,55 @@ class BuildAnalyticsUseCaseTest {
         2L to Product(id = 2, name = "Bread", category = "Bakery"),
         3L to Product(id = 3, name = "Mystery"),
     )
+
+    /**
+     * The number that makes waste feel like waste. It has to arrive with its coverage:
+     * prices are optional, so a bare total would read as the whole loss.
+     */
+    @Test
+    fun wastedMoney_sumsOnlyWrittenOffBatchesThatHaveAPrice() {
+        val events = listOf(
+            event(EventType.DISCARDED, batchId = 1),
+            event(EventType.EXPIRED, batchId = 2),
+            // Written off, but nobody typed a price for it.
+            event(EventType.DISCARDED, batchId = 3),
+            // Eaten, not wasted — its price is not a loss.
+            event(EventType.CONSUMED, batchId = 4),
+        )
+        val prices = mapOf(
+            1L to BatchPrice(100.0, "RUB"),
+            2L to BatchPrice(50.0, "RUB"),
+            4L to BatchPrice(999.0, "RUB"),
+        )
+
+        val money = useCase(events, products, from, ZoneOffset.UTC, prices).wastedMoney!!
+
+        assertEquals(150.0, money.amount, 0.0)
+        assertEquals("RUB", money.currency)
+        assertEquals(2, money.coveredBatches)
+        assertEquals("all three write-offs are the denominator", 3, money.wastedBatches)
+    }
+
+    @Test
+    fun wastedMoney_isAbsentWhenNothingWastedHadAPrice() {
+        val events = listOf(event(EventType.DISCARDED, batchId = 1))
+
+        assertNull(useCase(events, products, from, ZoneOffset.UTC, emptyMap()).wastedMoney)
+    }
+
+    /** A price outside the period is not this period's loss. */
+    @Test
+    fun wastedMoney_ignoresWriteOffsBeforeThePeriod() {
+        val events = listOf(
+            event(EventType.DISCARDED, batchId = 1, at = "2026-06-01T00:00:00Z"),
+            event(EventType.DISCARDED, batchId = 2),
+        )
+        val prices = mapOf(1L to BatchPrice(100.0, "RUB"), 2L to BatchPrice(7.0, "RUB"))
+
+        val money = useCase(events, products, from, ZoneOffset.UTC, prices).wastedMoney!!
+
+        assertEquals(7.0, money.amount, 0.0)
+    }
 
     @Test
     fun countsEventTypesWithinPeriod() {

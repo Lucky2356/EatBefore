@@ -2,6 +2,7 @@ package com.eatbefore.feature.history
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.repository.HistoryRepository
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +25,8 @@ data class HistoryUiState(
     val filter: EventType? = null,
     /** True while more rows exist beyond the current page. */
     val canLoadMore: Boolean = false,
+    /** Names of the other household devices, so events can be signed. */
+    val peerNames: Map<String, String> = emptyMap(),
 )
 
 /** Event types that removed stock and can therefore be restored from the list. */
@@ -34,6 +38,7 @@ class HistoryViewModel @Inject constructor(
     private val historyRepository: HistoryRepository,
     private val restoreBatch: RestoreBatchUseCase,
     private val undoLastAction: UndoLastActionUseCase,
+    preferences: UserPreferencesRepository,
 ) : ViewModel() {
 
     private val filter = MutableStateFlow<EventType?>(null)
@@ -43,16 +48,19 @@ class HistoryViewModel @Inject constructor(
         activeFilter to activeLimit
     }
 
+    private val peerNames = preferences.preferences.map { it.peerNames }
+
     val uiState: StateFlow<HistoryUiState> = query
         .flatMapLatest { (activeFilter, activeLimit) ->
             // Fetch one extra row to learn whether another page exists.
             historyRepository.observeRecent(activeLimit + 1, activeFilter)
                 .let { flow ->
-                    combine(flow, filter) { events, currentFilter ->
+                    combine(flow, filter, peerNames) { events, currentFilter, names ->
                         HistoryUiState(
                             events = events.take(activeLimit),
                             filter = currentFilter,
                             canLoadMore = events.size > activeLimit,
+                            peerNames = names,
                         )
                     }
                 }

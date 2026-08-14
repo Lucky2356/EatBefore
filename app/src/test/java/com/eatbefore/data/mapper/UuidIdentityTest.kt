@@ -95,6 +95,24 @@ class UuidIdentityTest {
         assertEquals(product.toEntity().uuid, renamed.toEntity().uuid)
     }
 
+    /**
+     * An event's author is stored the same way its identity is, and is just as easy to
+     * drop: the domain model carried no device id at all until the history had to answer
+     * "who threw out the sour cream?".
+     */
+    @Test
+    fun `event keeps its author across a round trip`() {
+        val fromPeer = event.copy(deviceId = "device-b")
+
+        assertEquals("device-b", fromPeer.toEntity().toDomain().deviceId)
+    }
+
+    /** Our own actions stay unsigned, which is how the app tells them apart from a peer's. */
+    @Test
+    fun `an event written here carries no author`() {
+        assertEquals("", event.toEntity().toDomain().deviceId)
+    }
+
     /** Objects built in code before they are stored still get a usable identity. */
     @Test
     fun `a brand new object gets a generated uuid rather than a blank one`() {

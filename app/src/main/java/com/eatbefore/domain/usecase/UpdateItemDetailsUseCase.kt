@@ -28,6 +28,11 @@ class UpdateItemDetailsUseCase @Inject constructor(
         val category: String?,
         val expirationDate: LocalDate?,
         val note: String?,
+        /** What it cost, in [currency]. Null clears it. */
+        val price: Double? = null,
+        val currency: String? = null,
+        /** When it was bought — filled in on adding, correctable here. */
+        val purchaseDate: LocalDate? = null,
     )
 
     suspend operator fun invoke(params: Params) {
@@ -48,10 +53,24 @@ class UpdateItemDetailsUseCase @Inject constructor(
             )
         }
 
-        if (params.expirationDate != batch.expirationDate || note != batch.note) {
+        val price = params.price?.takeIf { it > 0 }
+        val currency = InputValidator.sanitizeText(params.currency, InputValidator.MAX_CURRENCY_LENGTH)
+        val batchChanged = params.expirationDate != batch.expirationDate ||
+            note != batch.note ||
+            price != batch.price ||
+            params.purchaseDate != batch.purchaseDate
+
+        if (batchChanged) {
             val updated = batch.copy(
                 expirationDate = params.expirationDate,
                 note = note,
+                price = price,
+                // A price without a currency cannot be displayed, so they are cleared
+                // together. The currency already on the batch wins over the one the caller
+                // offers: that one is the phone's default, and a jar bought abroad must
+                // not be re-denominated by editing its price at home.
+                currency = if (price == null) null else batch.currency ?: currency,
+                purchaseDate = params.purchaseDate,
                 updatedAt = now,
             )
             val event = InventoryEvent(

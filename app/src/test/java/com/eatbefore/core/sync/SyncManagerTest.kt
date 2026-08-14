@@ -95,10 +95,12 @@ class SyncManagerTest {
     private fun writePeerJournal(
         deviceId: String,
         formatVersion: Int = SyncJournal.CURRENT_FORMAT_VERSION,
+        deviceName: String = "",
     ) {
         val journal = SyncJournal(
             formatVersion = formatVersion,
             deviceId = deviceId,
+            deviceName = deviceName,
             writtenAtEpochMillis = clock.now().toEpochMilli(),
         )
         File(folder, SyncJournal.fileNameFor(deviceId))
@@ -146,6 +148,45 @@ class SyncManagerTest {
         val result = manager.sync()
 
         assertEquals(1, (result as SyncResult.Success).stats.peersSeen)
+    }
+
+    /**
+     * "Who threw out the sour cream?" can only be answered if the name arrives with the
+     * journal — the events themselves carry an id, and an id tells the user nothing.
+     */
+    @Test
+    fun `a peer's name is remembered so its actions can be signed`() = runTest {
+        writePeerJournal("device-b", deviceName = "Телефон Алексея")
+
+        manager.sync()
+
+        assertEquals(
+            mapOf("device-b" to "Телефон Алексея"),
+            preferences.preferences.first().peerNames,
+        )
+    }
+
+    /** An older peer publishes no name at all; the history then says "another device". */
+    @Test
+    fun `a peer without a name leaves nothing behind`() = runTest {
+        writePeerJournal("device-b")
+
+        manager.sync()
+
+        assertTrue(preferences.preferences.first().peerNames.isEmpty())
+    }
+
+    @Test
+    fun `our own journal introduces this device by name`() = runTest {
+        preferences.setDeviceName("Кухонный телефон")
+
+        manager.sync()
+
+        val published = json.decodeFromString(
+            SyncJournal.serializer(),
+            File(folder, ourJournalName()).readText(),
+        )
+        assertEquals("Кухонный телефон", published.deviceName)
     }
 
     @Test

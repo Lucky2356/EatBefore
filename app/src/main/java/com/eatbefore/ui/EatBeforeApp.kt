@@ -221,7 +221,17 @@ private fun MainNavigation(
                 route = Routes.PRODUCT,
                 arguments = listOf(navArgument(Routes.PRODUCT_BATCH_ARG) { type = NavType.LongType }),
             ) {
-                ProductScreen(onBack = { navController.popBackStack() })
+                ProductScreen(
+                    onBack = { navController.popBackStack() },
+                    // Switching to a sibling batch replaces this card rather than stacking
+                    // on top of it: after comparing three cartons of milk, Back has to
+                    // return to the list, not walk back through every carton looked at.
+                    onOpenBatch = { batchId ->
+                        navController.navigate(Routes.product(batchId)) {
+                            popUpTo(Routes.PRODUCT) { inclusive = true }
+                        }
+                    },
+                )
             }
 
             composable(Routes.HISTORY) {

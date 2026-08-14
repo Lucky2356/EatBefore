@@ -65,6 +65,18 @@ data class UserPreferences(
     val syncFolderUri: String? = null,
     /** Epoch millis of the last successful exchange, 0 when never run. */
     val lastSyncAt: Long = 0,
+    /**
+     * What the other household member sees next to actions done here. Null means "not
+     * chosen", and the phone's model stands in — see
+     * [com.eatbefore.core.sync.DeviceIdProvider.deviceName].
+     */
+    val deviceName: String? = null,
+    /**
+     * Names of the devices we have merged journals from, keyed by their device id. Learned
+     * during an exchange rather than configured: the history has to be able to say "Алекс
+     * threw it out" for events that arrived from a phone the user cannot type into.
+     */
+    val peerNames: Map<String, String> = emptyMap(),
 )
 
 /** How many automatic copies to keep before deleting the oldest. */
@@ -98,6 +110,14 @@ class UserPreferencesRepository @Inject constructor(
             offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
             syncFolderUri = prefs[KEY_SYNC_FOLDER]?.takeIf { it.isNotBlank() },
             lastSyncAt = prefs[KEY_LAST_SYNC] ?: 0L,
+            deviceName = prefs[KEY_DEVICE_NAME]?.takeIf { it.isNotBlank() },
+            peerNames = prefs.asMap()
+                .filterKeys { it.name.startsWith(PEER_NAME_PREFIX) }
+                .mapNotNull { (key, value) ->
+                    val name = value as? String ?: return@mapNotNull null
+                    key.name.removePrefix(PEER_NAME_PREFIX) to name
+                }
+                .toMap(),
         )
     }
 
@@ -141,6 +161,26 @@ class UserPreferencesRepository @Inject constructor(
         return dataStore.edit { prefs ->
             if (prefs[KEY_DEVICE_ID].isNullOrBlank()) prefs[KEY_DEVICE_ID] = generated
         }[KEY_DEVICE_ID] ?: generated
+    }
+
+    /**
+     * Renames this device for the other household member. A blank name clears the choice
+     * and puts the phone's model back.
+     */
+    suspend fun setDeviceName(name: String?) {
+        dataStore.edit { prefs ->
+            if (name.isNullOrBlank()) prefs.remove(KEY_DEVICE_NAME) else prefs[KEY_DEVICE_NAME] = name.trim()
+        }
+    }
+
+    /**
+     * Records what a peer calls itself, learned from the journal it published. One key per
+     * device rather than an encoded map: peers are added one at a time and never rewritten
+     * together, so a map would only add a parse step that can fail.
+     */
+    suspend fun rememberPeerName(deviceId: String, name: String) {
+        if (deviceId.isBlank() || name.isBlank()) return
+        dataStore.edit { it[stringPreferencesKey("$PEER_NAME_PREFIX$deviceId")] = name.trim() }
     }
 
     /** Sync folder shared with the other household member (SAF tree URI). */
@@ -248,5 +288,7 @@ class UserPreferencesRepository @Inject constructor(
         val KEY_DEVICE_ID = stringPreferencesKey("device_id")
         val KEY_SYNC_FOLDER = stringPreferencesKey("sync_folder_uri")
         val KEY_LAST_SYNC = longPreferencesKey("last_sync_at")
+        val KEY_DEVICE_NAME = stringPreferencesKey("device_name")
+        const val PEER_NAME_PREFIX = "peer_name_"
     }
 }

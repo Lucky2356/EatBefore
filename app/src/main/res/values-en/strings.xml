@@ -118,6 +118,8 @@
     <string name="add_expiry_week">In a week</string>
     <string name="add_expiry_month">In a month</string>
     <string name="add_expiry_none">No date</string>
+    <string name="add_price">Price, %1$s</string>
+    <string name="add_price_hint">Optional. Needed to show how much went into the bin</string>
     <string name="add_saved">Product added</string>
     <string name="add_error_name_required">Enter a name</string>
 
@@ -126,6 +128,8 @@
     <string name="product_location">Place</string>
     <string name="product_expiration">Expiry date</string>
     <string name="product_opened_at">Opened</string>
+    <string name="product_purchase_date">Bought</string>
+    <string name="product_price">Price</string>
     <string name="product_history">History</string>
     <string name="product_action_open">Open</string>
     <string name="product_action_decrement">Use some</string>
@@ -145,6 +149,11 @@
         <item quantity="one">Once opened — use within %1$d day</item>
         <item quantity="other">Once opened — use within %1$d days</item>
     </plurals>
+    <plurals name="product_other_batches">
+        <item quantity="one">%1$d more package at home</item>
+        <item quantity="other">%1$d more packages at home</item>
+    </plurals>
+    <string name="product_total_amount">Total: %1$s</string>
 
     <!-- History -->
     <string name="history_title">History</string>
@@ -202,6 +211,8 @@
     <string name="analytics_discarded">Thrown away</string>
     <string name="analytics_expired">Expired</string>
     <string name="analytics_used_in_time">Used in time: %1$d%%</string>
+    <string name="analytics_wasted_money">Thrown away: %1$s</string>
+    <string name="analytics_wasted_money_coverage">Price known for %1$d of %2$d written-off packs</string>
     <string name="analytics_wasted_by_category">Most wasted categories</string>
     <string name="analytics_top_products">Regular purchases</string>
     <string name="analytics_no_category">No category</string>
@@ -375,6 +386,10 @@
     <string name="settings_sharing_not_configured">Choose a shared folder first</string>
     <string name="settings_sharing_folder_gone">Folder is unavailable — choose it again</string>
     <string name="settings_sharing_failed">Exchange failed. Try again later</string>
+    <string name="settings_device_name">This phone\'s name</string>
+    <string name="settings_device_name_desc">How your actions are signed in the other person\'s history</string>
+    <string name="settings_device_name_hint">For example: Alex\'s phone</string>
+    <string name="history_other_device">Another device</string>
 
     <string name="settings_section_catalog">Product catalog</string>
     <string name="settings_catalog_desc">Lookups use the open Open Food Facts databases: food, cosmetics, household products and pet food. Russian coverage is thin — if you add an unknown product and send it in, everyone gets it.</string>

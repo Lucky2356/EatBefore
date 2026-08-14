@@ -8,6 +8,7 @@ import com.eatbefore.core.database.relation.BatchWithProductAndLocation
 import com.eatbefore.core.widget.StockChangeNotifier
 import com.eatbefore.data.mapper.toDomain
 import com.eatbefore.data.mapper.toEntity
+import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
@@ -45,6 +46,11 @@ class InventoryRepositoryImpl @Inject constructor(
         batchDao.observeRecent(limit).map { list -> list.map { it.toItem() } }
 
     override fun observePresentCount(): Flow<Int> = batchDao.observePresentCount()
+
+    override fun observePrices(): Flow<Map<Long, BatchPrice>> =
+        batchDao.observePrices().map { rows ->
+            rows.associate { it.batchId to BatchPrice(it.price, it.currency) }
+        }
 
     override fun observeItem(batchId: Long): Flow<InventoryItem?> =
         batchDao.observeWithProduct(batchId).map { it?.toItem() }

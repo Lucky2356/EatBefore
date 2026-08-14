@@ -1,5 +1,6 @@
 package com.eatbefore.feature.product
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -60,21 +62,29 @@ import coil.compose.AsyncImage
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
+import com.eatbefore.core.designsystem.component.ExpiryLabel
 import com.eatbefore.core.designsystem.component.ExpiryOnlyDialog
 import com.eatbefore.core.designsystem.component.QuantityStepper
+import com.eatbefore.core.designsystem.component.SectionCard
 import com.eatbefore.core.designsystem.component.StatusBadge
+import com.eatbefore.core.designsystem.format.currencySymbol
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
+import com.eatbefore.core.designsystem.format.formatMoney
 import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.format.remainingText
+import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Shapes
+import com.eatbefore.feature.common.InventoryRowUi
+import com.eatbefore.feature.history.eventAuthor
 import com.eatbefore.feature.history.eventLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductScreen(
     onBack: () -> Unit,
+    onOpenBatch: (Long) -> Unit,
     viewModel: ProductViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -113,18 +123,26 @@ fun ProductScreen(
     val editableItem = state.item
     if (showEditDialog && editableItem != null) {
         EditDetailsDialog(
-            initialName = editableItem.product.name,
-            initialBrand = editableItem.product.brand.orEmpty(),
-            initialCategory = editableItem.product.category.orEmpty(),
-            initialExpiry = editableItem.batch.expirationDate,
-            initialNote = editableItem.batch.note.orEmpty(),
-            onConfirm = { name, brand, category, expiry, note ->
+            initial = EditedDetails(
+                name = editableItem.product.name,
+                brand = editableItem.product.brand.orEmpty(),
+                category = editableItem.product.category.orEmpty(),
+                expiry = editableItem.batch.expirationDate,
+                note = editableItem.batch.note.orEmpty(),
+                price = editableItem.batch.price,
+                purchaseDate = editableItem.batch.purchaseDate,
+            ),
+            currency = editableItem.batch.currency,
+            today = viewModel.today,
+            onConfirm = { edited ->
                 viewModel.updateDetails(
-                    name = name,
-                    brand = brand.ifBlank { null },
-                    category = category.ifBlank { null },
-                    expirationDate = expiry,
-                    note = note.ifBlank { null },
+                    name = edited.name,
+                    brand = edited.brand.ifBlank { null },
+                    category = edited.category.ifBlank { null },
+                    expirationDate = edited.expiry,
+                    note = edited.note.ifBlank { null },
+                    price = edited.price,
+                    purchaseDate = edited.purchaseDate,
                 )
                 showEditDialog = false
             },
@@ -286,7 +304,13 @@ fun ProductScreen(
                     onFinished = viewModel::markFinished,
                 )
 
-                HistorySection(state.history)
+                OtherBatchesSection(
+                    others = state.otherBatches,
+                    total = state.total,
+                    onOpenBatch = onOpenBatch,
+                )
+
+                HistorySection(state.history, state.peerNames)
             }
         }
     }
@@ -379,6 +403,15 @@ private fun ProductHeaderCard(
                 DetailRow(
                     stringResource(R.string.product_opened_at),
                     formatDate(it),
+                )
+            }
+            item.batch.purchaseDate?.let { date ->
+                DetailRow(stringResource(R.string.product_purchase_date), formatDate(date))
+            }
+            item.batch.price?.let { price ->
+                DetailRow(
+                    stringResource(R.string.product_price),
+                    formatMoney(price, item.batch.currency),
                 )
             }
             // Before opening, tell the user what opening will cost them in shelf life.
@@ -517,8 +550,70 @@ private fun MoveMenu(
     }
 }
 
+/**
+ * The other packs of this product still at home.
+ *
+ * The card only ever showed the one batch that was tapped, so three cartons of milk with
+ * three different dates were nowhere visible together — the one thing a user standing at
+ * the fridge with a carton in hand actually wants to know. Soonest first, and tapping one
+ * switches the card to it.
+ */
 @Composable
-private fun HistorySection(history: List<com.eatbefore.domain.model.InventoryEvent>) {
+private fun OtherBatchesSection(
+    others: List<InventoryRowUi>,
+    total: BatchTotal?,
+    onOpenBatch: (Long) -> Unit,
+) {
+    if (others.isEmpty()) return
+    SectionCard(title = pluralStringResource(R.plurals.product_other_batches, others.size, others.size)) {
+        others.forEach { row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenBatch(row.batchId) }
+                    .heightIn(min = Dimens.minTouchTarget)
+                    .padding(vertical = Dimens.spaceSm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+            ) {
+                // An open pack is on a different clock from a sealed one, and choosing
+                // which carton to finish is exactly when that matters.
+                if (row.isOpened) {
+                    Icon(
+                        Icons.Outlined.LockOpen,
+                        contentDescription = stringResource(R.string.row_opened),
+                        modifier = Modifier.size(Dimens.iconSm),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = "${formatQuantity(row.quantity, row.unit)} · " +
+                        storageDisplayName(row.locationName, row.locationType),
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                ExpiryLabel(status = row.expiryStatus, remainingDays = row.remainingDays)
+            }
+        }
+        if (total != null) {
+            HorizontalDivider()
+            Text(
+                stringResource(R.string.product_total_amount, formatQuantity(total.quantity, total.unit)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = Dimens.spaceXs),
+            )
+        }
+    }
+}
+
+@Composable
+private fun HistorySection(
+    history: List<com.eatbefore.domain.model.InventoryEvent>,
+    peerNames: Map<String, String>,
+) {
     if (history.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Text(
@@ -531,7 +626,15 @@ private fun HistorySection(history: List<com.eatbefore.domain.model.InventoryEve
                 modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceXs),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(eventLabel(event.eventType), style = MaterialTheme.typography.bodyMedium)
+                val author = eventAuthor(event, peerNames)
+                Text(
+                    text = if (author == null) {
+                        eventLabel(event.eventType)
+                    } else {
+                        "${eventLabel(event.eventType)} · $author"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
                 Text(
                     formatDate(event.createdAt),
                     style = MaterialTheme.typography.bodyMedium,
@@ -574,36 +677,53 @@ private fun QuantityDialog(
     )
 }
 
-/** Edits product-card fields and the batch expiry/note in one place. */
+/** Everything the edit dialog can change, so its callback stays readable. */
+private data class EditedDetails(
+    val name: String,
+    val brand: String,
+    val category: String,
+    val expiry: java.time.LocalDate?,
+    val note: String,
+    val price: Double?,
+    val purchaseDate: java.time.LocalDate?,
+)
+
+/** Edits product-card fields and the batch expiry/note/price in one place. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditDetailsDialog(
-    initialName: String,
-    initialBrand: String,
-    initialCategory: String,
-    initialExpiry: java.time.LocalDate?,
-    initialNote: String,
-    onConfirm: (
-        name: String,
-        brand: String,
-        category: String,
-        expiry: java.time.LocalDate?,
-        note: String,
-    ) -> Unit,
+    initial: EditedDetails,
+    currency: String?,
+    today: java.time.LocalDate,
+    onConfirm: (EditedDetails) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var brand by remember { mutableStateOf(initialBrand) }
-    var category by remember { mutableStateOf(initialCategory) }
-    var expiry by remember { mutableStateOf(initialExpiry) }
-    var note by remember { mutableStateOf(initialNote) }
+    var name by remember { mutableStateOf(initial.name) }
+    var brand by remember { mutableStateOf(initial.brand) }
+    var category by remember { mutableStateOf(initial.category) }
+    var expiry by remember { mutableStateOf(initial.expiry) }
+    var note by remember { mutableStateOf(initial.note) }
+    var price by remember {
+        mutableStateOf(initial.price?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty())
+    }
+    var purchaseDate by remember { mutableStateOf(initial.purchaseDate) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showPurchasePicker by remember { mutableStateOf(false) }
 
     if (showDatePicker) {
         ExpiryDatePickerDialog(
             initial = expiry,
             onConfirm = { expiry = it },
             onDismiss = { showDatePicker = false },
+        )
+    }
+
+    if (showPurchasePicker) {
+        // A purchase is in the past; the picker starts from today rather than the expiry.
+        ExpiryDatePickerDialog(
+            initial = purchaseDate ?: today,
+            onConfirm = { purchaseDate = it },
+            onDismiss = { showPurchasePicker = false },
         )
     }
 
@@ -671,6 +791,38 @@ private fun EditDetailsDialog(
                         }
                     }
                 }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text(
+                            stringResource(R.string.product_purchase_date),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            purchaseDate?.let { formatDate(it) } ?: stringResource(R.string.status_no_date),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                    TextButton(onClick = { showPurchasePicker = true }) {
+                        Text(stringResource(R.string.product_edit_pick_date))
+                    }
+                }
+                androidx.compose.material3.OutlinedTextField(
+                    value = price,
+                    onValueChange = { value ->
+                        price = value.replace(',', '.').filter { it.isDigit() || it == '.' }
+                    },
+                    label = { Text(stringResource(R.string.add_price, currencySymbol(currency))) },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 androidx.compose.material3.OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
@@ -681,7 +833,19 @@ private fun EditDetailsDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(name, brand, category, expiry, note) },
+                onClick = {
+                    onConfirm(
+                        EditedDetails(
+                            name = name,
+                            brand = brand,
+                            category = category,
+                            expiry = expiry,
+                            note = note,
+                            price = price.toDoubleOrNull()?.takeIf { it > 0 },
+                            purchaseDate = purchaseDate,
+                        ),
+                    )
+                },
                 enabled = name.isNotBlank(),
             ) { Text(stringResource(R.string.action_save)) }
         },

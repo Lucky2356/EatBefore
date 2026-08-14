@@ -114,8 +114,16 @@ fun HistoryScreen(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(eventLabel(event.eventType), style = MaterialTheme.typography.titleMedium)
+                                    // "Who threw out the sour cream?" is the question a
+                                    // shared history exists to answer, and only the rows
+                                    // that came from the other phone need signing.
+                                    val author = eventAuthor(event, state.peerNames)
                                     Text(
-                                        formatDateTime(event.createdAt),
+                                        text = if (author == null) {
+                                            formatDateTime(event.createdAt)
+                                        } else {
+                                            "${formatDateTime(event.createdAt)} · $author"
+                                        },
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )

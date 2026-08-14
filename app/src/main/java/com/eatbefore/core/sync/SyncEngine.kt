@@ -34,7 +34,7 @@ import javax.inject.Singleton
 class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private val clock: AppClock) {
 
     /** Everything this device knows, ready to be written to the shared folder. */
-    suspend fun buildOwnJournal(deviceId: String): SyncJournal {
+    suspend fun buildOwnJournal(deviceId: String, deviceName: String = ""): SyncJournal {
         val products = db.productDao().getAll()
         val batches = db.inventoryBatchDao().getAll()
         val locations = db.storageLocationDao().getAll()
@@ -46,6 +46,7 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
 
         return SyncJournal(
             deviceId = deviceId,
+            deviceName = deviceName,
             writtenAtEpochMillis = clock.now().toEpochMilli(),
             locations = locations.map { SyncLocation(name = it.name, type = it.type.name) },
             products = products.map { it.toSync() },

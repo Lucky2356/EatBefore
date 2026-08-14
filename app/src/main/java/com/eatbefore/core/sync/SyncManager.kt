@@ -87,6 +87,10 @@ class SyncManager @Inject constructor(
                     if (journal.formatVersion > SyncJournal.CURRENT_FORMAT_VERSION) return@forEach
                     if (journal.deviceId == deviceId) return@forEach
                     val stats = engine.merge(journal)
+                    // Remembered before anything can fail later: the events just merged
+                    // carry this device's id, and without the name the history can only
+                    // say "another device" about them.
+                    preferences.rememberPeerName(journal.deviceId, journal.deviceName)
                     total = total.plus(stats)
                 }
 
@@ -120,7 +124,7 @@ class SyncManager @Inject constructor(
         val name = SyncJournal.fileNameFor(deviceId)
         val content = json.encodeToString(
             SyncJournal.serializer(),
-            engine.buildOwnJournal(deviceId),
+            engine.buildOwnJournal(deviceId, deviceIdProvider.deviceName()),
         )
         // Overwrite in place when possible: recreating the file changes its identity and
         // some cloud clients treat that as a delete plus an add.

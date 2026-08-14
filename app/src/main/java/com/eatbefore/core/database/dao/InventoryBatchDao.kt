@@ -7,6 +7,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.eatbefore.core.database.entity.InventoryBatchEntity
+import com.eatbefore.core.database.relation.BatchPriceRow
 import com.eatbefore.core.database.relation.BatchWithProductAndLocation
 import kotlinx.coroutines.flow.Flow
 
@@ -110,6 +111,14 @@ interface InventoryBatchDao {
         """,
     )
     fun observePresentCount(): Flow<Int>
+
+    /**
+     * Prices of every batch that has one, for the money side of analytics. Most households
+     * fill this in for some products and not others, which is exactly why the screen has
+     * to say how many batches a total covers.
+     */
+    @Query("SELECT id, price, currency FROM inventory_batches WHERE price IS NOT NULL")
+    fun observePrices(): Flow<List<BatchPriceRow>>
 
     /** All present batches for the given product, used when merging duplicates. */
     @Query(

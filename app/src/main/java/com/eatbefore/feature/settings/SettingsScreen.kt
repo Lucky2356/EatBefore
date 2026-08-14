@@ -48,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -88,6 +89,7 @@ fun SettingsScreen(
     var showLocationPicker by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var showOffAccountDialog by remember { mutableStateOf(false) }
+    var showDeviceNameDialog by remember { mutableStateOf(false) }
     var diagnosticsReport by remember { mutableStateOf<String?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
@@ -309,6 +311,14 @@ fun SettingsScreen(
                     onClick = { syncFolderLauncher.launch(null) },
                 )
                 if (prefs.syncFolderUri != null) {
+                    HorizontalDivider()
+                    // Only worth asking once sharing is on: alone, this phone's name has
+                    // nobody to introduce itself to.
+                    SettingActionRow(
+                        title = stringResource(R.string.settings_device_name),
+                        subtitle = prefs.deviceName ?: stringResource(R.string.settings_device_name_desc),
+                        onClick = { showDeviceNameDialog = true },
+                    )
                     HorizontalDivider()
                     SettingActionRow(
                         title = stringResource(R.string.settings_sharing_now),
@@ -553,6 +563,17 @@ fun SettingsScreen(
         )
     }
 
+    if (showDeviceNameDialog) {
+        DeviceNameDialog(
+            currentName = prefs.deviceName,
+            onDismiss = { showDeviceNameDialog = false },
+            onSave = { name ->
+                viewModel.setDeviceName(name)
+                showDeviceNameDialog = false
+            },
+        )
+    }
+
     if (showOffAccountDialog) {
         OffAccountDialog(
             currentUsername = prefs.offUsername,
@@ -563,6 +584,49 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+/**
+ * Names this phone for the other household member.
+ *
+ * Clearing the field is a real answer, not a cancel: it puts the phone's model back, which
+ * is what an unnamed device publishes.
+ */
+@Composable
+private fun DeviceNameDialog(
+    currentName: String?,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var name by remember { mutableStateOf(currentName.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_device_name)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                Text(
+                    stringResource(R.string.settings_device_name_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = { Text(stringResource(R.string.settings_device_name_hint)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(name) }) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 /**

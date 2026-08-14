@@ -33,6 +33,8 @@ class AddBatchUseCase @Inject constructor(
         val note: String? = null,
         val price: Double? = null,
         val currency: String? = null,
+        /** When it was bought; today unless the caller knows better. */
+        val purchaseDate: LocalDate? = null,
     )
 
     suspend operator fun invoke(params: Params): Long {
@@ -54,6 +56,7 @@ class AddBatchUseCase @Inject constructor(
             quantity = quantity,
             initialQuantity = quantity,
             measurementUnit = unit,
+            purchaseDate = params.purchaseDate ?: clock.today(),
             addedAt = now,
             expirationDate = params.expirationDate,
             recommendedUseAfterOpeningDays = afterOpeningDays,

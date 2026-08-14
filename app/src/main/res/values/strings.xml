@@ -125,6 +125,8 @@
     <string name="add_expiry_week">Через неделю</string>
     <string name="add_expiry_month">Через месяц</string>
     <string name="add_expiry_none">Без срока</string>
+    <string name="add_price">Цена, %1$s</string>
+    <string name="add_price_hint">Необязательно. Нужна, чтобы показать, на сколько выброшено</string>
     <string name="add_saved">Продукт добавлен</string>
     <string name="add_error_name_required">Укажите название</string>
 
@@ -133,6 +135,8 @@
     <string name="product_location">Место</string>
     <string name="product_expiration">Срок годности</string>
     <string name="product_opened_at">Открыто</string>
+    <string name="product_purchase_date">Куплено</string>
+    <string name="product_price">Цена</string>
     <string name="product_history">История</string>
     <string name="product_action_open">Открыть</string>
     <string name="product_action_decrement">Уменьшить</string>
@@ -154,6 +158,13 @@
         <item quantity="many">После вскрытия — использовать за %1$d дней</item>
         <item quantity="other">После вскрытия — использовать за %1$d дня</item>
     </plurals>
+    <plurals name="product_other_batches">
+        <item quantity="one">Ещё %1$d упаковка дома</item>
+        <item quantity="few">Ещё %1$d упаковки дома</item>
+        <item quantity="many">Ещё %1$d упаковок дома</item>
+        <item quantity="other">Ещё %1$d упаковки дома</item>
+    </plurals>
+    <string name="product_total_amount">Всего: %1$s</string>
 
     <!-- History -->
     <string name="history_title">История</string>
@@ -211,6 +222,8 @@
     <string name="analytics_discarded">Выброшено</string>
     <string name="analytics_expired">Просрочено</string>
     <string name="analytics_used_in_time">Использовано вовремя: %1$d%%</string>
+    <string name="analytics_wasted_money">Выброшено на %1$s</string>
+    <string name="analytics_wasted_money_coverage">Цена известна у %1$d из %2$d списанных упаковок</string>
     <string name="analytics_wasted_by_category">Чаще всего выбрасывается</string>
     <string name="analytics_top_products">Регулярные покупки</string>
     <string name="analytics_no_category">Без категории</string>
@@ -392,6 +405,10 @@
     <string name="settings_sharing_not_configured">Сначала выберите общую папку</string>
     <string name="settings_sharing_folder_gone">Папка недоступна — выберите её заново</string>
     <string name="settings_sharing_failed">Не удалось обменяться. Попробуйте позже</string>
+    <string name="settings_device_name">Имя этого телефона</string>
+    <string name="settings_device_name_desc">Так ваши действия будут подписаны в истории у второго человека</string>
+    <string name="settings_device_name_hint">Например: телефон Алексея</string>
+    <string name="history_other_device">Другое устройство</string>
 
     <string name="settings_section_catalog">Каталог товаров</string>
     <string name="settings_catalog_desc">Поиск идёт по открытым базам Open Food Facts: продукты, косметика, бытовая химия и корма. Российских товаров там мало — если вы добавите неизвестный товар и отправите его в базу, он появится у всех.</string>

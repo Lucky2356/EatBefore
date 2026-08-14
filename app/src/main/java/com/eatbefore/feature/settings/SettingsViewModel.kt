@@ -195,6 +195,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Renames this phone for the other household member. The name only reaches them with
+     * the next exchange — the journal carries it — so nothing is announced here.
+     */
+    fun setDeviceName(name: String) {
+        viewModelScope.launch { preferences.setDeviceName(name) }
+    }
+
     /** Exchanges journals right now. Shown as a spinner so a slow drive is visible. */
     fun syncNow() {
         if (_isSyncing.value) return

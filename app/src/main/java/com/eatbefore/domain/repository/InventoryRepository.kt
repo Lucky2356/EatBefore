@@ -1,5 +1,6 @@
 package com.eatbefore.domain.repository
 
+import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
@@ -18,6 +19,9 @@ interface InventoryRepository {
     fun observeAllForProduct(productId: Long): Flow<List<InventoryItem>>
     fun observeRecent(limit: Int): Flow<List<InventoryItem>>
     fun observePresentCount(): Flow<Int>
+
+    /** What each batch cost, for batches that have a price at all. Keyed by batch id. */
+    fun observePrices(): Flow<Map<Long, BatchPrice>>
     fun observeItem(batchId: Long): Flow<InventoryItem?>
 
     suspend fun getBatch(id: Long): InventoryBatch?

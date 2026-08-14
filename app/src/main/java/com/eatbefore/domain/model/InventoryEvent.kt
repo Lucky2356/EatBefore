@@ -24,6 +24,14 @@ data class InventoryEvent(
     val newStorageLocationId: Long? = null,
     val reason: String? = null,
     val createdAt: Instant = Instant.EPOCH,
+    /**
+     * Which installation performed the action. Empty means this one: a device stamps its
+     * id only into the copy it publishes (see
+     * [com.eatbefore.core.sync.SyncEngine.buildOwnJournal]), so a filled id locally can
+     * only have arrived with a peer's journal. That asymmetry is what lets the history say
+     * "this was the other phone" without storing an id for every row we write ourselves.
+     */
+    val deviceId: String = "",
     /** Free-form structured extra data (JSON). Never contains secrets. */
     val metadata: String? = null,
 )

@@ -45,11 +45,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.eatbefore.R
-import com.eatbefore.core.designsystem.component.toVisual
+import com.eatbefore.core.designsystem.component.ExpiryLabel
 import com.eatbefore.core.designsystem.format.formatQuantity
-import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.theme.Dimens
-import com.eatbefore.core.designsystem.theme.LocalStatusColors
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.StorageType
 
@@ -177,7 +175,7 @@ fun InventoryRowCard(
                     )
                 }
             }
-            RowStatus(status = row.expiryStatus, remainingDays = row.remainingDays)
+            ExpiryLabel(status = row.expiryStatus, remainingDays = row.remainingDays)
 
             if (onQuickAction != null) {
                 QuickActionMenu(
@@ -191,56 +189,6 @@ fun InventoryRowCard(
                 )
             }
         }
-    }
-}
-
-/**
- * The right-hand end of a row: how long this batch has left.
- *
- * One element, not two. The row used to carry both "169 days left" and a filled «Fresh»
- * pill, which say the same thing — and the pill said it louder, so four healthy products
- * shouted while the one going off did not stand out. Now only the weight changes: a plain
- * label when there is nothing to do, a filled one when there is. The text always carries
- * the number, so it says strictly more than the status word it replaced.
- */
-@Composable
-private fun RowStatus(
-    status: com.eatbefore.domain.model.ExpiryStatus,
-    remainingDays: Long?,
-) {
-    val visual = status.toVisual()
-    val text = remainingText(remainingDays) ?: stringResource(R.string.status_no_date)
-
-    if (!visual.needsAttention) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            // Three weights in all: a pill for what must be dealt with today, the status
-            // colour for what is running out, plain grey for everything else.
-            color = if (status == com.eatbefore.domain.model.ExpiryStatus.EXPIRING_SOON) {
-                visual.color
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-        return
-    }
-
-    val onStatus = LocalStatusColors.current.onStatus
-    Row(
-        modifier = Modifier
-            .background(visual.color, Shapes.pill)
-            .padding(horizontal = Dimens.spaceSm, vertical = Dimens.spaceXs),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
-    ) {
-        Icon(
-            imageVector = visual.icon,
-            contentDescription = null,
-            tint = onStatus,
-            modifier = Modifier.size(Dimens.iconSm),
-        )
-        Text(text = text, color = onStatus, style = MaterialTheme.typography.labelLarge)
     }
 }
 

@@ -10,6 +10,7 @@ import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryItem
+import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.StorageLocationRepository
@@ -291,6 +292,130 @@ class ProductViewModelTest {
         coVerify(exactly = 0) { changeQuantity(any(), any()) }
         coVerify(exactly = 0) { markStatus(any(), any()) }
     }
+
+    /**
+     * Three cartons of milk with three dates were nowhere visible together before this:
+     * the card showed the one batch that was tapped and nothing else.
+     */
+    @Test
+    fun `the card lists the other packs of the same product, soonest first`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(
+            InventoryItem(batch, product, fridge),
+            InventoryItem(sibling(id = 8, expiry = LocalDate.of(2026, 8, 10)), product, fridge),
+            InventoryItem(sibling(id = 9, expiry = LocalDate.of(2026, 8, 5)), product, fridge),
+        )
+
+        vm.uiState.test {
+            val state = awaitItemWhere { it.otherBatches.isNotEmpty() }
+            assertEquals(listOf(9L, 8L), state.otherBatches.map { it.batchId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** A pack without a date is not an urgent one, so it goes to the end of the list. */
+    @Test
+    fun `packs without a date sort last`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(
+            InventoryItem(sibling(id = 8, expiry = null), product, fridge),
+            InventoryItem(sibling(id = 9, expiry = LocalDate.of(2026, 8, 5)), product, fridge),
+        )
+
+        vm.uiState.test {
+            val state = awaitItemWhere { it.otherBatches.size == 2 }
+            assertEquals(listOf(9L, 8L), state.otherBatches.map { it.batchId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * The query returns everything ever recorded for the product. What was eaten or thrown
+     * away is history, not stock — listing it as "also at home" would be a lie.
+     */
+    @Test
+    fun `batches that are gone are not listed as still at home`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(
+            InventoryItem(sibling(id = 8, expiry = LocalDate.of(2026, 8, 5)), product, fridge),
+            InventoryItem(
+                sibling(id = 9, expiry = LocalDate.of(2026, 8, 6)).copy(status = BatchStatus.CONSUMED),
+                product,
+                fridge,
+            ),
+            InventoryItem(
+                sibling(id = 10, expiry = LocalDate.of(2026, 8, 7)).copy(deletedAt = clock.now()),
+                product,
+                fridge,
+            ),
+        )
+
+        vm.uiState.test {
+            val state = awaitItemWhere { it.otherBatches.isNotEmpty() }
+            assertEquals(listOf(8L), state.otherBatches.map { it.batchId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the total counts this pack together with the others`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(
+            InventoryItem(batch, product, fridge),
+            InventoryItem(sibling(id = 8, expiry = LocalDate.of(2026, 8, 10)), product, fridge),
+        )
+
+        vm.uiState.test {
+            val state = awaitItemWhere { it.total != null }
+            // Two on the open card plus one more pack.
+            assertEquals(3.0, state.total!!.quantity, 0.0)
+            assertEquals(MeasurementUnit.PIECE, state.total.unit)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** Half a litre plus one package is not a number; saying nothing beats inventing one. */
+    @Test
+    fun `no total is offered when the packs are measured differently`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(
+            InventoryItem(batch, product, fridge),
+            InventoryItem(
+                sibling(id = 8, expiry = LocalDate.of(2026, 8, 10))
+                    .copy(measurementUnit = MeasurementUnit.LITER),
+                product,
+                fridge,
+            ),
+        )
+
+        vm.uiState.test {
+            val state = awaitItemWhere { it.otherBatches.isNotEmpty() }
+            assertNull(state.total)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a single pack is listed as no others and needs no total`() = runTest {
+        val vm = viewModel()
+        inventory.productBatches.value = listOf(InventoryItem(batch, product, fridge))
+
+        vm.uiState.test {
+            val state = awaitItemWhere { !it.isLoading }
+            assertTrue(state.otherBatches.isEmpty())
+            assertNull(state.total)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private fun sibling(id: Long, expiry: LocalDate?) = InventoryBatch(
+        id = id,
+        productId = product.id,
+        storageLocationId = fridge.id,
+        quantity = 1.0,
+        initialQuantity = 1.0,
+        expirationDate = expiry,
+    )
 
     @Test
     fun `moving the batch reports where it went`() = runTest {

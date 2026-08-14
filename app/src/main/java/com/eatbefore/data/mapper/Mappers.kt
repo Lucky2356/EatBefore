@@ -133,6 +133,7 @@ fun InventoryEventEntity.toDomain(): InventoryEvent = InventoryEvent(
     newStorageLocationId = newStorageLocationId,
     reason = reason,
     createdAt = createdAt.toInstant(),
+    deviceId = deviceId,
     metadata = metadata,
 )
 
@@ -149,6 +150,9 @@ fun InventoryEvent.toEntity(): InventoryEventEntity = InventoryEventEntity(
     newStorageLocationId = newStorageLocationId,
     reason = reason,
     createdAt = createdAt.toEpochMilli(),
+    // Kept rather than defaulted: an event merged from a peer must not lose its author
+    // when it passes back through the domain layer.
+    deviceId = deviceId,
     metadata = metadata,
 )
 

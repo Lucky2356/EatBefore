@@ -42,6 +42,12 @@ class AddManualProductUseCase @Inject constructor(
         val note: String? = null,
         val price: Double? = null,
         val currency: String? = null,
+        /**
+         * When it was bought. Defaults to today rather than staying empty: food is
+         * normally recorded on the way in from the shop, and a date that is right almost
+         * always and correctable on the card beats a column nobody ever fills.
+         */
+        val purchaseDate: LocalDate? = null,
     )
 
     suspend operator fun invoke(params: Params): Long {
@@ -79,6 +85,7 @@ class AddManualProductUseCase @Inject constructor(
             quantity = quantity,
             initialQuantity = quantity,
             measurementUnit = params.measurementUnit,
+            purchaseDate = params.purchaseDate ?: clock.today(),
             addedAt = now,
             expirationDate = params.expirationDate,
             // Rule of thumb for the product group when the caller has nothing better.

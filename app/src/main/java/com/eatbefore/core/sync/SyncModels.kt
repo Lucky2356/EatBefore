@@ -17,6 +17,13 @@ import kotlinx.serialization.Serializable
 data class SyncJournal(
     val formatVersion: Int = CURRENT_FORMAT_VERSION,
     val deviceId: String,
+    /**
+     * What this device calls itself, so a peer can write "Redmi Note 12 threw it out"
+     * instead of quoting a uuid at the user. Defaulted rather than versioned: readers
+     * ignore unknown keys, so an older app skips it and a newer one reading an older
+     * journal simply has no name to show.
+     */
+    val deviceName: String = "",
     val writtenAtEpochMillis: Long,
     val locations: List<SyncLocation> = emptyList(),
     val products: List<SyncProduct> = emptyList(),

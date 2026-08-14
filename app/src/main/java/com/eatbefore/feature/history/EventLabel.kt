@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.eatbefore.R
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.InventoryEvent
 
 /** Localized label for a history [EventType]. */
 @Composable
@@ -22,3 +23,17 @@ fun eventLabel(type: EventType): String = stringResource(
         EventType.REMOVED_FROM_SHOPPING_LIST -> R.string.event_removed_from_shopping
     },
 )
+
+/**
+ * Who did this, or null when it was this phone.
+ *
+ * Only actions that arrived from the other household member are signed. In a two-person
+ * household "not me" already names the person, and labelling our own rows «Это устройство»
+ * would put a word on every line to say nothing. [peerNames] comes from the journals we
+ * have merged; an id we have no name for yet still deserves an honest answer.
+ */
+@Composable
+fun eventAuthor(event: InventoryEvent, peerNames: Map<String, String>): String? {
+    if (event.deviceId.isBlank()) return null
+    return peerNames[event.deviceId] ?: stringResource(R.string.history_other_device)
+}
