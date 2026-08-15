@@ -34,7 +34,14 @@ import com.eatbefore.feature.onboarding.OnboardingScreen
 import com.eatbefore.feature.product.ProductScreen
 import com.eatbefore.feature.products.ProductsScreen
 import com.eatbefore.feature.scanner.ScannerScreen
-import com.eatbefore.feature.settings.SettingsScreen
+import com.eatbefore.feature.settings.SettingsHomeScreen
+import com.eatbefore.feature.settings.sections.AboutSettingsScreen
+import com.eatbefore.feature.settings.sections.AppearanceSettingsScreen
+import com.eatbefore.feature.settings.sections.CatalogSettingsScreen
+import com.eatbefore.feature.settings.sections.DataSettingsScreen
+import com.eatbefore.feature.settings.sections.InventorySettingsScreen
+import com.eatbefore.feature.settings.sections.NotificationsSettingsScreen
+import com.eatbefore.feature.settings.sections.SharingSettingsScreen
 import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.navigation.EatBeforeBottomBar
 import com.eatbefore.navigation.Routes
@@ -195,14 +202,45 @@ private fun MainNavigation(
             }
 
             composable(Routes.SETTINGS) {
-                SettingsScreen(
+                SettingsHomeScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenLocations = { navController.navigate(Routes.SETTINGS_LOCATIONS) },
+                    onOpenSection = { section -> navController.navigate(section.route) },
                 )
             }
 
             composable(Routes.SETTINGS_LOCATIONS) {
                 LocationsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_APPEARANCE) {
+                AppearanceSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_INVENTORY) {
+                InventorySettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenLocations = { navController.navigate(Routes.SETTINGS_LOCATIONS) },
+                )
+            }
+
+            composable(Routes.SETTINGS_NOTIFICATIONS) {
+                NotificationsSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_DATA) {
+                DataSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_SHARING) {
+                SharingSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_CATALOG) {
+                CatalogSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.SETTINGS_ABOUT) {
+                AboutSettingsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Routes.ANALYTICS) {

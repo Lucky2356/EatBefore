@@ -287,17 +287,24 @@ class AppFlowTest {
         assertVisible(name)
     }
 
-    /** Opens Settings from the "More" tab. */
+    /** Opens Settings from the "More" tab — the list of sections. */
     private fun openSettings() {
         clickText(string(R.string.nav_more))
         clickText(string(R.string.settings_title))
         awaitText(string(R.string.settings_section_appearance))
     }
 
+    /** Opens one section of the settings; each is a screen of its own now. */
+    private fun openSettingsSection(titleRes: Int) {
+        openSettings()
+        clickText(string(titleRes))
+        awaitText(string(titleRes))
+    }
+
     @Test
     fun themeSetting_switchesToDarkAndBack() {
         skipOnboarding()
-        openSettings()
+        openSettingsSection(R.string.settings_section_appearance)
 
         clickText(string(R.string.settings_theme_dark))
         composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
@@ -414,12 +421,34 @@ class AppFlowTest {
     @Test
     fun backupImport_asksForConfirmationBeforeReplacingData() {
         skipOnboarding()
-        openSettings()
+        openSettingsSection(R.string.settings_section_data)
 
         // Export/import open system pickers; assert the destructive action is present and
         // described as replacing data, rather than driving the system UI.
         assertVisible(string(R.string.settings_import))
         assertVisible(string(R.string.settings_import_desc))
+    }
+
+    /**
+     * Search exists because a setting is filed under a section the user does not think of,
+     * and because people look for it by the word they have in mind rather than its title.
+     *
+     * So the query is a synonym rather than the setting's own name. It is taken from the
+     * keyword resource instead of being written out here: the emulator's language is not
+     * this test's business, and a hard-coded Russian word simply finds nothing in English.
+     */
+    @Test
+    fun settingsSearch_findsASettingByASynonym() {
+        skipOnboarding()
+        openSettings()
+
+        // Second word, so the query never equals the setting's own title — otherwise the
+        // text just typed into the field is itself a match, and the tap lands on it.
+        val synonym = string(R.string.settings_kw_theme).split(" ")[1]
+        typeInto(string(R.string.settings_search_hint), synonym)
+        clickText(string(R.string.settings_theme))
+
+        awaitText(string(R.string.settings_theme_dark))
     }
 
     private companion object {

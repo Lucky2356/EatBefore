@@ -467,4 +467,25 @@
         <item quantity="one">%1$d package at home</item>
         <item quantity="other">%1$d packages at home</item>
     </plurals>
+    <!-- Settings: sections as their own screens, and search across them -->
+    <string name="settings_search_hint">Find a setting</string>
+    <string name="settings_search_nothing">Nothing found. Try another word — "theme", "backup", "expiry".</string>
+    <string name="settings_section_appearance_desc">Theme and colours</string>
+    <string name="settings_section_inventory_desc">Expiry, places, quantity</string>
+    <string name="settings_section_notifications_desc">Reminders and quiet hours</string>
+    <string name="settings_section_data_desc">Backups, export and import</string>
+    <string name="settings_section_sharing_desc">Shared folder and the other phone</string>
+    <string name="settings_section_catalog_desc">Open Food Facts account</string>
+    <string name="settings_section_about_desc">Version, update, crash report</string>
+    <string name="settings_kw_theme">theme dark light colour appearance</string>
+    <string name="settings_kw_soon">expiry soon days warning</string>
+    <string name="settings_kw_places">places storage fridge shelf</string>
+    <string name="settings_kw_notifications">notifications reminders alerts</string>
+    <string name="settings_kw_quiet">quiet hours night do not disturb</string>
+    <string name="settings_kw_backup">backup copy automatic</string>
+    <string name="settings_kw_restore">restore recover copy</string>
+    <string name="settings_kw_sharing">sharing sync shared folder second phone</string>
+    <string name="settings_kw_catalog">catalog account login password barcode</string>
+    <string name="settings_kw_version">version update build</string>
+    <string name="settings_kw_diagnostics">error crash log diagnostics</string>
 </resources>

@@ -35,6 +35,16 @@ object Routes {
 
     const val SETTINGS = "settings"
     const val SETTINGS_LOCATIONS = "settings/locations"
+
+    // Settings are one screen per section rather than one long scroll: the list grew with
+    // every release, and reaching the theme or the version meant scrolling past everything.
+    const val SETTINGS_APPEARANCE = "settings/appearance"
+    const val SETTINGS_INVENTORY = "settings/inventory"
+    const val SETTINGS_NOTIFICATIONS = "settings/notifications"
+    const val SETTINGS_DATA = "settings/data"
+    const val SETTINGS_SHARING = "settings/sharing"
+    const val SETTINGS_CATALOG = "settings/catalog"
+    const val SETTINGS_ABOUT = "settings/about"
     const val ANALYTICS = "analytics"
 
     const val OCR = "ocr_expiry"

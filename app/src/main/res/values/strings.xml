@@ -488,4 +488,25 @@
         <item quantity="many">Дома %1$d упаковок</item>
         <item quantity="other">Дома %1$d упаковки</item>
     </plurals>
+    <!-- Settings: sections as their own screens, and search across them -->
+    <string name="settings_search_hint">Найти настройку</string>
+    <string name="settings_search_nothing">Ничего не нашлось. Попробуйте другое слово — например «тема», «копия», «срок».</string>
+    <string name="settings_section_appearance_desc">Тема и цвета</string>
+    <string name="settings_section_inventory_desc">Сроки, места хранения, количество</string>
+    <string name="settings_section_notifications_desc">Напоминания и тихие часы</string>
+    <string name="settings_section_data_desc">Копии, экспорт и импорт</string>
+    <string name="settings_section_sharing_desc">Общая папка и второй телефон</string>
+    <string name="settings_section_catalog_desc">Аккаунт Open Food Facts</string>
+    <string name="settings_section_about_desc">Версия, обновление, отчёт о сбое</string>
+    <string name="settings_kw_theme">тема тёмная светлая цвет оформление</string>
+    <string name="settings_kw_soon">срок скоро дни истекает предупреждение</string>
+    <string name="settings_kw_places">места хранения холодильник полка</string>
+    <string name="settings_kw_notifications">уведомления напоминания оповещения</string>
+    <string name="settings_kw_quiet">тихие часы ночь не беспокоить</string>
+    <string name="settings_kw_backup">резервная копия бэкап автосохранение</string>
+    <string name="settings_kw_restore">восстановить вернуть копию</string>
+    <string name="settings_kw_sharing">обмен синхронизация общая папка второй телефон</string>
+    <string name="settings_kw_catalog">каталог аккаунт логин пароль штрихкод</string>
+    <string name="settings_kw_version">версия обновление сборка</string>
+    <string name="settings_kw_diagnostics">ошибка сбой лог диагностика</string>
 </resources>
