@@ -33,4 +33,13 @@ data class ProductEntity(
     @ColumnInfo(name = "is_user_created") val isUserCreated: Boolean,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /**
+     * When the card was struck off the catalogue; null while it is in use.
+     *
+     * A mark rather than a `DELETE`, for two reasons. The batches and events of everything
+     * ever bought still point here, so the history would lose its names. And the other
+     * phone has to be *told* about the deletion: a row that simply vanished looks to it
+     * like a row it has and we don't, and the next exchange would hand it straight back.
+     */
+    @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
 )

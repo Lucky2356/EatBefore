@@ -470,4 +470,22 @@
     <string name="analytics_by_location">Сейчас в запасах</string>
     <string name="analytics_report_title">Отчёт EatBefore</string>
     <string name="analytics_report_period">Период: %1$s</string>
+    <!-- Products: the catalogue of cards and striking one off -->
+    <string name="products_title">Продукты</string>
+    <string name="more_products_desc">Карточки продуктов: убрать лишнее и ошибочное</string>
+    <string name="products_search_hint">Название, бренд или штрихкод</string>
+    <string name="products_empty">Пока ни одного продукта. Они появляются здесь сами, когда вы что-то добавляете.</string>
+    <string name="products_nothing_found">Ничего не нашлось</string>
+    <string name="products_delete">Удалить</string>
+    <string name="products_delete_title">Удалить «%1$s»?</string>
+    <string name="products_delete_message">Продукт перестанет предлагаться при добавлении и в частых покупках. История покупок останется, а если купите это снова — карточка вернётся сама. На втором телефоне продукт исчезнет после ближайшего обмена.</string>
+    <string name="products_deleted">Продукт удалён</string>
+    <string name="products_delete_in_stock">Сначала спишите или съешьте то, что дома: упаковок — %1$d</string>
+    <string name="products_delete_gone">Такого продукта уже нет</string>
+    <plurals name="products_in_stock">
+        <item quantity="one">Дома %1$d упаковка</item>
+        <item quantity="few">Дома %1$d упаковки</item>
+        <item quantity="many">Дома %1$d упаковок</item>
+        <item quantity="other">Дома %1$d упаковки</item>
+    </plurals>
 </resources>

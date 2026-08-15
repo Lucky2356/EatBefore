@@ -66,7 +66,7 @@ class InventoryFlowIntegrationTest {
             })
             .build()
 
-        val products = ProductRepositoryImpl(db.productDao())
+        val products = ProductRepositoryImpl(db.productDao(), clock)
         inventory = InventoryRepositoryImpl(
             db,
             db.inventoryBatchDao(),

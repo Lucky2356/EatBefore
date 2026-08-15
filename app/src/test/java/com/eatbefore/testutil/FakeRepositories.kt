@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import java.time.Instant
 
 /**
  * In-memory fakes for use-case tests. Only the methods exercised by tests hold real
@@ -25,6 +26,19 @@ import kotlinx.coroutines.flow.map
  */
 class FakeProductRepository(private val products: MutableMap<Long, Product> = mutableMapOf()) : ProductRepository {
     private var nextId = 1L
+
+    /**
+     * Mirrors [products] so the catalogue streams emit again after a change. Striking a
+     * card off is only visible as an emission, so a static snapshot could not show it.
+     */
+    private val state = MutableStateFlow(products.values.toList())
+
+    /** Packages at home per product; only the catalogue screen's tests need to set it. */
+    val presentCounts = MutableStateFlow<Map<Long, Int>>(emptyMap())
+
+    private fun publish() {
+        state.value = products.values.toList()
+    }
 
     override suspend fun getById(id: Long): Product? = products[id]
     override fun observeById(id: Long): Flow<Product?> = flowOf(products[id])
@@ -42,13 +56,25 @@ class FakeProductRepository(private val products: MutableMap<Long, Product> = mu
     override suspend fun upsert(product: Product): Long {
         val id = if (product.id == 0L) nextId++ else product.id
         products[id] = product.copy(id = id)
+        publish()
         return id
     }
 
-    override fun observeAll(): Flow<List<Product>> = flowOf(products.values.toList())
+    override fun observeAll(): Flow<List<Product>> = state
+
+    override fun observeActive(): Flow<List<Product>> =
+        state.map { list -> list.filter { it.deletedAt == null } }
+
+    override fun observePresentCounts(): Flow<Map<Long, Int>> = presentCounts
+
+    override suspend fun setDeleted(productId: Long, deleted: Boolean) {
+        val product = products[productId] ?: return
+        products[productId] = product.copy(deletedAt = if (deleted) Instant.EPOCH.plusSeconds(1) else null)
+        publish()
+    }
 
     override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
-        flowOf(products.values.take(limit))
+        state.map { list -> list.filter { it.deletedAt == null }.take(limit) }
 
     fun observeAllCount(): Int = products.size
 }

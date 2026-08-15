@@ -30,6 +30,9 @@ object Routes {
 
     const val HISTORY = "history"
 
+    /** The catalogue of product cards, where a wrong or leftover one can be struck off. */
+    const val PRODUCTS = "products"
+
     const val SETTINGS = "settings"
     const val SETTINGS_LOCATIONS = "settings/locations"
     const val ANALYTICS = "analytics"

@@ -128,6 +128,39 @@ class MigrationTest {
         db.close()
     }
 
+    /**
+     * The v2→v3 step adds `products.deleted_at`. Everything already on the phone must
+     * come through untouched and count as *not* deleted — a migration that defaulted the
+     * column to anything else would empty the catalogue on upgrade.
+     */
+    @Test
+    fun migrate2To3_keepsProductsAndMarksNoneDeleted() {
+        helper.createDatabase(TEST_DB, 2).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO products (id, uuid, barcode, barcode_type, name, brand, category, description,
+                    package_size, measurement_unit, image_uri, source, is_user_created, created_at, updated_at)
+                VALUES (1, 'uuid-1', '4620017700531', 'EAN_13', 'Tea nic лимон', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'SCAN_CACHE', 0, 1, 1),
+                    (2, 'uuid-2', NULL, 'NONE', 'Молоко', 'Простоквашино', NULL, NULL,
+                    NULL, 'LITER', NULL, 'USER', 1, 1, 1)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 3, true, MIGRATION_2_3)
+
+        db.query("SELECT name, deleted_at FROM products ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToFirst()
+            assertEquals("Tea nic лимон", c.getString(0))
+            assertTrue("nothing was deleted before the column existed", c.isNull(1))
+            c.moveToNext()
+            assertTrue("nothing was deleted before the column existed", c.isNull(1))
+        }
+        db.close()
+    }
+
     @Test
     fun currentSchemaOpensWithDeclaredMigrations() {
         helper.createDatabase(TEST_DB, EatBeforeDatabase.VERSION).close()

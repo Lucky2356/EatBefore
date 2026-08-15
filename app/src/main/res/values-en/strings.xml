@@ -451,4 +451,20 @@
     <string name="analytics_by_location">Currently in stock</string>
     <string name="analytics_report_title">EatBefore report</string>
     <string name="analytics_report_period">Period: %1$s</string>
+    <!-- Products: the catalogue of cards and striking one off -->
+    <string name="products_title">Products</string>
+    <string name="more_products_desc">Product cards: clear out the wrong and the leftover</string>
+    <string name="products_search_hint">Name, brand or barcode</string>
+    <string name="products_empty">No products yet. They appear here on their own as you add things.</string>
+    <string name="products_nothing_found">Nothing found</string>
+    <string name="products_delete">Delete</string>
+    <string name="products_delete_title">Delete "%1$s"?</string>
+    <string name="products_delete_message">It will stop being offered when adding and among frequent purchases. The history stays, and buying it again brings the card back. On the other phone it disappears after the next exchange.</string>
+    <string name="products_deleted">Product deleted</string>
+    <string name="products_delete_in_stock">Use up or write off what is at home first: %1$d package(s)</string>
+    <string name="products_delete_gone">That product is already gone</string>
+    <plurals name="products_in_stock">
+        <item quantity="one">%1$d package at home</item>
+        <item quantity="other">%1$d packages at home</item>
+    </plurals>
 </resources>

@@ -27,4 +27,9 @@ data class Product(
     val isUserCreated: Boolean = true,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH,
+    /**
+     * Set when the card was struck off the catalogue. It keeps its history and comes back
+     * if the same thing is bought again; null means it is in use.
+     */
+    val deletedAt: Instant? = null,
 )

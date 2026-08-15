@@ -64,6 +64,12 @@ class AddManualProductUseCase @Inject constructor(
         val barcode = InputValidator.sanitizeBarcode(params.barcode)
 
         val existing = mergeSameProduct.findDuplicate(name = name, brand = brand, barcode = barcode)
+        // Buying it again is the plainest possible statement that the card is wanted after
+        // all. Leaving it struck off would quietly split the product in two: the old card
+        // keeping the entire history, a new one starting from nothing.
+        if (existing?.deletedAt != null) {
+            productRepository.setDeleted(existing.id, deleted = false)
+        }
         val productId = existing?.id ?: productRepository.upsert(
             Product(
                 barcode = barcode,

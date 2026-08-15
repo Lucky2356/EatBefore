@@ -40,6 +40,10 @@ class AddBatchUseCase @Inject constructor(
     suspend operator fun invoke(params: Params): Long {
         val product = productRepository.getById(params.productId)
             ?: throw IllegalArgumentException("Unknown product ${params.productId}")
+        // Another package of something struck off the catalogue means it is wanted again.
+        if (product.deletedAt != null) {
+            productRepository.setDeleted(product.id, deleted = false)
+        }
         val quantity = InputValidator.clampQuantity(params.quantity)
         require(quantity > 0) { "quantity must be > 0" }
         require(params.storageLocationId > 0) { "storageLocationId is required" }

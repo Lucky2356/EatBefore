@@ -287,6 +287,7 @@ class BackupManager @Inject constructor(
         isUserCreated = isUserCreated,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        deletedAt = deletedAt,
     )
 
     private fun BackupProduct.toEntity() = ProductEntity(
@@ -306,6 +307,7 @@ class BackupManager @Inject constructor(
         isUserCreated = isUserCreated,
         createdAt = createdAt,
         updatedAt = updatedAt,
+        deletedAt = deletedAt,
     )
 
     private fun InventoryBatchEntity.toBackup() = BackupBatch(

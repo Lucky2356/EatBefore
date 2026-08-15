@@ -77,6 +77,11 @@ data class BackupProduct(
     val isUserCreated: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * When the card was struck off the catalogue. Absent in files written before this
+     * existed, and absence means "in use" — which is what those files meant.
+     */
+    val deletedAt: Long? = null,
 )
 
 @Serializable

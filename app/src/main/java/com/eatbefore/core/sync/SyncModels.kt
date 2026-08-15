@@ -55,6 +55,12 @@ data class SyncProduct(
     val measurementUnit: String,
     val imageUri: String?,
     val updatedAt: Long,
+    /**
+     * When the other household member struck this card off their catalogue. Defaulted so
+     * a journal written by an older version still reads: silence there means "not deleted",
+     * which is what those versions meant.
+     */
+    val deletedAt: Long? = null,
 )
 
 @Serializable

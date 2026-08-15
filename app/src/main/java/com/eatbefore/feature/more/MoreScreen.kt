@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Settings
@@ -40,6 +41,7 @@ import com.eatbefore.core.designsystem.theme.Dimens
 fun MoreScreen(
     onOpenHistory: () -> Unit,
     onOpenAnalytics: () -> Unit,
+    onOpenProducts: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     ScreenScaffold(title = stringResource(R.string.nav_more)) { padding ->
@@ -65,6 +67,14 @@ fun MoreScreen(
                 title = stringResource(R.string.analytics_title),
                 subtitle = stringResource(R.string.more_analytics_desc),
                 onClick = onOpenAnalytics,
+            )
+            MoreCard(
+                icon = Icons.AutoMirrored.Outlined.ListAlt,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = MaterialTheme.colorScheme.surfaceContainerHighest,
+                title = stringResource(R.string.products_title),
+                subtitle = stringResource(R.string.more_products_desc),
+                onClick = onOpenProducts,
             )
             MoreCard(
                 icon = Icons.Outlined.Settings,

@@ -1,5 +1,6 @@
 package com.eatbefore.data.repository
 
+import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.database.dao.ProductDao
 import com.eatbefore.data.mapper.toDomain
 import com.eatbefore.data.mapper.toEntity
@@ -9,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class ProductRepositoryImpl @Inject constructor(private val productDao: ProductDao) : ProductRepository {
+class ProductRepositoryImpl @Inject constructor(private val productDao: ProductDao, private val clock: AppClock) : ProductRepository {
 
     override suspend fun getById(id: Long): Product? = productDao.getById(id)?.toDomain()
 
@@ -31,6 +32,17 @@ class ProductRepositoryImpl @Inject constructor(private val productDao: ProductD
 
     override fun observeAll(): Flow<List<Product>> =
         productDao.observeAll().map { list -> list.map { it.toDomain() } }
+
+    override fun observeActive(): Flow<List<Product>> =
+        productDao.observeActive().map { list -> list.map { it.toDomain() } }
+
+    override fun observePresentCounts(): Flow<Map<Long, Int>> =
+        productDao.observePresentCounts().map { rows -> rows.associate { it.productId to it.count } }
+
+    override suspend fun setDeleted(productId: Long, deleted: Boolean) {
+        val now = clock.now().toEpochMilli()
+        productDao.setDeletedAt(id = productId, at = if (deleted) now else null, now = now)
+    }
 
     override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
         productDao.observeFrequent(limit, minTimes).map { list -> list.map { it.toDomain() } }

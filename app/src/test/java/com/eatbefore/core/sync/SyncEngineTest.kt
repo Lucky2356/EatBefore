@@ -64,6 +64,8 @@ class SyncEngineTest {
         batchUpdatedAt: Long = 100L,
         batchStatus: String = "ACTIVE",
         events: List<SyncEvent> = emptyList(),
+        productUpdatedAt: Long = 100L,
+        productDeletedAt: Long? = null,
     ) = SyncJournal(
         deviceId = "peer-device",
         writtenAtEpochMillis = 100L,
@@ -72,7 +74,8 @@ class SyncEngineTest {
             SyncProduct(
                 uuid = "p-1", barcode = "4620017700531", barcodeType = "EAN_13",
                 name = "Tea nic лимон", brand = null, category = null, packageSize = null,
-                measurementUnit = "PIECE", imageUri = null, updatedAt = 100L,
+                measurementUnit = "PIECE", imageUri = null, updatedAt = productUpdatedAt,
+                deletedAt = productDeletedAt,
             ),
         ),
         batches = listOf(
@@ -315,6 +318,53 @@ class SyncEngineTest {
         assertEquals(3.0, batch.quantity, 0.001)
         assertEquals("Холодильник", batch.locationName)
         assertEquals("p-1", batch.productUuid)
+    }
+
+    /**
+     * The defect this was written for: striking a product off the catalogue used to be a
+     * local act only. The peer still had the card, and the very next exchange handed it
+     * straight back — a ghost the user had to delete over and over.
+     */
+    @Test
+    fun `a product struck off on the other phone goes away here too`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal())
+        val deletedAt = 900L
+
+        engine.merge(peerJournal(productDeletedAt = deletedAt, productUpdatedAt = deletedAt))
+
+        val product = db.productDao().getByUuid("p-1")
+        assertEquals(deletedAt, product?.deletedAt)
+    }
+
+    /** And the mark travels the other way: our deletion has to reach them. */
+    @Test
+    fun `our deletion is published rather than kept to ourselves`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal())
+        val product = db.productDao().getByUuid("p-1")!!
+        db.productDao().setDeletedAt(id = product.id, at = 1_000L, now = 1_000L)
+
+        val journal = engine.buildOwnJournal("my-device")
+
+        assertEquals(1_000L, journal.products.first { it.uuid == "p-1" }.deletedAt)
+    }
+
+    /**
+     * Buying it again brings the card back, and that has to win over the peer's older
+     * copy — otherwise the deletion would keep resurfacing after the shopping.
+     */
+    @Test
+    fun `a product brought back after a deletion stays back`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal(productDeletedAt = 900L, productUpdatedAt = 900L))
+        val product = db.productDao().getByUuid("p-1")!!
+        db.productDao().setDeletedAt(id = product.id, at = null, now = 1_500L)
+
+        // The peer republishes its old, still-deleted copy.
+        engine.merge(peerJournal(productDeletedAt = 900L, productUpdatedAt = 900L))
+
+        assertEquals(null, db.productDao().getByUuid("p-1")?.deletedAt)
     }
 
     /**

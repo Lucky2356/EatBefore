@@ -32,6 +32,7 @@ import com.eatbefore.feature.more.MoreScreen
 import com.eatbefore.feature.ocr.OcrScreen
 import com.eatbefore.feature.onboarding.OnboardingScreen
 import com.eatbefore.feature.product.ProductScreen
+import com.eatbefore.feature.products.ProductsScreen
 import com.eatbefore.feature.scanner.ScannerScreen
 import com.eatbefore.feature.settings.SettingsScreen
 import com.eatbefore.feature.shopping.ShoppingScreen
@@ -188,6 +189,7 @@ private fun MainNavigation(
                 MoreScreen(
                     onOpenHistory = { navController.navigate(Routes.HISTORY) },
                     onOpenAnalytics = { navController.navigate(Routes.ANALYTICS) },
+                    onOpenProducts = { navController.navigate(Routes.PRODUCTS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 )
             }
@@ -205,6 +207,10 @@ private fun MainNavigation(
 
             composable(Routes.ANALYTICS) {
                 AnalyticsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.PRODUCTS) {
+                ProductsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(
