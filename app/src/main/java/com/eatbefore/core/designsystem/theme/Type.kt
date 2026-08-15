@@ -1,13 +1,26 @@
 package com.eatbefore.core.designsystem.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.eatbefore.R
 
 /**
- * The one typeface the app draws with.
+ * The one typeface the app draws with: Onest, under the SIL Open Font License (the licence
+ * ships in the APK at assets/licenses/onest-ofl.txt, as redistribution requires).
+ *
+ * Chosen for its Cyrillic, which was drawn as part of the design rather than bolted on
+ * afterwards — this app is read in Russian, and a face whose Latin is the real one and whose
+ * Cyrillic is an afterthought shows it at every «д» and «ж». Checked before committing: all
+ * 64 letters of А–я plus Ё, ₽ and №.
+ *
+ * One variable file for every weight, 189 KB. Four static cuts would have cost three times
+ * that and still only offered four weights.
  *
  * Kept as a single symbol because [EatBeforeTypography] has to name it fifteen times: a
  * scale that sets only the styles someone happened to need leaves the rest on the platform
@@ -15,7 +28,26 @@ import androidx.compose.ui.unit.sp
  * announce it. That is exactly what used to happen here — six styles were defined and five
  * more were in daily use.
  */
-internal val AppFontFamily = FontFamily.Default
+internal val AppFontFamily = FontFamily(
+    onest(FontWeight.Normal),
+    onest(FontWeight.Medium),
+    onest(FontWeight.SemiBold),
+    onest(FontWeight.Bold),
+)
+
+/**
+ * One instance of the variable file, pinned to [weight] on its `wght` axis.
+ *
+ * The axis has to be set explicitly. Without it every entry is the same 400-weight default
+ * and the family silently collapses: nothing fails, headings simply stop being heavier than
+ * body text, which is the sort of thing that survives review because it looks deliberate.
+ */
+@OptIn(ExperimentalTextApi::class)
+private fun onest(weight: FontWeight) = Font(
+    resId = R.font.onest_variable,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
 
 /**
  * Every Material style, defined once.

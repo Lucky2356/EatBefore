@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tracks md_dark_surface in Color.kt. See values/colors.xml. -->
+    <color name="window_background">#121211</color>
+</resources>

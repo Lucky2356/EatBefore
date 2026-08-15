@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base theme applied before Compose takes over. Uses Material 3 to avoid a
-         flash of an unstyled system bar on cold start. -->
-    <style name="Theme.EatBefore" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      The launch window, shown by the system before a single line of the app runs.
+
+      It used to inherit android:Theme.Material.Light.NoActionBar — light, unconditionally.
+      A cold start in the dark theme therefore opened on a white rectangle and only then
+      turned dark, which is the most jarring thing the app did and the only one nobody could
+      fix from inside Compose: this window belongs to the system, not to us.
+
+      Colours come from @color/window_background, which has a -night counterpart, so the
+      launch window is already the colour the app is about to be.
+    -->
+    <style name="Theme.EatBefore" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/window_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.EatBefore.Main</item>
+    </style>
+
+    <!-- What the activity wears once Compose is drawing. -->
+    <style name="Theme.EatBefore.Main" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

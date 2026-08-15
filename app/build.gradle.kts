@@ -125,6 +125,9 @@ ksp {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // Keeps the launch window on-brand in both themes; without it a dark-theme cold start
+    // opens on a white window inherited from the platform's light theme.
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

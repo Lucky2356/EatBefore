@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.mutableStateOf
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.ui.EatBeforeApp
@@ -17,6 +18,10 @@ class MainActivity : ComponentActivity() {
     private val openInventory = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super.onCreate, and before enableEdgeToEdge: this is what swaps the launch
+        // window's theme for the app's. Skip it and the activity keeps wearing the splash
+        // theme for its whole life.
+        installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         openInventory.value = intent.readOpenInventory()
