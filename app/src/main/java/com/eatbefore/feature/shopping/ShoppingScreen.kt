@@ -55,6 +55,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.format.shortLabel
 import com.eatbefore.core.designsystem.theme.Dimens
@@ -168,6 +169,7 @@ fun ShoppingScreen(viewModel: ShoppingViewModel = hiltViewModel()) {
                     }
                     items(rows, key = { it.id }) { row ->
                         ShoppingRow(
+                            modifier = animatedItem(),
                             row = row,
                             onToggle = { viewModel.toggle(row.id) },
                             onEdit = { editedRow = row },
@@ -214,9 +216,10 @@ private fun ShoppingRow(
     onEdit: () -> Unit,
     onMoveToStock: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = row.isCompleted, onCheckedChange = { onToggle() })

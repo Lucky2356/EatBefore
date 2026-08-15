@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.common.InventoryRowCard
@@ -252,6 +253,7 @@ fun InventoryScreen(
                             }
                             items(group.rows, key = { it.batchId }) { row ->
                                 StockRow(
+                                    modifier = animatedItem(),
                                     row = row,
                                     selection = selection,
                                     onOpenBatch = onOpenBatch,
@@ -265,6 +267,7 @@ fun InventoryScreen(
                     } else {
                         items(state.rows, key = { it.batchId }) { row ->
                             StockRow(
+                                modifier = animatedItem(),
                                 row = row,
                                 selection = selection,
                                 onOpenBatch = onOpenBatch,
@@ -323,9 +326,11 @@ private fun StockRow(
     onOpenBatch: (Long) -> Unit,
     onQuickAction: (QuickAction, Long) -> Unit,
     onToggle: (Long) -> Unit,
+    modifier: Modifier = Modifier,
     showLocation: Boolean = true,
 ) {
     InventoryRowCard(
+        modifier = modifier,
         row = row,
         onClick = {
             if (selection == null) onOpenBatch(row.batchId) else onToggle(row.batchId)

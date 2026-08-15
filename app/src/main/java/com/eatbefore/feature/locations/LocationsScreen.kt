@@ -14,8 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,10 +36,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.label
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.model.StorageType
 
@@ -72,6 +73,7 @@ fun LocationsScreen(
         ) {
             items(locations, key = { it.id }) { location ->
                 LocationCard(
+                    modifier = animatedItem(),
                     location = location,
                     canArchive = viewModel.canArchive(location),
                     onSetDefault = { viewModel.setDefault(location.id) },
@@ -111,14 +113,10 @@ private fun LocationCard(
     onSetDefault: () -> Unit,
     onRename: () -> Unit,
     onArchive: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
+    AppCard(modifier = modifier.fillMaxWidth(), shape = Shapes.row) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             verticalAlignment = Alignment.CenterVertically,

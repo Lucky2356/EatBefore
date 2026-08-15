@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Undo
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -28,10 +27,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.formatDateTime
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.EventType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,7 +108,7 @@ fun HistoryScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
                 ) {
                     items(state.events, key = { it.id }) { event ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        AppCard(modifier = animatedItem().fillMaxWidth(), shape = Shapes.row) {
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
                                 verticalAlignment = Alignment.CenterVertically,

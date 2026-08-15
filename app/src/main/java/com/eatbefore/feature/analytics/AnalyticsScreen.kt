@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -38,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.component.StatTile
@@ -212,7 +212,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
     // The one number that makes waste feel like waste. Shown with its coverage: prices are
     // optional, so a bare total would read as the whole loss when it may be a third of it.
     summary.wastedMoney?.let { money ->
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(Dimens.spaceLg),
                 verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
@@ -239,7 +239,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
     }
 
     summary.usedInTimePercent?.let { percent ->
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
                 Text(
                     stringResource(R.string.analytics_used_in_time, percent),
@@ -289,7 +289,7 @@ private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
     val addedColor = MaterialTheme.colorScheme.primary
     val wastedColor = MaterialTheme.colorScheme.error
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
             Text(stringResource(R.string.analytics_trend), style = MaterialTheme.typography.titleMedium)
 
@@ -360,7 +360,7 @@ private fun LegendDot(color: Color, label: String) {
 
 @Composable
 private fun SectionList(title: String, rows: List<Pair<String, Int>>) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             rows.forEach { (label, count) ->

@@ -128,6 +128,10 @@ private fun MainNavigation(
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(padding),
+            enterTransition = { forwardEnter() },
+            exitTransition = { forwardExit() },
+            popEnterTransition = { backEnter() },
+            popExitTransition = { backExit() },
         ) {
             composable(Routes.ONBOARDING) {
                 OnboardingScreen(

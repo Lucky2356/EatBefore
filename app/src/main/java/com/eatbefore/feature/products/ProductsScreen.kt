@@ -14,8 +14,6 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,8 +37,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.ScreenScaffold
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 
 /**
  * The catalogue of product cards: what the app offers when adding, and the only place a
@@ -115,6 +116,7 @@ fun ProductsScreen(
                 ) {
                     items(state.rows, key = { it.id }) { row ->
                         ProductCard(
+                            modifier = animatedItem(),
                             row = row,
                             canDelete = viewModel.canDelete(row),
                             onDelete = { confirming = row },
@@ -153,13 +155,13 @@ private fun EmptyNote(text: String) {
 }
 
 @Composable
-private fun ProductCard(row: ProductRowUi, canDelete: Boolean, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
+private fun ProductCard(
+    row: ProductRowUi,
+    canDelete: Boolean,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppCard(modifier = modifier.fillMaxWidth(), shape = Shapes.row) {
         androidx.compose.foundation.layout.Row(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceMd),
             verticalAlignment = Alignment.CenterVertically,

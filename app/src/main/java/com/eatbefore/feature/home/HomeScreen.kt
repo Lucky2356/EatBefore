@@ -35,6 +35,7 @@ import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
+import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
@@ -161,6 +162,7 @@ fun HomeScreen(
                 item { SectionHeader(stringResource(R.string.home_expiring_section), Icons.Outlined.Schedule) }
                 items(state.expiringSoon, key = { "exp-${it.batchId}" }) { row ->
                     InventoryRowCard(
+                        modifier = animatedItem(),
                         row = row,
                         onClick = { onOpenBatch(row.batchId) },
                         onQuickAction = { onQuickAction(it, row.batchId) },
@@ -172,6 +174,7 @@ fun HomeScreen(
                 item { SectionHeader(stringResource(R.string.home_recent_section), Icons.Outlined.AddCircleOutline) }
                 items(state.recent, key = { "rec-${it.batchId}" }) { row ->
                     InventoryRowCard(
+                        modifier = animatedItem(),
                         row = row,
                         onClick = { onOpenBatch(row.batchId) },
                         onQuickAction = { onQuickAction(it, row.batchId) },
