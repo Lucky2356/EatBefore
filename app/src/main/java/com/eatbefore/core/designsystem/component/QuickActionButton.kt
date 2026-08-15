@@ -1,6 +1,9 @@
 package com.eatbefore.core.designsystem.component
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +14,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Motion
 import com.eatbefore.core.designsystem.theme.Shapes
 
 /**
@@ -36,11 +43,21 @@ fun QuickActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) Motion.PRESSED_SCALE else 1f,
+        animationSpec = Motion.quick(),
+        label = "quickActionPress",
+    )
+
     Column(
         modifier = modifier
             .selectable(
                 selected = false,
                 role = Role.Button,
+                interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick,
             )
             .padding(vertical = Dimens.spaceXs),
@@ -49,9 +66,16 @@ fun QuickActionButton(
     ) {
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                }
                 .size(Dimens.quickActionSize)
+                // The accent rather than the secondary tint: these three are the only
+                // things on the home screen the user came to press, and a neutral tile
+                // gave them no more weight than the product rows below.
                 .background(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = Shapes.card,
                 ),
             contentAlignment = Alignment.Center,
@@ -59,7 +83,7 @@ fun QuickActionButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.size(Dimens.iconLg),
             )
         }

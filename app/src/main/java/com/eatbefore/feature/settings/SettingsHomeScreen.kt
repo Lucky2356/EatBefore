@@ -17,8 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,8 +36,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 
 /**
  * The way into settings: a short list of sections, and a search box for when you know the
@@ -150,13 +150,7 @@ private fun searchSettings(query: String): List<SettingEntry> {
 
 @Composable
 private fun SectionRow(section: SettingsSection, hasNews: Boolean, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
+    AppCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, shape = Shapes.row) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceMd),
             verticalAlignment = Alignment.CenterVertically,
@@ -200,13 +194,7 @@ private fun SectionRow(section: SettingsSection, hasNews: Boolean, onClick: () -
 
 @Composable
 private fun ResultRow(title: String, section: String, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
+    AppCard(modifier = Modifier.fillMaxWidth(), onClick = onClick, shape = Shapes.row) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceMd),
             verticalAlignment = Alignment.CenterVertically,

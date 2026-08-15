@@ -32,6 +32,13 @@ object Dimens {
     /** Minimum touch target; below this a control is hard to hit reliably. */
     val minTouchTarget = 48.dp
 
+    /**
+     * The line around a card. It, and not a difference of fills, is what separates a card
+     * from the page — which is the only thing that works in the dark theme, where every
+     * surface is within a few percent of every other.
+     */
+    val hairline = 1.dp
+
     /** Primary actions that must be comfortable to hit without looking. */
     val primaryActionHeight = 72.dp
 
@@ -53,17 +60,29 @@ object Dimens {
     /** Illustration in an empty or error state. */
     val iconXl = 56.dp
 
+    /** The tinted disc that illustration sits in. */
+    val emptyStateDisc = 104.dp
+
     /** Scrollable preview of the diagnostics log — enough to judge it, not enough to bury the buttons. */
     val diagnosticsPreviewHeight = 240.dp
 }
 
-/** Corner radii, kept separate so a shape is never re-derived from a raw number. */
+/**
+ * Corner radii, kept separate so a shape is never re-derived from a raw number.
+ *
+ * The radius follows the size of the thing: everything used to be [card]'s 20 dp, from a
+ * full-width panel down to a thumbnail, and a single radius across three orders of size
+ * reads as one flat layer instead of a hierarchy.
+ */
 object Shapes {
     /** Cards, sheets and other containers. */
     val card = RoundedCornerShape(20.dp)
 
+    /** One row of a list. Tighter than [card] so a list of them reads as lighter. */
+    val row = RoundedCornerShape(16.dp)
+
     /** Controls sitting inside a card: fields, tonal buttons, thumbnails. */
-    val control = RoundedCornerShape(14.dp)
+    val control = RoundedCornerShape(12.dp)
 
     /** Small inline elements — badges, chips. */
     val badge = RoundedCornerShape(8.dp)

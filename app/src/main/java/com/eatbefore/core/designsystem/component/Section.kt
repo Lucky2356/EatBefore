@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -19,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.eatbefore.core.designsystem.theme.Dimens
-import com.eatbefore.core.designsystem.theme.Shapes
 
 /**
  * The app's one way to group related content: a section label plus a tonal card.
@@ -37,21 +34,8 @@ fun SectionCard(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
     ) {
-        if (title != null) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = Dimens.spaceXs),
-            )
-        }
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = Shapes.card,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
-        ) {
+        if (title != null) SectionHeading(title, Modifier.padding(start = Dimens.spaceXs))
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(
                     horizontal = Dimens.spaceLg,
@@ -62,6 +46,24 @@ fun SectionCard(
             )
         }
     }
+}
+
+/**
+ * The label above a group of things.
+ *
+ * Quiet on purpose. A heading used to be `titleMedium` in the accent colour — the same
+ * weight as the product names underneath it and a brighter colour — so the eye was pulled
+ * to the signposts instead of to the contents. Naming a group is a job for the smallest
+ * type that can still be read.
+ */
+@Composable
+fun SectionHeading(title: String, modifier: Modifier = Modifier) {
+    Text(
+        title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 /** A row inside a [SectionCard] with a title, supporting text and a switch. */

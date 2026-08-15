@@ -1,10 +1,13 @@
 package com.eatbefore.core.designsystem.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Inbox
@@ -37,12 +40,21 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(Dimens.iconXl),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // The icon sits in a tinted disc rather than floating on the page: an outline glyph
+        // alone on a white screen reads as something failing to load.
+        Box(
+            modifier = Modifier
+                .size(Dimens.emptyStateDisc)
+                .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(Dimens.iconXl),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,

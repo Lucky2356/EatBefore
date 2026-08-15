@@ -223,7 +223,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
                         formatMoney(money.amount, money.currency),
                     ),
                     style = MaterialTheme.typography.titleMedium,
-                    color = statusColors.expired,
+                    color = statusColors.expired.content,
                 )
                 Text(
                     stringResource(
@@ -248,7 +248,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
                 LinearProgressIndicator(
                     progress = { percent / 100f },
                     modifier = Modifier.fillMaxWidth(),
-                    color = statusColors.fresh,
+                    color = statusColors.fresh.content,
                 )
             }
         }

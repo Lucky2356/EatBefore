@@ -1,8 +1,7 @@
 package com.eatbefore.feature.common
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,8 +21,6 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TakeoutDining
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Warehouse
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,9 +42,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.ExpiryLabel
 import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Motion
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.StorageType
 
@@ -66,7 +65,6 @@ private fun StorageType.icon(): ImageVector = when (this) {
  * most frequent thing the app is asked to do, and without it that took four steps: open
  * the card, wait for it to load, press, go back.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun InventoryRowCard(
     row: InventoryRowUi,
@@ -79,30 +77,34 @@ fun InventoryRowCard(
     var menuOpen by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
 
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = if (onQuickAction == null) {
-                    null
-                } else {
-                    {
-                        // The phone confirms the press before the menu draws — the finger
-                        // is still covering the card at that moment.
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        menuOpen = true
-                    }
-                },
-            ),
-        shape = Shapes.card,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected == true) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            },
-        ),
+    // Crossing between the plain and the ticked state rather than swapping: entering
+    // selection mode recolours every visible row at once, and twenty simultaneous cuts read
+    // as a glitch.
+    val container by animateColorAsState(
+        targetValue = if (selected == true) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        },
+        animationSpec = Motion.quick(),
+        label = "rowContainer",
+    )
+
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        onLongClick = if (onQuickAction == null) {
+            null
+        } else {
+            {
+                // The phone confirms the press before the menu draws — the finger
+                // is still covering the card at that moment.
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                menuOpen = true
+            }
+        },
+        shape = Shapes.row,
+        containerColor = container,
     ) {
         Row(
             modifier = Modifier.padding(Dimens.spaceMd),
@@ -117,7 +119,7 @@ fun InventoryRowCard(
             Box(
                 modifier = Modifier
                     .size(Dimens.thumbnailSize)
-                    .background(MaterialTheme.colorScheme.secondaryContainer, Shapes.control),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, Shapes.control),
                 contentAlignment = Alignment.Center,
             ) {
                 if (row.imageUri != null) {
@@ -134,7 +136,7 @@ fun InventoryRowCard(
                     Icon(
                         imageVector = row.locationType.icon(),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -168,7 +170,7 @@ fun InventoryRowCard(
                         // The place is dropped when the list is already grouped by it —
                         // repeating the group heading on every one of its rows is noise.
                         text = if (showLocation) "$amount · $location" else amount,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

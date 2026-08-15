@@ -1,17 +1,14 @@
 package com.eatbefore.core.designsystem.component
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.eatbefore.core.designsystem.theme.Dimens
-import com.eatbefore.core.designsystem.theme.Shapes
+import com.eatbefore.core.designsystem.theme.LocalStatusColors
 
 /** How much a number wants to be noticed. */
 enum class StatTone {
@@ -33,6 +30,10 @@ enum class StatTone {
  * hand-rolled pair beside it — which is how "expired" ended up mauve and "discarded" pink
  * regardless of their values: the colour came from whichever Material container role was
  * still free, not from what the number meant.
+ *
+ * An alarming number is now a tint plus a coloured figure, not a block of solid red. Three
+ * of these sit side by side; filling one of them completely made the tile shout louder than
+ * the products it was counting.
  */
 @Composable
 fun StatTile(
@@ -43,33 +44,36 @@ fun StatTile(
     onClick: (() -> Unit)? = null,
 ) {
     val alarming = tone == StatTone.ATTENTION && value > 0
-    val container = if (alarming) {
-        MaterialTheme.colorScheme.errorContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHigh
-    }
-    val onContainer = if (alarming) {
-        MaterialTheme.colorScheme.onErrorContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
+    val expired = LocalStatusColors.current.expired
 
-    Card(
-        modifier = if (onClick == null) modifier else modifier.clickable(onClick = onClick),
-        shape = Shapes.card,
-        colors = CardDefaults.cardColors(containerColor = container),
+    AppCard(
+        modifier = modifier,
+        onClick = onClick,
+        // Derived from the status colour rather than from a second pair of literals: it is
+        // a mid-tone in both themes, so one alpha behaves in both. `expired.container` is
+        // the solid red and would defeat the point of a tint.
+        containerColor = if (alarming) {
+            expired.content.copy(alpha = ALARM_TINT)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        },
+        border = if (alarming) expired.content.copy(alpha = ALARM_BORDER) else MaterialTheme.colorScheme.outlineVariant,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg)) {
             Text(
                 text = value.toString(),
                 style = MaterialTheme.typography.headlineMedium,
-                color = onContainer,
+                color = if (alarming) expired.content else MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = onContainer,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
+
+/** Enough tint to read as "not like the others", not enough to read as an alarm. */
+private const val ALARM_TINT = 0.12f
+private const val ALARM_BORDER = 0.30f
