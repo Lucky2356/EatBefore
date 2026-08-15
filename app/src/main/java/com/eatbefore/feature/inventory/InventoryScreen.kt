@@ -1,11 +1,16 @@
 package com.eatbefore.feature.inventory
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Search
@@ -22,14 +28,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,16 +44,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
+import com.eatbefore.core.designsystem.component.AppTopBar
 import com.eatbefore.core.designsystem.component.EmptyState
+import com.eatbefore.core.designsystem.component.SectionHeading
 import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
@@ -97,12 +107,21 @@ fun InventoryScreen(
     }
 
     val selected = selection
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
         bottomBar = {
-            if (selected != null) {
+            // Slides in rather than appearing: it covers the bottom of the list, and a bar
+            // that materialises under the thumb during a long press is easy to hit by
+            // accident on the way out of the gesture.
+            AnimatedVisibility(
+                visible = selected != null,
+                enter = slideInVertically { it },
+                exit = slideOutVertically { it },
+            ) {
                 SelectionBar(
-                    count = selected.size,
+                    count = selected?.size ?: 0,
                     onFinished = { viewModel.applyToSelection(QuickAction.FINISHED) },
                     onDiscard = { viewModel.applyToSelection(QuickAction.DISCARD) },
                 )
@@ -112,16 +131,14 @@ fun InventoryScreen(
             // While selecting, the bar reports the count and offers the way out — the
             // Android convention, and the only layout where the count and the actions both
             // fit without wrapping.
-            TopAppBar(
-                title = {
-                    Text(
-                        if (selected == null) {
-                            stringResource(R.string.inventory_title)
-                        } else {
-                            pluralStringResource(R.plurals.inventory_selected, selected.size, selected.size)
-                        },
-                    )
+            AppTopBar(
+                title = if (selected == null) {
+                    stringResource(R.string.inventory_title)
+                } else {
+                    pluralStringResource(R.plurals.inventory_selected, selected.size, selected.size)
                 },
+                // Pinned while selecting: the count and the way out must not scroll away.
+                scrollBehavior = if (selected == null) scrollBehavior else null,
                 navigationIcon = {
                     if (selected != null) {
                         IconButton(onClick = viewModel::stopSelection) {
@@ -133,7 +150,7 @@ fun InventoryScreen(
                     }
                 },
                 actions = {
-                    if (selected != null) return@TopAppBar
+                    if (selected != null) return@AppTopBar
                     IconButton(onClick = { sortMenuOpen = true }) {
                         Icon(
                             Icons.AutoMirrored.Outlined.Sort,
@@ -185,33 +202,15 @@ fun InventoryScreen(
                     }
                 },
                 placeholder = { Text(stringResource(R.string.inventory_search_hint)) },
+                shape = Shapes.pill,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = Dimens.spaceLg),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
-            ) {
-                FilterChip(
-                    selected = state.selectedLocationId == null,
-                    onClick = { viewModel.setLocation(null) },
-                    label = { Text(stringResource(R.string.inventory_all_locations)) },
-                )
-                state.locations.forEach { location ->
-                    FilterChip(
-                        selected = state.selectedLocationId == location.id,
-                        onClick = { viewModel.setLocation(location.id) },
-                        label = { Text(location.displayName()) },
-                    )
-                }
-            }
-
-            // A second row rather than one long one: place and condition are different
-            // questions ("what is in the freezer" vs "what must I deal with today"), and
-            // mixing them into a single strip makes both harder to find.
+            // One strip, not two. Place and condition are different questions, but they
+            // were costing two full rows on top of the search field — three bands of
+            // controls before a single product, on a screen whose whole job is the list.
+            // The places collapse into one chip that opens them, which also stops the row
+            // growing every time a new place is added.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -219,6 +218,8 @@ fun InventoryScreen(
                     .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceXs),
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
+                LocationFilterChip(state = state, onSelect = viewModel::setLocation)
+                VerticalDivider(modifier = Modifier.height(Dimens.iconMd))
                 StatusFilterChip(R.string.inventory_filter_all, InventoryStatusFilter.ALL, state, viewModel)
                 StatusFilterChip(R.string.inventory_filter_today, InventoryStatusFilter.TODAY, state, viewModel)
                 StatusFilterChip(R.string.inventory_filter_expired, InventoryStatusFilter.EXPIRED, state, viewModel)
@@ -348,12 +349,48 @@ private fun StockRow(
 
 @Composable
 private fun GroupHeading(title: String, count: Int) {
-    Text(
-        text = "$title · $count",
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = Dimens.spaceSm),
-    )
+    SectionHeading("$title · $count", Modifier.padding(top = Dimens.spaceSm))
+}
+
+/**
+ * The place filter as one chip that opens the list of places.
+ *
+ * It used to be a scrolling row of one chip per place. That row grew with every place the
+ * household added and, being the widest of the three control strips, was the one that
+ * pushed the products off the screen. As a chip it also states the current answer, which a
+ * row of equal-looking chips only did if the selected one happened to be scrolled into view.
+ */
+@Composable
+private fun LocationFilterChip(state: InventoryUiState, onSelect: (Long?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val selected = state.locations.firstOrNull { it.id == state.selectedLocationId }
+
+    Box {
+        FilterChip(
+            selected = state.selectedLocationId != null,
+            onClick = { open = true },
+            label = { Text(selected?.displayName() ?: stringResource(R.string.inventory_all_locations)) },
+            trailingIcon = { Icon(Icons.Filled.ArrowDropDown, contentDescription = null) },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.inventory_all_locations)) },
+                onClick = {
+                    onSelect(null)
+                    open = false
+                },
+            )
+            state.locations.forEach { location ->
+                DropdownMenuItem(
+                    text = { Text(location.displayName()) },
+                    onClick = {
+                        onSelect(location.id)
+                        open = false
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

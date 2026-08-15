@@ -135,6 +135,8 @@
     <string name="product_purchase_date">Bought</string>
     <string name="product_price">Price</string>
     <string name="product_history">History</string>
+    <string name="product_details">Details</string>
+    <string name="product_remaining">Time left</string>
     <string name="product_action_open">Open</string>
     <string name="product_action_decrement">Use some</string>
     <string name="product_action_finished">Used up</string>

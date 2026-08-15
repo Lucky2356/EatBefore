@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -25,8 +23,6 @@ import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,7 +36,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -61,6 +58,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
+import com.eatbefore.core.designsystem.component.AppCard
+import com.eatbefore.core.designsystem.component.AppTopBar
 import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
 import com.eatbefore.core.designsystem.component.ExpiryLabel
 import com.eatbefore.core.designsystem.component.ExpiryOnlyDialog
@@ -215,17 +214,23 @@ fun ProductScreen(
     var showOverflow by remember { mutableStateOf(false) }
     var showMoveMenu by remember { mutableStateOf(false) }
 
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text(state.item?.product?.name ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
+            AppTopBar(
+                // The name is on the hero card now, in full and at a size worth reading.
+                // Keeping it here too means the one place it is clipped to a single line is
+                // also the place it is repeated.
+                title = state.item?.product?.name.orEmpty(),
+                onBack = onBack,
+                scrollBehavior = scrollBehavior,
+                titleContent = {
+                    Text(
+                        state.item?.product?.name.orEmpty(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 },
                 actions = {
                     if (state.item != null) {
@@ -285,10 +290,14 @@ fun ProductScreen(
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
             if (item != null) {
-                ProductHeaderCard(
+                ProductHeroCard(
                     item = item,
                     expiryStatus = state.expiryStatus,
                     remainingDays = state.remainingDays,
+                )
+
+                QuantityCard(
+                    item = item,
                     onEditQuantity = { showQuantityDialog = true },
                     onDecreaseQuantity = viewModel::decrement,
                     onIncreaseQuantity = viewModel::increment,
@@ -304,6 +313,8 @@ fun ProductScreen(
                     onFinished = viewModel::markFinished,
                 )
 
+                DetailsCard(item = item, remainingDays = state.remainingDays)
+
                 OtherBatchesSection(
                     others = state.otherBatches,
                     total = state.total,
@@ -316,22 +327,21 @@ fun ProductScreen(
     }
 }
 
-/** Photo, name, quantity and status in one block — everything the user checks first. */
+/**
+ * What the product is: its photo, its name, and how long it has left.
+ *
+ * The name used to live only in the title bar, where it was clipped to one line and sat in
+ * the same type as every other screen's title — a card about a specific carton of milk gave
+ * no sign of which carton it was about. The photo is the fastest way to confirm it is the
+ * right one, so it leads.
+ */
 @Composable
-private fun ProductHeaderCard(
+private fun ProductHeroCard(
     item: com.eatbefore.domain.model.InventoryItem,
     expiryStatus: com.eatbefore.domain.model.ExpiryStatus,
     remainingDays: Long?,
-    onEditQuantity: () -> Unit,
-    onDecreaseQuantity: () -> Unit,
-    onIncreaseQuantity: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-    ) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
@@ -343,86 +353,125 @@ private fun ProductHeaderCard(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 200.dp)
+                        .heightIn(max = Dimens.productPhotoHeight)
                         .clip(Shapes.control),
                     contentScale = ContentScale.Fit,
                 )
             }
 
-            item.product.brand?.let {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+                item.product.brand?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(
-                    it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    item.product.name,
+                    style = MaterialTheme.typography.headlineSmall,
                 )
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
-                QuantityStepper(
-                    text = formatQuantity(item.batch.quantity, item.batch.measurementUnit),
-                    onDecrease = onDecreaseQuantity,
-                    onIncrease = onIncreaseQuantity,
-                    // Reaching zero is "finished", which is its own button with its own
-                    // follow-up question — the stepper must not trigger it by accident.
-                    decreaseEnabled = item.batch.quantity > 1.0,
-                )
-                // An explicit button — the amount used to be a hidden tap target.
-                IconButton(onClick = onEditQuantity) {
-                    Icon(
-                        Icons.Outlined.Edit,
-                        contentDescription = stringResource(R.string.product_edit_quantity),
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
                 StatusBadge(status = expiryStatus)
-            }
-
-            HorizontalDivider()
-
-            DetailRow(stringResource(R.string.product_location), item.location.displayName())
-            item.batch.effectiveExpirationDate?.let { date ->
-                DetailRow(stringResource(R.string.product_expiration), formatDate(date))
-            }
-            remainingText(remainingDays)?.let { text ->
-                Text(
-                    text,
-                    style = MaterialTheme.typography.bodyLarge,
-                    // Neutral on purpose: the status beside the amount already says how
-                    // urgent this is, and colouring the same fact twice — in green, while
-                    // the list paints it crimson — only invites doubt about which is right.
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.End,
-                )
-            }
-            item.batch.openedAt?.let {
-                DetailRow(
-                    stringResource(R.string.product_opened_at),
-                    formatDate(it),
-                )
-            }
-            item.batch.purchaseDate?.let { date ->
-                DetailRow(stringResource(R.string.product_purchase_date), formatDate(date))
-            }
-            item.batch.price?.let { price ->
-                DetailRow(
-                    stringResource(R.string.product_price),
-                    formatMoney(price, item.batch.currency),
-                )
-            }
-            // Before opening, tell the user what opening will cost them in shelf life.
-            if (item.batch.openedAt == null) {
-                item.batch.recommendedUseAfterOpeningDays?.let { days ->
+                remainingText(remainingDays)?.let { text ->
                     Text(
-                        pluralStringResource(R.plurals.product_after_opening_hint, days, days),
-                        style = MaterialTheme.typography.bodySmall,
+                        text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        // Neutral on purpose: the status beside it already says how urgent
+                        // this is, and colouring the same fact twice only invites doubt
+                        // about which of the two is right.
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * How much is left, and the two ways to change it.
+ *
+ * Its own block. It used to share a row with the edit button and the status badge, so
+ * "1 pc", a minus, a plus, a pencil and the word "expiring soon" all sat on one line with
+ * nothing to say which of them belonged together.
+ */
+@Composable
+private fun QuantityCard(
+    item: com.eatbefore.domain.model.InventoryItem,
+    onEditQuantity: () -> Unit,
+    onDecreaseQuantity: () -> Unit,
+    onIncreaseQuantity: () -> Unit,
+) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+        ) {
+            Text(
+                stringResource(R.string.product_quantity),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            QuantityStepper(
+                text = formatQuantity(item.batch.quantity, item.batch.measurementUnit),
+                onDecrease = onDecreaseQuantity,
+                onIncrease = onIncreaseQuantity,
+                // Reaching zero is "finished", which is its own button with its own
+                // follow-up question — the stepper must not trigger it by accident.
+                decreaseEnabled = item.batch.quantity > 1.0,
+            )
+            // An explicit button — the amount used to be a hidden tap target.
+            IconButton(onClick = onEditQuantity) {
+                Icon(
+                    Icons.Outlined.Edit,
+                    contentDescription = stringResource(R.string.product_edit_quantity),
+                )
+            }
+        }
+    }
+}
+
+/** Everything known about this particular batch, as labelled pairs. */
+@Composable
+private fun DetailsCard(
+    item: com.eatbefore.domain.model.InventoryItem,
+    remainingDays: Long?,
+) {
+    SectionCard(title = stringResource(R.string.product_details)) {
+        DetailRow(stringResource(R.string.product_location), item.location.displayName())
+        item.batch.effectiveExpirationDate?.let { date ->
+            DetailRow(stringResource(R.string.product_expiration), formatDate(date))
+        }
+        remainingText(remainingDays)?.let { text ->
+            DetailRow(stringResource(R.string.product_remaining), text)
+        }
+        item.batch.openedAt?.let {
+            DetailRow(stringResource(R.string.product_opened_at), formatDate(it))
+        }
+        item.batch.purchaseDate?.let { date ->
+            DetailRow(stringResource(R.string.product_purchase_date), formatDate(date))
+        }
+        item.batch.price?.let { price ->
+            DetailRow(
+                stringResource(R.string.product_price),
+                formatMoney(price, item.batch.currency),
+            )
+        }
+        // Before opening, tell the user what opening will cost them in shelf life.
+        if (item.batch.openedAt == null) {
+            item.batch.recommendedUseAfterOpeningDays?.let { days ->
+                Text(
+                    pluralStringResource(R.plurals.product_after_opening_hint, days, days),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Dimens.spaceXs),
+                )
             }
         }
     }
@@ -615,12 +664,9 @@ private fun HistorySection(
     peerNames: Map<String, String>,
 ) {
     if (history.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Text(
-            stringResource(R.string.product_history),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
+    // In a card like everything else on this screen. Bare rows on the page made the history
+    // the one block here that did not look like it belonged to the product.
+    SectionCard(title = stringResource(R.string.product_history)) {
         history.forEach { event ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = Dimens.spaceXs),

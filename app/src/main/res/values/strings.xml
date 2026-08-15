@@ -142,6 +142,8 @@
     <string name="product_purchase_date">Куплено</string>
     <string name="product_price">Цена</string>
     <string name="product_history">История</string>
+    <string name="product_details">Подробности</string>
+    <string name="product_remaining">Осталось</string>
     <string name="product_action_open">Открыть</string>
     <string name="product_action_decrement">Уменьшить</string>
     <string name="product_action_finished">Закончилось</string>

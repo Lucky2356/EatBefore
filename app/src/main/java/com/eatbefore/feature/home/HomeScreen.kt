@@ -1,12 +1,14 @@
 package com.eatbefore.feature.home
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -18,27 +20,39 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
+import com.eatbefore.core.designsystem.component.AppCard
+import com.eatbefore.core.designsystem.component.AppTopBar
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
+import com.eatbefore.core.designsystem.component.SectionHeading
 import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.LocalStatusColors
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
@@ -58,6 +72,7 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val quickActionSignal by viewModel.quickActionSignal.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val today = remember {
         viewModel.today.format(
             java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM", java.util.Locale.getDefault()),
@@ -74,10 +89,13 @@ fun HomeScreen(
     )
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         snackbarHost = { AnnouncedSnackbarHost(snackbarHost) },
         topBar = {
-            TopAppBar(
-                title = {
+            AppTopBar(
+                title = stringResource(R.string.home_title),
+                scrollBehavior = scrollBehavior,
+                titleContent = {
                     Column {
                         Text(stringResource(R.string.home_title))
                         Text(
@@ -88,7 +106,7 @@ fun HomeScreen(
                                 state.totalCount,
                                 state.totalCount,
                             ),
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -98,10 +116,10 @@ fun HomeScreen(
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
+            contentPadding = PaddingValues(Dimens.spaceLg),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            item {
+            item(key = "quick-actions") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -126,8 +144,10 @@ fun HomeScreen(
 
             // One line, and only when it has something to say. The band of tiles it
             // replaced spent a quarter of the screen announcing "nothing to do".
-            if (state.needsAttentionCount > 0) {
-                item {
+            // Kept as a permanent, keyed item so that going from "nothing to do" to
+            // "one thing to do" is something the eye can catch rather than a jump.
+            item(key = "attention") {
+                AnimatedVisibility(visible = state.needsAttentionCount > 0) {
                     AttentionBanner(
                         count = state.needsAttentionCount,
                         onClick = {
@@ -139,8 +159,9 @@ fun HomeScreen(
             }
 
             state.eatFirst?.let { row ->
-                item {
+                item(key = "eat-first") {
                     EatFirstCard(
+                        modifier = animatedItem(),
                         row = row,
                         onOpen = { onOpenBatch(row.batchId) },
                         onFinished = { onQuickAction(QuickAction.FINISHED, row.batchId) },
@@ -149,7 +170,7 @@ fun HomeScreen(
             }
 
             if (state.totalCount == 0 && !state.isLoading) {
-                item {
+                item(key = "empty") {
                     EmptyState(
                         message = stringResource(R.string.home_empty),
                         actionLabel = stringResource(R.string.home_quick_scan),
@@ -159,7 +180,12 @@ fun HomeScreen(
             }
 
             if (state.expiringSoon.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.home_expiring_section), Icons.Outlined.Schedule) }
+                item(key = "h-expiring") {
+                    SectionHeading(
+                        stringResource(R.string.home_expiring_section),
+                        Modifier.padding(top = Dimens.spaceSm),
+                    )
+                }
                 items(state.expiringSoon, key = { "exp-${it.batchId}" }) { row ->
                     InventoryRowCard(
                         modifier = animatedItem(),
@@ -171,7 +197,12 @@ fun HomeScreen(
             }
 
             if (state.recent.isNotEmpty()) {
-                item { SectionHeader(stringResource(R.string.home_recent_section), Icons.Outlined.AddCircleOutline) }
+                item(key = "h-recent") {
+                    SectionHeading(
+                        stringResource(R.string.home_recent_section),
+                        Modifier.padding(top = Dimens.spaceSm),
+                    )
+                }
                 items(state.recent, key = { "rec-${it.batchId}" }) { row ->
                     InventoryRowCard(
                         modifier = animatedItem(),
@@ -188,37 +219,36 @@ fun HomeScreen(
 /**
  * The one thing the home screen leads with: how much is waiting to be dealt with, and a
  * way straight to it. Shown only when the count is above zero — see the call site.
+ *
+ * A tint, not a fill. This used to be `errorContainer`, which in the dark theme is pure
+ * #93000A: one carton of milk due tonight painted a block of emergency red across the top
+ * of the screen, louder than anything the app has to say about actual spoiled food. The
+ * count is the loud part now, and it is loud by being the largest number on screen.
  */
 @Composable
 private fun AttentionBanner(count: Int, onClick: () -> Unit) {
-    androidx.compose.material3.Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = Shapes.card,
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-        ),
+    val role = LocalStatusColors.current.today
+
+    AppCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
+        shape = Shapes.row,
+        containerColor = role.container,
+        contentColor = role.onContainer,
+        border = null,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            androidx.compose.material3.Icon(
-                Icons.Outlined.Schedule,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-            )
+            Icon(Icons.Outlined.Schedule, contentDescription = null)
             Text(
                 text = pluralStringResource(R.plurals.home_needs_attention, count, count),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f),
             )
-            androidx.compose.material3.Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-            )
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
 }
@@ -231,58 +261,80 @@ private fun AttentionBanner(count: Int, onClick: () -> Unit) {
  * out. The row is deliberately not another [InventoryRowCard] — it carries a heading and
  * an action button, and looking like the list beneath it would hide exactly what makes it
  * different.
+ *
+ * It carries the product's photo where there is one. Recognising a jar on the shelf is
+ * faster than reading its name, and this is the one card the user is meant to act on
+ * while standing in front of the fridge.
  */
 @Composable
-private fun EatFirstCard(row: InventoryRowUi, onOpen: () -> Unit, onFinished: () -> Unit) {
-    androidx.compose.material3.Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
-        shape = Shapes.card,
-        colors = androidx.compose.material3.CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+private fun EatFirstCard(
+    row: InventoryRowUi,
+    onOpen: () -> Unit,
+    onFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onOpen,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        border = null,
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
-            verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+            verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             Row(
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
-                androidx.compose.material3.Icon(
-                    Icons.Outlined.Restaurant,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
+                Icon(Icons.Outlined.Restaurant, contentDescription = null)
                 Text(
                     text = stringResource(R.string.home_eat_first),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    style = MaterialTheme.typography.labelLarge,
                 )
             }
-            Text(
-                text = row.productName,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-            Text(
-                text = listOfNotNull(
-                    // An opened pack is why this one was picked over a sealed one that
-                    // expires sooner, so it says so rather than leaving the order unexplained.
-                    if (row.isOpened) stringResource(R.string.row_opened) else null,
-                    remainingText(row.remainingDays),
-                    storageDisplayName(row.locationName, row.locationType),
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
-            androidx.compose.material3.FilledTonalButton(
-                onClick = onFinished,
-                modifier = Modifier.fillMaxWidth(),
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
             ) {
-                androidx.compose.material3.Icon(
+                if (row.imageUri != null) {
+                    AsyncImage(
+                        model = row.imageUri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(Dimens.heroThumbnailSize)
+                            .clip(Shapes.control),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+                ) {
+                    Text(
+                        text = row.productName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = listOfNotNull(
+                            // An opened pack is why this one was picked over a sealed one
+                            // that expires sooner, so it says so rather than leaving the
+                            // order unexplained.
+                            if (row.isOpened) stringResource(R.string.row_opened) else null,
+                            remainingText(row.remainingDays),
+                            storageDisplayName(row.locationName, row.locationType),
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            FilledTonalButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) {
+                Icon(
                     Icons.Outlined.TaskAlt,
                     contentDescription = null,
                     modifier = Modifier.padding(end = Dimens.spaceSm),
@@ -290,17 +342,5 @@ private fun EatFirstCard(row: InventoryRowUi, onOpen: () -> Unit, onFinished: ()
                 Text(stringResource(R.string.product_action_finished))
             }
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
-        modifier = Modifier.padding(top = Dimens.spaceSm),
-    ) {
-        androidx.compose.material3.Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Text(text = title, style = MaterialTheme.typography.titleMedium)
     }
 }

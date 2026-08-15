@@ -45,6 +45,12 @@ object Dimens {
     /** Product thumbnail in a list row. */
     val thumbnailSize = 46.dp
 
+    /** Product photo on a card meant to be recognised at a glance, not read. */
+    val heroThumbnailSize = 72.dp
+
+    /** Catalogue photo at the top of a product card. Capped so it never fills the screen. */
+    val productPhotoHeight = 200.dp
+
     /** Icon inside a badge or inline with body text. */
     val iconSm = 16.dp
 
