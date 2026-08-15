@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.eatbefore.core.security.SecretCipher
+import com.eatbefore.core.update.UpdatePreferences
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -77,6 +78,16 @@ data class UserPreferences(
      * threw it out" for events that arrived from a phone the user cannot type into.
      */
     val peerNames: Map<String, String> = emptyMap(),
+    /**
+     * Whether the app may look for a new release on its own. On by default: the app is
+     * installed by hand from GitHub, so without this nothing would ever say that a fix
+     * exists — the owner would have to remember to check.
+     */
+    val updateCheckEnabled: Boolean = true,
+    /** Epoch millis of the last completed check, 0 when never run. */
+    val lastUpdateCheckAt: Long = 0,
+    /** Version found by the last check, null when we are on the newest one. */
+    val availableUpdateVersion: String? = null,
 )
 
 /** How many automatic copies to keep before deleting the oldest. */
@@ -110,6 +121,9 @@ class UserPreferencesRepository @Inject constructor(
             offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
             syncFolderUri = prefs[KEY_SYNC_FOLDER]?.takeIf { it.isNotBlank() },
             lastSyncAt = prefs[KEY_LAST_SYNC] ?: 0L,
+            updateCheckEnabled = prefs[UpdatePreferences.KEY_ENABLED] ?: true,
+            lastUpdateCheckAt = prefs[UpdatePreferences.KEY_LAST_CHECK] ?: 0L,
+            availableUpdateVersion = prefs[UpdatePreferences.KEY_AVAILABLE]?.takeIf { it.isNotBlank() },
             deviceName = prefs[KEY_DEVICE_NAME]?.takeIf { it.isNotBlank() },
             peerNames = prefs.asMap()
                 .filterKeys { it.name.startsWith(PEER_NAME_PREFIX) }

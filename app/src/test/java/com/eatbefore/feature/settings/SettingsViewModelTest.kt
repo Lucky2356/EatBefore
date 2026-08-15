@@ -15,6 +15,7 @@ import com.eatbefore.core.sync.SyncManager
 import com.eatbefore.core.sync.SyncResult
 import com.eatbefore.core.sync.SyncScheduler
 import com.eatbefore.core.sync.SyncStats
+import com.eatbefore.core.update.UpdatePreferences
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.testutil.FakeAppClock
@@ -61,6 +62,7 @@ class SettingsViewModelTest {
 
     private lateinit var context: Context
     private lateinit var prefsFile: File
+    private lateinit var dataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
     private lateinit var preferences: UserPreferencesRepository
     private val prefsScope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
 
@@ -77,8 +79,9 @@ class SettingsViewModelTest {
         // A file per test: DataStore frees an open file only once the owning scope has
         // finished cancelling, so a fixed name makes the next test fail for this one.
         prefsFile = File(context.cacheDir, "settings-test-${System.nanoTime()}.preferences_pb")
+        dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile }
         preferences = UserPreferencesRepository(
-            dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile },
+            dataStore = dataStore,
             secretCipher = SecretCipher(),
         )
     }
@@ -98,6 +101,7 @@ class SettingsViewModelTest {
         diagnostics = DiagnosticsLog(context, FakeAppClock()),
         syncManager = syncManager,
         syncScheduler = syncScheduler,
+        updatePreferences = UpdatePreferences(dataStore),
         catalogContributor = catalogContributor,
         ioDispatcher = UnconfinedTestDispatcher(),
     )

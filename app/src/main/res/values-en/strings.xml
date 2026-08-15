@@ -488,4 +488,22 @@
     <string name="settings_kw_catalog">catalog account login password barcode</string>
     <string name="settings_kw_version">version update build</string>
     <string name="settings_kw_diagnostics">error crash log diagnostics</string>
+    <!-- Updating from inside the app -->
+    <string name="update_check">Check for update</string>
+    <string name="update_check_desc">The app is not installed from a store, so it reports new versions itself</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_up_to_date">You have the latest version</string>
+    <string name="update_check_failed">Could not check — looks like there is no network</string>
+    <string name="update_no_apk">The release is out, but the file is not uploaded yet. Look again later.</string>
+    <string name="update_download">Download and install</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_download_failed">Download failed. Try again.</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_install_failed">Could not start the installation</string>
+    <string name="update_size">Size: %1$d MB</string>
+    <string name="update_permission_needed">To install the update, allow installing from this app. You are asked once.</string>
+    <string name="update_permission_open">Open settings</string>
+    <string name="settings_update_auto">Check for updates</string>
+    <string name="settings_update_auto_desc">Once a day over Wi-Fi. Nothing is downloaded without your tap.</string>
 </resources>

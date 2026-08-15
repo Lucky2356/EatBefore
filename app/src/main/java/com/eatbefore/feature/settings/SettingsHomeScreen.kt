@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.theme.Dimens
@@ -51,9 +53,14 @@ import com.eatbefore.core.designsystem.theme.Dimens
 fun SettingsHomeScreen(
     onBack: () -> Unit,
     onOpenSection: (SettingsSection) -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     var query by remember { mutableStateOf("") }
     val matches = searchSettings(query)
+    val prefs by viewModel.state.collectAsStateWithLifecycle()
+    // A found release is worth a dot next to "About" and nothing more: it is news the user
+    // reads when they happen to be here, not a reason to interrupt them.
+    val sectionWithNews = SettingsSection.ABOUT.takeIf { prefs.availableUpdateVersion != null }
 
     ScreenScaffold(title = stringResource(R.string.settings_title), onBack = onBack) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -85,7 +92,11 @@ fun SettingsHomeScreen(
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
                     items(SettingsSection.entries, key = { it.name }) { section ->
-                        SectionRow(section = section, onClick = { onOpenSection(section) })
+                        SectionRow(
+                            section = section,
+                            hasNews = section == sectionWithNews,
+                            onClick = { onOpenSection(section) },
+                        )
                     }
                 }
 
@@ -138,7 +149,7 @@ private fun searchSettings(query: String): List<SettingEntry> {
 }
 
 @Composable
-private fun SectionRow(section: SettingsSection, onClick: () -> Unit) {
+private fun SectionRow(section: SettingsSection, hasNews: Boolean, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -169,6 +180,13 @@ private fun SectionRow(section: SettingsSection, onClick: () -> Unit) {
                     stringResource(section.descRes),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (hasNews) {
+                Box(
+                    modifier = Modifier
+                        .size(NEWS_DOT_SIZE)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                 )
             }
             Icon(
@@ -211,3 +229,4 @@ private fun ResultRow(title: String, section: String, onClick: () -> Unit) {
 }
 
 private val SECTION_ICON_SIZE = 40.dp
+private val NEWS_DOT_SIZE = 8.dp

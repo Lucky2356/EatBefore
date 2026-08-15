@@ -8,8 +8,14 @@
     <!-- Camera for barcode/QR scanning (runtime permission, requested on demand). -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Internet only for optional external product-catalog lookup by barcode. -->
+    <!-- Internet for the optional external product-catalog lookup, and for checking
+         GitHub Releases: the app is installed by hand, so nothing else would ever say
+         that a new version exists. -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Installing the update the app downloaded itself. The user still has to allow this
+         source once in system settings; the app only asks. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Camera is declared for the scanner feature (added in a later milestone).
          Not required to install so the app runs on camera-less devices. -->
@@ -50,6 +56,12 @@
              product. Not exported: only our own PendingIntent may write off stock. -->
         <receiver
             android:name=".core.notifications.ExpiryActionReceiver"
+            android:exported="false" />
+
+        <!-- Where the system reports how the update install went. Not exported: only the
+             package installer, through our own PendingIntent, talks to it. -->
+        <receiver
+            android:name=".core.update.InstallResultReceiver"
             android:exported="false" />
 
         <!-- Home-screen widget: what expires soonest. Exported so the launcher can host it. -->

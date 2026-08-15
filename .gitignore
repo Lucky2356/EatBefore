@@ -16,3 +16,7 @@ local.properties
 # Keep the Gradle wrapper jar tracked (needed to build via ./gradlew).
 !gradle/wrapper/gradle-wrapper.jar
 .kotlin/
+
+# JVM crash dumps: Gradle workers occasionally die here and leave these behind.
+hs_err_pid*.log
+replay_pid*.log

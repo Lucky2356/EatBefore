@@ -23,10 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.BuildConfig
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.SectionCard
 import com.eatbefore.core.designsystem.component.SettingActionRow
+import com.eatbefore.core.designsystem.component.SettingSwitchRow
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.feature.settings.SettingsNote
 import com.eatbefore.feature.settings.SettingsSectionScaffold
@@ -38,6 +40,7 @@ fun AboutSettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val prefs by viewModel.state.collectAsStateWithLifecycle()
     var diagnosticsReport by remember { mutableStateOf<String?>(null) }
 
     SettingsSectionScaffold(
@@ -57,6 +60,14 @@ fun AboutSettingsScreen(
                 )
             }
             SettingsNote(stringResource(R.string.settings_about_privacy))
+            HorizontalDivider()
+            UpdateRow()
+            SettingSwitchRow(
+                title = stringResource(R.string.settings_update_auto),
+                subtitle = stringResource(R.string.settings_update_auto_desc),
+                checked = prefs.updateCheckEnabled,
+                onCheckedChange = viewModel::setUpdateCheckEnabled,
+            )
             HorizontalDivider()
             SettingActionRow(
                 title = stringResource(R.string.settings_diagnostics),

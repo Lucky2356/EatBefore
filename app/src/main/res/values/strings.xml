@@ -509,4 +509,22 @@
     <string name="settings_kw_catalog">каталог аккаунт логин пароль штрихкод</string>
     <string name="settings_kw_version">версия обновление сборка</string>
     <string name="settings_kw_diagnostics">ошибка сбой лог диагностика</string>
+    <!-- Updating from inside the app -->
+    <string name="update_check">Проверить обновление</string>
+    <string name="update_check_desc">Приложение ставится не из магазина, поэтому о новых версиях сообщает само</string>
+    <string name="update_checking">Проверяем…</string>
+    <string name="update_available">Доступна версия %1$s</string>
+    <string name="update_up_to_date">У вас последняя версия</string>
+    <string name="update_check_failed">Не удалось проверить — похоже, нет сети</string>
+    <string name="update_no_apk">Версия вышла, но файл ещё не выложен. Загляните позже.</string>
+    <string name="update_download">Скачать и установить</string>
+    <string name="update_downloading">Скачиваем… %1$d%%</string>
+    <string name="update_download_failed">Скачать не удалось. Попробуйте ещё раз.</string>
+    <string name="update_installing">Устанавливаем…</string>
+    <string name="update_install_failed">Не удалось начать установку</string>
+    <string name="update_size">Размер: %1$d МБ</string>
+    <string name="update_permission_needed">Чтобы поставить обновление, разрешите установку из этого приложения. Спросят один раз.</string>
+    <string name="update_permission_open">Открыть настройки</string>
+    <string name="settings_update_auto">Проверять обновления</string>
+    <string name="settings_update_auto_desc">Раз в сутки по Wi-Fi. Ничего не скачивается без вашего нажатия.</string>
 </resources>

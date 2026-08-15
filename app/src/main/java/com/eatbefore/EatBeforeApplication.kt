@@ -9,6 +9,7 @@ import com.eatbefore.core.diagnostics.CrashReporter
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.core.notifications.NotificationScheduler
 import com.eatbefore.core.sync.SyncScheduler
+import com.eatbefore.core.update.UpdateScheduler
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,8 @@ class EatBeforeApplication :
     @Inject lateinit var autoBackupScheduler: AutoBackupScheduler
 
     @Inject lateinit var syncScheduler: SyncScheduler
+
+    @Inject lateinit var updateScheduler: UpdateScheduler
 
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
 
@@ -81,6 +84,13 @@ class EatBeforeApplication :
             userPreferencesRepository.preferences
                 .distinctUntilChanged { old, new -> old.syncFolderUri == new.syncFolderUri }
                 .onEach { syncScheduler.apply(it) }
+                .collect {}
+        }
+
+        appScope.launch {
+            userPreferencesRepository.preferences
+                .distinctUntilChanged { old, new -> old.updateCheckEnabled == new.updateCheckEnabled }
+                .onEach { updateScheduler.apply(it) }
                 .collect {}
         }
     }

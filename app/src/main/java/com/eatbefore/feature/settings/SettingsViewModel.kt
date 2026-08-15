@@ -16,6 +16,7 @@ import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.core.sync.SyncManager
 import com.eatbefore.core.sync.SyncResult
 import com.eatbefore.core.sync.SyncScheduler
+import com.eatbefore.core.update.UpdatePreferences
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.StorageLocation
@@ -43,6 +44,7 @@ class SettingsViewModel @Inject constructor(
     private val diagnostics: DiagnosticsLog,
     private val syncManager: SyncManager,
     private val syncScheduler: SyncScheduler,
+    private val updatePreferences: UpdatePreferences,
     private val catalogContributor: CatalogContributor,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -159,6 +161,17 @@ class SettingsViewModel @Inject constructor(
 
     fun setDetailedQuantityMode(enabled: Boolean) {
         viewModelScope.launch { preferences.setDetailedQuantityMode(enabled) }
+    }
+
+    /**
+     * The daily look for a new release. Turning it off also clears what the last check
+     * found — leaving the mark would point at an update nothing is going to look for.
+     */
+    fun setUpdateCheckEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            updatePreferences.setEnabled(enabled)
+            if (!enabled) updatePreferences.record(null)
+        }
     }
 
     fun setDefaultLocation(id: Long) {
