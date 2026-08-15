@@ -387,11 +387,15 @@ class AppFlowTest {
         addProduct("Grouped ${System.currentTimeMillis()}")
         openInventory()
 
-        // The heading carries its count after a separator; the filter chip is the bare
+        // The heading carries its count after a separator; the menu entry is the bare
         // name. Matching on the separator tells them apart without counting nodes.
         val heading = string(R.string.storage_fridge) + " · "
         awaitSubstring(heading)
 
+        // The places used to be a row of chips, one per place. They are behind a single
+        // chip now — the row grew with every place added and was pushing the products off
+        // the screen — so choosing one takes an extra tap to open the menu.
+        clickText(string(R.string.inventory_all_locations))
         clickText(string(R.string.storage_fridge))
         awaitSubstringGone(heading)
     }

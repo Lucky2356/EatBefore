@@ -42,10 +42,14 @@ fun EmptyState(
     ) {
         // The icon sits in a tinted disc rather than floating on the page: an outline glyph
         // alone on a white screen reads as something failing to load.
+        //
+        // surfaceContainerHighest, not surfaceContainer: the lower steps sit within two
+        // percent of the page and the disc simply did not appear on the device, which is
+        // the sort of thing only a screenshot tells you.
         Box(
             modifier = Modifier
                 .size(Dimens.emptyStateDisc)
-                .background(MaterialTheme.colorScheme.surfaceContainer, CircleShape),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
