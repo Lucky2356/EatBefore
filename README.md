@@ -59,6 +59,10 @@
   Wi-Fi и по кнопке, скачивание APK с прогрессом и установка — без браузера и файлового
   менеджера.
 - Светлая/тёмная темы, динамические цвета (Android 12+), статус-бейджи (иконка+текст).
+- Собственный визуальный язык: нейтральные поверхности с волосяными границами, шрифт
+  Onest (кириллица нарисована в составе проекта), шкала громкости у состояний срока и
+  движение — переходы между экранами, появление и уход строк в списках. Правила и причины —
+  [ADR-0005](docs/adr/0005-visual-language.md).
 - Русский и английский интерфейс (по языку системы).
 - Онбординг (3 экрана), empty/error/loading-состояния, undo через Snackbar.
 
@@ -66,7 +70,8 @@
 
 Kotlin · Jetpack Compose · Material 3 · MVVM (однонаправленный UiState) ·
 Room · Hilt · Coroutines/Flow · Navigation Compose · DataStore · WorkManager (задел) ·
-Coil. Готовые точки расширения: `ProductCatalogProvider` (внешний каталог),
+Coil · Onest ([SIL OFL](app/src/main/assets/licenses/onest-ofl.txt)).
+Готовые точки расширения: `ProductCatalogProvider` (внешний каталог),
 `ExpiryDateOcrProvider` (OCR), CameraX + ML Kit (сканер) — в roadmap.
 
 - **minSdk 26**, **targetSdk/compileSdk 36**, JVM target 17.

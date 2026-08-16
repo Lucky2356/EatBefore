@@ -19,8 +19,8 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -333,7 +333,10 @@ private fun EatFirstCard(
                 }
             }
 
-            FilledTonalButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) {
+            // Filled, not tonal. A tonal button takes `secondaryContainer`, which on this
+            // card's `primaryContainer` is a two-percent difference — the one button the
+            // screen is built around was very nearly invisible.
+            Button(onClick = onFinished, modifier = Modifier.fillMaxWidth()) {
                 Icon(
                     Icons.Outlined.TaskAlt,
                     contentDescription = null,

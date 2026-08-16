@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -295,9 +294,11 @@ private fun SelectionBar(
 ) {
     Surface(tonalElevation = Dimens.spaceXs) {
         Row(
+            // No navigationBarsPadding here. This bar sits inside the app's own Scaffold,
+            // above the navigation tabs, and those already carry the system inset —
+            // claiming it a second time left a band of empty tint under the buttons.
             modifier = Modifier
                 .fillMaxWidth()
-                .navigationBarsPadding()
                 .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),

@@ -80,6 +80,7 @@ fun SettingsHomeScreen(
                     }
                 },
                 placeholder = { Text(stringResource(R.string.settings_search_hint)) },
+                shape = Shapes.pill,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),

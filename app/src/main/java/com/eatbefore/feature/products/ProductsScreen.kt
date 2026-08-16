@@ -100,6 +100,7 @@ fun ProductsScreen(
                     }
                 },
                 placeholder = { Text(stringResource(R.string.products_search_hint)) },
+                shape = Shapes.pill,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),

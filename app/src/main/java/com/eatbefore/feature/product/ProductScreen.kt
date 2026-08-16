@@ -1,5 +1,8 @@
 package com.eatbefore.feature.product
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +42,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,6 +70,7 @@ import com.eatbefore.core.designsystem.component.ExpiryOnlyDialog
 import com.eatbefore.core.designsystem.component.QuantityStepper
 import com.eatbefore.core.designsystem.component.SectionCard
 import com.eatbefore.core.designsystem.component.StatusBadge
+import com.eatbefore.core.designsystem.component.toVisual
 import com.eatbefore.core.designsystem.format.currencySymbol
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
@@ -215,6 +220,11 @@ fun ProductScreen(
     var showMoveMenu by remember { mutableStateOf(false) }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    val scrollState = rememberScrollState()
+    // The hero card carries the name in full at the top of the screen; the bar only needs
+    // it once that card has gone past. Showing both at once put the same word twice within
+    // half a centimetre of itself and read as a bug.
+    val titleInBar by remember { derivedStateOf { scrollState.value > 0 } }
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
@@ -226,11 +236,13 @@ fun ProductScreen(
                 onBack = onBack,
                 scrollBehavior = scrollBehavior,
                 titleContent = {
-                    Text(
-                        state.item?.product?.name.orEmpty(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    AnimatedVisibility(visible = titleInBar, enter = fadeIn(), exit = fadeOut()) {
+                        Text(
+                            state.item?.product?.name.orEmpty(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 },
                 actions = {
                     if (state.item != null) {
@@ -285,7 +297,7 @@ fun ProductScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(horizontal = Dimens.spaceLg, vertical = Dimens.spaceSm),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
@@ -378,9 +390,14 @@ private fun ProductHeroCard(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
             ) {
                 StatusBadge(status = expiryStatus)
-                remainingText(remainingDays)?.let { text ->
+                // Only when it adds something. For a batch due today both the state and the
+                // countdown render as the same sentence, and the card said "Expires today"
+                // twice in a row, half a centimetre apart. For three days left they differ
+                // — "Expiring soon" and "3 days left" — and the number is worth the space.
+                val countdown = remainingText(remainingDays)
+                if (countdown != null && countdown != stringResource(expiryStatus.toVisual().labelResId)) {
                     Text(
-                        text,
+                        countdown,
                         style = MaterialTheme.typography.bodyMedium,
                         // Neutral on purpose: the status beside it already says how urgent
                         // this is, and colouring the same fact twice only invites doubt
