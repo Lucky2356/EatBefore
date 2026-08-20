@@ -14,6 +14,8 @@ import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.QuickActionSignal
 import com.eatbefore.feature.common.QuickActions
+import com.eatbefore.feature.common.TimelineGroup
+import com.eatbefore.feature.common.groupByTime
 import com.eatbefore.feature.common.toRowUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,25 +51,25 @@ enum class InventoryStatusFilter {
     OPENED,
 }
 
-/** Rows of one storage place, with the place itself for the heading. */
-data class InventoryGroup(val location: StorageLocation, val rows: List<InventoryRowUi>)
-
 data class InventoryUiState(
     val isLoading: Boolean = true,
     val rows: List<InventoryRowUi> = emptyList(),
     /**
-     * The same rows split by storage place, in the order the places are listed in
-     * settings. Only used when looking at every place at once — with one place chosen
-     * there would be a single heading repeating what the filter chip already says.
+     * The same rows split along the time axis — expired, today, tomorrow, this week,
+     * later — which is what the list is grouped by whenever it is ordered by expiry.
+     *
+     * Empty under the other two sort orders. Grouping by when something runs out while
+     * the rows are ordered by name would put "today" and "later" side by side under the
+     * same heading, and the headings would be lying.
      */
-    val groups: List<InventoryGroup> = emptyList(),
+    val timeline: List<TimelineGroup> = emptyList(),
     val locations: List<StorageLocation> = emptyList(),
     val selectedLocationId: Long? = null,
     val sort: InventorySort = InventorySort.EXPIRY,
     val statusFilter: InventoryStatusFilter = InventoryStatusFilter.ALL,
 ) {
-    /** True when the list should show headings rather than one flat run of rows. */
-    val isGrouped: Boolean get() = selectedLocationId == null && groups.isNotEmpty()
+    /** True when the list should show the axis rather than one flat run of rows. */
+    val isTimeline: Boolean get() = timeline.isNotEmpty()
 }
 
 /** Sort order and status filter travel together so the state combine stays typed. */
@@ -155,7 +157,7 @@ class InventoryViewModel @Inject constructor(
         InventoryUiState(
             isLoading = false,
             rows = visible,
-            groups = visible.groupByLocation(locations),
+            timeline = if (options.sort == InventorySort.EXPIRY) visible.groupByTime() else emptyList(),
             locations = locations,
             selectedLocationId = selectedLocationId.value,
             sort = options.sort,
@@ -214,31 +216,6 @@ class InventoryViewModel @Inject constructor(
     }
 
     fun consumeQuickActionSignal() = quickActions.consumeSignal()
-
-    /**
-     * Splits rows by storage place, following the order the user arranged the places in.
-     *
-     * Grouping by the rows' own location ids rather than walking [locations]: a batch
-     * sitting in a place that was archived afterwards is still in the fridge in real life,
-     * and dropping it out of the list would hide food the user owns. Such a place has no
-     * entry to sort by, so it goes last.
-     */
-    private fun List<InventoryRowUi>.groupByLocation(
-        locations: List<StorageLocation>,
-    ): List<InventoryGroup> {
-        val byId = locations.associateBy { it.id }
-        val order = locations.withIndex().associate { (index, location) -> location.id to index }
-        return groupBy { it.locationId }
-            .map { (locationId, rows) ->
-                val location = byId[locationId] ?: StorageLocation(
-                    id = locationId,
-                    name = rows.first().locationName,
-                    type = rows.first().locationType,
-                )
-                InventoryGroup(location, rows)
-            }
-            .sortedBy { order[it.location.id] ?: Int.MAX_VALUE }
-    }
 
     private fun InventoryRowUi.matches(filter: InventoryStatusFilter): Boolean = when (filter) {
         InventoryStatusFilter.ALL -> true

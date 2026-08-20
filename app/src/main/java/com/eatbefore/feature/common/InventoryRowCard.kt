@@ -72,6 +72,12 @@ fun InventoryRowCard(
     modifier: Modifier = Modifier,
     onQuickAction: ((QuickAction) -> Unit)? = null,
     showLocation: Boolean = true,
+    /**
+     * Off where the row sits under a heading that already says the same thing — see
+     * [com.eatbefore.feature.common.headingSaysItAll]. The label is wide, and on a phone
+     * it was taking the width the product's own place needed.
+     */
+    showExpiry: Boolean = true,
     selected: Boolean? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -177,7 +183,9 @@ fun InventoryRowCard(
                     )
                 }
             }
-            ExpiryLabel(status = row.expiryStatus, remainingDays = row.remainingDays)
+            if (showExpiry) {
+                ExpiryLabel(status = row.expiryStatus, remainingDays = row.remainingDays)
+            }
 
             if (onQuickAction != null) {
                 QuickActionMenu(

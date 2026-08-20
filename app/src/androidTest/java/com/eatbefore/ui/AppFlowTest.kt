@@ -130,12 +130,6 @@ class AppFlowTest {
         }
     }
 
-    private fun awaitSubstring(text: String) {
-        composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
-            composeRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
     private fun awaitSubstringGone(text: String) {
         composeRule.waitUntil(timeoutMillis = UI_TIMEOUT_MS) {
             composeRule.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().isEmpty()
@@ -380,24 +374,27 @@ class AppFlowTest {
         assertVisible(second)
     }
 
-    /** Headings appear when looking at every place, and step aside once one is chosen. */
+    /** The list is grouped by when things run out, and choosing a place only narrows it. */
     @Test
-    fun inventory_isGroupedByPlaceUntilOneIsChosen() {
+    fun inventory_groupsAlongTheTimeAxis() {
         skipOnboarding()
-        addProduct("Grouped ${System.currentTimeMillis()}")
+        addProduct("Axis ${System.currentTimeMillis()}")
         openInventory()
 
-        // The heading carries its count after a separator; the menu entry is the bare
-        // name. Matching on the separator tells them apart without counting nodes.
-        val heading = string(R.string.storage_fridge) + " · "
-        awaitSubstring(heading)
+        // Added a week out by default, so it lands under "this week".
+        val axisHeading = string(R.string.timeline_this_week)
+        awaitText(axisHeading)
 
-        // The places used to be a row of chips, one per place. They are behind a single
-        // chip now — the row grew with every place added and was pushing the products off
-        // the screen — so choosing one takes an extra tap to open the menu.
+        // The place used to be the grouping; it is a filter now. Its heading carried a
+        // count after a separator, and nothing else on the screen puts the place first,
+        // so the separator is what tells the old heading apart from a row's own text.
+        awaitSubstringGone(string(R.string.storage_fridge) + " · ")
+
+        // Choosing a place narrows what is on the axis without replacing the axis. The
+        // places sit behind one chip, so it takes a tap to open the menu first.
         clickText(string(R.string.inventory_all_locations))
         clickText(string(R.string.storage_fridge))
-        awaitSubstringGone(heading)
+        awaitText(axisHeading)
     }
 
     @Test

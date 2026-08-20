@@ -40,6 +40,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
@@ -51,11 +53,28 @@ import javax.inject.Inject
  */
 data class BatchTotal(val quantity: Double, val unit: MeasurementUnit)
 
+/**
+ * A batch's life laid end to end: when it came home, when it runs out, and how much of
+ * that is already gone.
+ *
+ * The same fact as "3 days left", but as a proportion rather than a number — three days
+ * left on a yoghurt and three days left on a jar of pickles are not the same situation,
+ * and only the share of the whole shows it.
+ */
+data class ShelfLife(
+    val start: LocalDate,
+    val end: LocalDate,
+    /** 0 on the day it arrived, 1 on the day it runs out. Clamped past either end. */
+    val elapsed: Float,
+)
+
 data class ProductUiState(
     val isLoading: Boolean = true,
     val item: InventoryItem? = null,
     val expiryStatus: ExpiryStatus = ExpiryStatus.NO_DATE,
     val remainingDays: Long? = null,
+    /** Null when the batch has no date, or arrived on or after the day it expires. */
+    val shelfLife: ShelfLife? = null,
     /** Other packs of the same product still at home, soonest to expire first. */
     val otherBatches: List<InventoryRowUi> = emptyList(),
     /** Total across this batch and the others, when they share a unit. */
@@ -106,7 +125,19 @@ private fun ProductContext.otherPresentBatches(current: InventoryItem): List<Inv
  * and they are all measured the same way. Adding half a litre to one package would produce
  * a number that means nothing.
  */
-private fun totalOf(items: List<InventoryItem>): BatchTotal? {
+/**
+ * How far through its life this batch is. Null when there is nothing to measure: no date
+ * at all, or a date on or before the day it was added — a span of zero days cannot be
+ * drawn, and pretending otherwise would divide by it.
+ */
+private fun shelfLifeOf(item: InventoryItem, today: LocalDate, zone: ZoneId): ShelfLife? {
+    val end = item.batch.effectiveExpirationDate ?: return null
+    val start = item.batch.addedAt.atZone(zone).toLocalDate()
+    val span = ChronoUnit.DAYS.between(start, end)
+    if (span <= 0) return null
+    val gone = ChronoUnit.DAYS.between(start, today)
+    return ShelfLife(start = start, end = end, elapsed = (gone.toFloat() / span).coerceIn(0f, 1f))
+} private fun totalOf(items: List<InventoryItem>): BatchTotal? {
     if (items.size < 2) return null
     val unit = items.first().batch.measurementUnit
     if (items.any { it.batch.measurementUnit != unit }) return null
@@ -182,6 +213,7 @@ class ProductViewModel @Inject constructor(
                 item = item,
                 expiryStatus = determineExpiryStatus.forDate(effective, clock.today(), prefs.soonThresholdDays),
                 remainingDays = effective?.let { ChronoUnit.DAYS.between(clock.today(), it) },
+                shelfLife = shelfLifeOf(item, clock.today(), clock.zone()),
                 otherBatches = others.map {
                     it.toRowUi(clock.today(), prefs.soonThresholdDays, determineExpiryStatus)
                 },

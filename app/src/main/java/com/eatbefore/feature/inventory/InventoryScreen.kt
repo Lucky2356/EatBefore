@@ -52,7 +52,6 @@ import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.AnnouncedSnackbarHost
 import com.eatbefore.core.designsystem.component.AppTopBar
 import com.eatbefore.core.designsystem.component.EmptyState
-import com.eatbefore.core.designsystem.component.SectionHeading
 import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.theme.Dimens
@@ -60,7 +59,9 @@ import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
+import com.eatbefore.feature.common.headingSaysItAll
 import com.eatbefore.feature.common.rememberQuickActionHandler
+import com.eatbefore.feature.common.timeline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -243,26 +244,27 @@ fun InventoryScreen(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 ) {
-                    if (state.isGrouped) {
-                        state.groups.forEach { group ->
-                            item(key = "place-${group.location.id}") {
-                                GroupHeading(
-                                    title = group.location.displayName(),
-                                    count = group.rows.size,
-                                )
-                            }
-                            items(group.rows, key = { it.batchId }) { row ->
-                                StockRow(
-                                    modifier = animatedItem(),
-                                    row = row,
-                                    selection = selection,
-                                    onOpenBatch = onOpenBatch,
-                                    onQuickAction = onQuickAction,
-                                    onToggle = viewModel::toggleSelection,
-                                    // The heading above already names the place.
-                                    showLocation = false,
-                                )
-                            }
+                    if (state.isTimeline) {
+                        timeline(
+                            groups = state.timeline,
+                            itemSpacing = Dimens.spaceMd,
+                        ) { row, bucket, rowModifier ->
+                            StockRow(
+                                modifier = rowModifier,
+                                row = row,
+                                selection = selection,
+                                onOpenBatch = onOpenBatch,
+                                onQuickAction = onQuickAction,
+                                onToggle = viewModel::toggleSelection,
+                                display = RowDisplay(
+                                    // The place is worth naming here: the axis groups by
+                                    // time, so a row's place is no longer implied by the
+                                    // heading above it — unless one place is already
+                                    // chosen, and then the chip says it.
+                                    showLocation = state.selectedLocationId == null,
+                                    showExpiry = !bucket.headingSaysItAll,
+                                ),
+                            )
                         }
                     } else {
                         items(state.rows, key = { it.batchId }) { row ->
@@ -321,7 +323,12 @@ private fun SelectionBar(
  * One stock row, which means something different depending on the mode: normally a tap
  * opens the product, while a selection is running it ticks the row instead.
  */
-@Composable
+/**
+ * What a row leaves out. Both flags depend on what the heading above it already said, so
+ * they travel together rather than as two more arguments on an already long call.
+ */
+private data class RowDisplay(val showLocation: Boolean = true, val showExpiry: Boolean = true)@Composable
+
 private fun StockRow(
     row: InventoryRowUi,
     selection: Set<Long>?,
@@ -329,10 +336,11 @@ private fun StockRow(
     onQuickAction: (QuickAction, Long) -> Unit,
     onToggle: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    showLocation: Boolean = true,
+    display: RowDisplay = RowDisplay(),
 ) {
     InventoryRowCard(
         modifier = modifier,
+        showExpiry = display.showExpiry,
         row = row,
         onClick = {
             if (selection == null) onOpenBatch(row.batchId) else onToggle(row.batchId)
@@ -343,14 +351,9 @@ private fun StockRow(
         } else {
             null
         },
-        showLocation = showLocation,
+        showLocation = display.showLocation,
         selected = selection?.contains(row.batchId),
     )
-}
-
-@Composable
-private fun GroupHeading(title: String, count: Int) {
-    SectionHeading("$title · $count", Modifier.padding(top = Dimens.spaceSm))
 }
 
 /**

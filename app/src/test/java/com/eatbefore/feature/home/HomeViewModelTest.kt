@@ -81,17 +81,19 @@ class HomeViewModelTest {
     }
 
     /**
-     * The list shows at most ten; the count must not. Understating the problem exactly
-     * when there is most of it would be the worst time to do it.
+     * The count and the axis have to agree. The list used to stop at ten while the count
+     * kept going, which understated nothing but did leave five batches off a screen that
+     * claimed to show what was going off.
      */
     @Test
-    fun `the expired count covers more than the visible list`() = runTest {
+    fun `the expired count and the axis agree`() = runTest {
         inventory.expiringItems.value = (1L..15L).map { item(it, today.minusDays(1)) }
 
         viewModel().uiState.test {
-            val state = awaitItemWhere { !it.isLoading }
+            val state = awaitItemWhere { !it.isLoading && it.eatFirst != null }
             assertEquals(15, state.expiredCount)
-            assertEquals(10, state.expiringSoon.size)
+            // All but the one the card is already showing.
+            assertEquals(14, state.timeline.sumOf { it.rows.size })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -177,7 +179,7 @@ class HomeViewModelTest {
         viewModel().uiState.test {
             val state = awaitItemWhere { it.eatFirst != null }
             assertEquals(1L, state.eatFirst?.batchId)
-            assertEquals(listOf(2L), state.expiringSoon.map { it.batchId })
+            assertEquals(listOf(2L), state.timeline.flatMap { it.rows }.map { it.batchId })
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -1,15 +1,20 @@
 package com.eatbefore.feature.product
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -79,7 +84,9 @@ import com.eatbefore.core.designsystem.format.formatQuantity
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.core.designsystem.theme.Motion
 import com.eatbefore.core.designsystem.theme.Shapes
+import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.history.eventAuthor
 import com.eatbefore.feature.history.eventLabel
@@ -306,6 +313,7 @@ fun ProductScreen(
                     item = item,
                     expiryStatus = state.expiryStatus,
                     remainingDays = state.remainingDays,
+                    shelfLife = state.shelfLife,
                 )
 
                 QuantityCard(
@@ -325,7 +333,14 @@ fun ProductScreen(
                     onFinished = viewModel::markFinished,
                 )
 
-                DetailsCard(item = item, remainingDays = state.remainingDays)
+                DetailsCard(
+                    item = item,
+                    remainingDays = state.remainingDays,
+                    // The bar above already runs from one date to the other and names
+                    // the days left; repeating all three here read as a stutter, and one
+                    // of the rows was literally labelled "Left" with "27 days left" in it.
+                    showDates = state.shelfLife == null,
+                )
 
                 OtherBatchesSection(
                     others = state.otherBatches,
@@ -352,6 +367,7 @@ private fun ProductHeroCard(
     item: com.eatbefore.domain.model.InventoryItem,
     expiryStatus: com.eatbefore.domain.model.ExpiryStatus,
     remainingDays: Long?,
+    shelfLife: ShelfLife?,
 ) {
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -385,6 +401,8 @@ private fun ProductHeroCard(
                 )
             }
 
+            shelfLife?.let { ShelfLifeBar(life = it, status = expiryStatus) }
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
@@ -417,6 +435,55 @@ private fun ProductHeroCard(
  * "1 pc", a minus, a plus, a pencil and the word "expiring soon" all sat on one line with
  * nothing to say which of them belonged together.
  */
+/**
+ * The batch's life as one filled track: the day it came home at the left, the day it runs
+ * out at the right, filled up to today.
+ *
+ * Three days left means one thing on a yoghurt and another on a jar of pickles, and the
+ * number alone never said which. The number stays underneath — a bar on its own is read
+ * off by eye and is wrong by a day either way.
+ */
+@Composable
+private fun ShelfLifeBar(life: ShelfLife, status: ExpiryStatus) {
+    val elapsed by animateFloatAsState(
+        targetValue = life.elapsed,
+        animationSpec = Motion.standard(),
+        label = "shelfLife",
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                formatDate(life.start),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                formatDate(life.end),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Dimens.shelfLifeBar)
+                .clip(Shapes.pill)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(elapsed)
+                    .clip(Shapes.pill)
+                    .background(status.toVisual().role.content),
+            )
+        }
+    }
+}
+
 @Composable
 private fun QuantityCard(
     item: com.eatbefore.domain.model.InventoryItem,
@@ -459,14 +526,17 @@ private fun QuantityCard(
 private fun DetailsCard(
     item: com.eatbefore.domain.model.InventoryItem,
     remainingDays: Long?,
+    showDates: Boolean,
 ) {
     SectionCard(title = stringResource(R.string.product_details)) {
         DetailRow(stringResource(R.string.product_location), item.location.displayName())
-        item.batch.effectiveExpirationDate?.let { date ->
-            DetailRow(stringResource(R.string.product_expiration), formatDate(date))
-        }
-        remainingText(remainingDays)?.let { text ->
-            DetailRow(stringResource(R.string.product_remaining), text)
+        if (showDates) {
+            item.batch.effectiveExpirationDate?.let { date ->
+                DetailRow(stringResource(R.string.product_expiration), formatDate(date))
+            }
+            remainingText(remainingDays)?.let { text ->
+                DetailRow(stringResource(R.string.product_remaining), text)
+            }
         }
         item.batch.openedAt?.let {
             DetailRow(stringResource(R.string.product_opened_at), formatDate(it))

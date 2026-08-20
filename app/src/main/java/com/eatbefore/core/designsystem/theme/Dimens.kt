@@ -51,6 +51,9 @@ object Dimens {
     /** Catalogue photo at the top of a product card. Capped so it never fills the screen. */
     val productPhotoHeight = 200.dp
 
+    /** The track showing how much of a batch's life has gone. */
+    val shelfLifeBar = 8.dp
+
     /** Icon inside a badge or inline with body text. */
     val iconSm = 16.dp
 

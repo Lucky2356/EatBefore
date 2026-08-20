@@ -65,8 +65,6 @@
 
     <!-- Home -->
     <string name="home_title">Home</string>
-    <string name="home_expiring_section">Expiring soon</string>
-    <string name="home_recent_section">Recently added</string>
     <string name="home_quick_scan">Scan</string>
     <string name="home_quick_add_manual">Add</string>
     <string name="home_quick_shopping">Shopping</string>
@@ -508,4 +506,11 @@
     <string name="update_permission_open">Open settings</string>
     <string name="settings_update_auto">Check for updates</string>
     <string name="settings_update_auto_desc">Once a day over Wi-Fi. Nothing is downloaded without your tap.</string>
+    <!-- Time axis: the buckets every stock list is grouped by -->
+    <string name="timeline_expired">Expired</string>
+    <string name="timeline_today">Today</string>
+    <string name="timeline_tomorrow">Tomorrow</string>
+    <string name="timeline_this_week">This week</string>
+    <string name="timeline_later">Later</string>
+    <string name="timeline_no_date">No date</string>
 </resources>

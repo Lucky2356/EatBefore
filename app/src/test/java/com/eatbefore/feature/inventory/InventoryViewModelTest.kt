@@ -11,6 +11,7 @@ import com.eatbefore.domain.model.StorageType
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import com.eatbefore.feature.common.QuickActions
+import com.eatbefore.feature.common.TimeBucket
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeInventoryRepository
 import com.eatbefore.testutil.MainDispatcherRule
@@ -175,32 +176,68 @@ class InventoryViewModelTest {
         assertEquals(null, filterRequest.pending.value)
     }
 
+    /** The axis runs in one direction only: past, today, tomorrow, this week, later, undated. */
     @Test
-    fun `rows are grouped by place in the order the places are arranged`() = runTest {
+    fun `rows are grouped along the time axis, nearest first`() = runTest {
         inventory.presentItems.value = listOf(
-            item(1, "Пельмени", today.plusDays(30), location = freezer),
-            item(2, "Молоко", today.plusDays(2)),
+            item(1, "Крупа", null),
+            item(2, "Пельмени", today.plusDays(30), location = freezer),
+            item(3, "Сметана", today.plusDays(3)),
+            item(4, "Хлеб", today.plusDays(1)),
+            item(5, "Молоко", today),
+            item(6, "Творог", today.minusDays(2)),
         )
 
         viewModel().uiState.test {
-            val state = awaitItemWhere { !it.isLoading && it.groups.isNotEmpty() }
-            assertEquals(listOf("Fridge", "Freezer"), state.groups.map { it.location.name })
-            assertEquals(listOf("Молоко"), state.groups.first().rows.map { it.productName })
+            val state = awaitItemWhere { !it.isLoading && it.timeline.isNotEmpty() }
+            assertEquals(
+                listOf(
+                    TimeBucket.EXPIRED,
+                    TimeBucket.TODAY,
+                    TimeBucket.TOMORROW,
+                    TimeBucket.THIS_WEEK,
+                    TimeBucket.LATER,
+                    TimeBucket.NO_DATE,
+                ),
+                state.timeline.map { it.bucket },
+            )
+            assertEquals(listOf("Творог"), state.timeline.first().rows.map { it.productName })
             cancelAndIgnoreRemainingEvents()
         }
     }
 
-    /** With one place chosen the heading would only repeat the chip above it. */
+    /**
+     * Choosing a place narrows what is on the axis; it does not replace the axis with a
+     * flat list. The place is a filter now, not a way of grouping.
+     */
     @Test
-    fun `choosing a place turns the headings off`() = runTest {
+    fun `choosing a place keeps the axis`() = runTest {
         inventory.presentItems.value = listOf(item(1, "Молоко", today.plusDays(2)))
         val vm = viewModel()
 
         vm.uiState.test {
-            assertTrue(awaitItemWhere { !it.isLoading && it.rows.isNotEmpty() }.isGrouped)
+            assertTrue(awaitItemWhere { !it.isLoading && it.rows.isNotEmpty() }.isTimeline)
             vm.setLocation(fridge.id)
 
-            assertFalse(awaitItemWhere { it.selectedLocationId == fridge.id }.isGrouped)
+            assertTrue(awaitItemWhere { it.selectedLocationId == fridge.id }.isTimeline)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /**
+     * Grouping by when something runs out, while the rows are ordered by name, would put
+     * today and next month under the same heading — so the headings go instead.
+     */
+    @Test
+    fun `sorting by name turns the axis off`() = runTest {
+        inventory.presentItems.value = listOf(item(1, "Молоко", today.plusDays(2)))
+        val vm = viewModel()
+
+        vm.uiState.test {
+            assertTrue(awaitItemWhere { !it.isLoading && it.rows.isNotEmpty() }.isTimeline)
+            vm.setSort(InventorySort.NAME)
+
+            assertFalse(awaitItemWhere { it.sort == InventorySort.NAME }.isTimeline)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -210,7 +247,7 @@ class InventoryViewModelTest {
      * Dropping it from the list would hide food the household owns.
      */
     @Test
-    fun `a batch in an archived place still appears, last`() = runTest {
+    fun `a batch in an archived place still appears`() = runTest {
         val gone = StorageLocation(id = 99, name = "Балкон", type = StorageType.OTHER)
         inventory.presentItems.value = listOf(
             item(1, "Заготовки", today.plusDays(10), location = gone),
@@ -218,8 +255,8 @@ class InventoryViewModelTest {
         )
 
         viewModel().uiState.test {
-            val state = awaitItemWhere { !it.isLoading && it.groups.isNotEmpty() }
-            assertEquals(listOf("Fridge", "Балкон"), state.groups.map { it.location.name })
+            val state = awaitItemWhere { !it.isLoading && it.rows.size == 2 }
+            assertEquals(listOf("Молоко", "Заготовки"), state.rows.map { it.productName })
             cancelAndIgnoreRemainingEvents()
         }
     }

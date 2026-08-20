@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.ExpiryDatePickerDialog
 import com.eatbefore.core.designsystem.component.ExpiryPresetChips
 import com.eatbefore.core.designsystem.component.QuantityStepper
@@ -44,9 +45,11 @@ import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.format.currencySymbol
 import com.eatbefore.core.designsystem.format.displayName
 import com.eatbefore.core.designsystem.format.formatDate
+import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.shortLabel
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.domain.model.MeasurementUnit
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -138,6 +141,69 @@ fun AddManualScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            LabeledSection(stringResource(R.string.add_location)) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+                ) {
+                    state.locations.forEach { location ->
+                        FilterChip(
+                            selected = state.selectedLocationId == location.id,
+                            onClick = { viewModel.onLocation(location.id) },
+                            label = { Text(location.displayName()) },
+                        )
+                    }
+                }
+            }
+
+            // The one question this screen is really asking, given its own block above
+            // the amount. It used to be the fifth field, between the barcode and the unit
+            // of measure, which is no place for it on a screen about when things run out.
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+                    verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
+                ) {
+                    Text(
+                        text = stringResource(R.string.add_expiration),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    ExpiryPresetChips(
+                        selected = state.expirationDate,
+                        today = viewModel.today,
+                        onSelect = viewModel::onExpirationDate,
+                        onPickDate = { showDatePicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        suggestedDays = state.suggestedShelfLifeDays,
+                    )
+                    // A preset says "in three days"; only the date says which day that is,
+                    // and the date is what the notification will fire on.
+                    state.expirationDate?.let { date ->
+                        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+                            Text(
+                                text = formatDate(date),
+                                style = MaterialTheme.typography.displaySmall,
+                            )
+                            remainingText(ChronoUnit.DAYS.between(viewModel.today, date))?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    OutlinedButton(onClick = onCaptureExpiry, modifier = Modifier.fillMaxWidth()) {
+                        Icon(
+                            Icons.Outlined.PhotoCamera,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = Dimens.spaceSm),
+                        )
+                        Text(stringResource(R.string.ocr_from_photo))
+                    }
+                }
+            }
             QuantityStepper(
                 onDecrease = { viewModel.stepQuantity(-1) },
                 onIncrease = { viewModel.stepQuantity(+1) },
@@ -167,48 +233,6 @@ fun AddManualScreen(
                         )
                     }
                 }
-            }
-
-            LabeledSection(stringResource(R.string.add_location)) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
-                ) {
-                    state.locations.forEach { location ->
-                        FilterChip(
-                            selected = state.selectedLocationId == location.id,
-                            onClick = { viewModel.onLocation(location.id) },
-                            label = { Text(location.displayName()) },
-                        )
-                    }
-                }
-            }
-
-            LabeledSection(stringResource(R.string.add_expiration)) {
-                ExpiryPresetChips(
-                    selected = state.expirationDate,
-                    today = viewModel.today,
-                    onSelect = viewModel::onExpirationDate,
-                    onPickDate = { showDatePicker = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    suggestedDays = state.suggestedShelfLifeDays,
-                )
-            }
-            state.expirationDate?.let { date ->
-                Text(
-                    text = "${stringResource(R.string.add_expiration)}: ${formatDate(date)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            OutlinedButton(onClick = onCaptureExpiry, modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Outlined.PhotoCamera,
-                    contentDescription = null,
-                    modifier = Modifier.padding(end = Dimens.spaceSm),
-                )
-                Text(stringResource(R.string.ocr_from_photo))
             }
 
             OutlinedTextField(

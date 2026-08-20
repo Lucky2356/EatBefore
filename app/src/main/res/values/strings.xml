@@ -19,6 +19,14 @@
     <string name="status_opened">Открыт</string>
     <string name="status_low_quantity">Заканчивается</string>
 
+    <!-- Time axis: the buckets every stock list is grouped by -->
+    <string name="timeline_expired">Просрочено</string>
+    <string name="timeline_today">Сегодня</string>
+    <string name="timeline_tomorrow">Завтра</string>
+    <string name="timeline_this_week">На этой неделе</string>
+    <string name="timeline_later">Позже</string>
+    <string name="timeline_no_date">Без срока</string>
+
     <!-- Remaining time -->
     <string name="expires_in_days">Осталось %1$d дн.</string>
     <string name="expires_today">Истекает сегодня</string>
@@ -66,8 +74,6 @@
 
     <!-- Home -->
     <string name="home_title">Главная</string>
-    <string name="home_expiring_section">Скоро испортятся</string>
-    <string name="home_recent_section">Недавно добавленные</string>
     <string name="home_quick_scan">Сканер</string>
     <string name="home_quick_add_manual">Добавить</string>
     <string name="home_quick_shopping">Покупки</string>

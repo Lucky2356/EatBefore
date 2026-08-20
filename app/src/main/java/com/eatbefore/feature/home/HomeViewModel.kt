@@ -11,6 +11,8 @@ import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.QuickActionSignal
 import com.eatbefore.feature.common.QuickActions
+import com.eatbefore.feature.common.TimelineGroup
+import com.eatbefore.feature.common.groupByTime
 import com.eatbefore.feature.common.toRowUi
 import com.eatbefore.feature.inventory.InventoryFilterRequest
 import com.eatbefore.feature.inventory.InventoryStatusFilter
@@ -34,8 +36,12 @@ data class HomeUiState(
      * the evening with the fridge open.
      */
     val eatFirst: InventoryRowUi? = null,
-    val expiringSoon: List<InventoryRowUi> = emptyList(),
-    val recent: List<InventoryRowUi> = emptyList(),
+    /**
+     * Everything on the near horizon, split along the time axis. The window is the user's
+     * own "expiring soon" setting, so this is the part of the stock that has a date worth
+     * watching — not the whole cupboard, which is what the inventory tab is for.
+     */
+    val timeline: List<TimelineGroup> = emptyList(),
     /** Already past its date — counted separately, because it needs a different reaction. */
     val expiredCount: Int = 0,
     /**
@@ -70,10 +76,9 @@ class HomeViewModel @Inject constructor(
 
     val uiState: StateFlow<HomeUiState> = combine(
         expiringFlow,
-        inventoryRepository.observeRecent(RECENT_LIMIT),
         inventoryRepository.observePresentCount(),
         preferences.preferences,
-    ) { expiring, recent, count, prefs ->
+    ) { expiring, count, prefs ->
         val today = clock.today()
         val expiringRows = expiring.map {
             it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus)
@@ -89,10 +94,9 @@ class HomeViewModel @Inject constructor(
             needsAttentionCount = expiringRows.count {
                 it.expiryStatus == ExpiryStatus.EXPIRED || it.expiryStatus == ExpiryStatus.EXPIRES_TODAY
             },
-            // Whatever the card is showing is left out of the list under it: the same row
+            // Whatever the card is showing is left out of the axis under it: the same row
             // twice, once as an instruction and once as an item, reads as two products.
-            expiringSoon = expiringRows.filterNot { it.batchId == eatFirst?.batchId }.take(EXPIRING_LIMIT),
-            recent = recent.map { it.toRowUi(today, prefs.soonThresholdDays, determineExpiryStatus) },
+            timeline = expiringRows.filterNot { it.batchId == eatFirst?.batchId }.groupByTime(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -130,9 +134,4 @@ class HomeViewModel @Inject constructor(
         .minWithOrNull(
             compareByDescending<InventoryRowUi> { it.isOpened }.thenBy { it.remainingDays },
         )
-
-    private companion object {
-        const val RECENT_LIMIT = 5
-        const val EXPIRING_LIMIT = 10
-    }
 }

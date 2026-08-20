@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddCircleOutline
@@ -47,7 +46,6 @@ import com.eatbefore.core.designsystem.component.AppCard
 import com.eatbefore.core.designsystem.component.AppTopBar
 import com.eatbefore.core.designsystem.component.EmptyState
 import com.eatbefore.core.designsystem.component.QuickActionButton
-import com.eatbefore.core.designsystem.component.SectionHeading
 import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
@@ -57,7 +55,9 @@ import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
+import com.eatbefore.feature.common.headingSaysItAll
 import com.eatbefore.feature.common.rememberQuickActionHandler
+import com.eatbefore.feature.common.timeline
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -179,38 +179,21 @@ fun HomeScreen(
                 }
             }
 
-            if (state.expiringSoon.isNotEmpty()) {
-                item(key = "h-expiring") {
-                    SectionHeading(
-                        stringResource(R.string.home_expiring_section),
-                        Modifier.padding(top = Dimens.spaceSm),
-                    )
-                }
-                items(state.expiringSoon, key = { "exp-${it.batchId}" }) { row ->
-                    InventoryRowCard(
-                        modifier = animatedItem(),
-                        row = row,
-                        onClick = { onOpenBatch(row.batchId) },
-                        onQuickAction = { onQuickAction(it, row.batchId) },
-                    )
-                }
-            }
-
-            if (state.recent.isNotEmpty()) {
-                item(key = "h-recent") {
-                    SectionHeading(
-                        stringResource(R.string.home_recent_section),
-                        Modifier.padding(top = Dimens.spaceSm),
-                    )
-                }
-                items(state.recent, key = { "rec-${it.batchId}" }) { row ->
-                    InventoryRowCard(
-                        modifier = animatedItem(),
-                        row = row,
-                        onClick = { onOpenBatch(row.batchId) },
-                        onQuickAction = { onQuickAction(it, row.batchId) },
-                    )
-                }
+            // The two sections that used to sit here — what is going off, and what was
+            // added lately — are one axis now. "Recently added" was a list ordered by a
+            // clock nobody reads; every row it held is on the axis, under the day it
+            // actually runs out.
+            timeline(
+                groups = state.timeline,
+                itemSpacing = Dimens.spaceMd,
+            ) { row, bucket, rowModifier ->
+                InventoryRowCard(
+                    modifier = rowModifier,
+                    row = row,
+                    onClick = { onOpenBatch(row.batchId) },
+                    onQuickAction = { onQuickAction(it, row.batchId) },
+                    showExpiry = !bucket.headingSaysItAll,
+                )
             }
         }
     }
