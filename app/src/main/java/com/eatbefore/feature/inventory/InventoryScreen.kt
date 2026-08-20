@@ -59,6 +59,7 @@ import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
+import com.eatbefore.feature.common.RowDisplay
 import com.eatbefore.feature.common.headingSaysItAll
 import com.eatbefore.feature.common.rememberQuickActionHandler
 import com.eatbefore.feature.common.timeline
@@ -263,6 +264,9 @@ fun InventoryScreen(
                                     // chosen, and then the chip says it.
                                     showLocation = state.selectedLocationId == null,
                                     showExpiry = !bucket.headingSaysItAll,
+                                    // The heading says "Expired"; the label only owes
+                                    // the number, and the word was costing the name.
+                                    conciseExpiry = true,
                                 ),
                             )
                         }
@@ -323,12 +327,8 @@ private fun SelectionBar(
  * One stock row, which means something different depending on the mode: normally a tap
  * opens the product, while a selection is running it ticks the row instead.
  */
-/**
- * What a row leaves out. Both flags depend on what the heading above it already said, so
- * they travel together rather than as two more arguments on an already long call.
- */
-private data class RowDisplay(val showLocation: Boolean = true, val showExpiry: Boolean = true)@Composable
 
+@Composable
 private fun StockRow(
     row: InventoryRowUi,
     selection: Set<Long>?,
@@ -340,7 +340,7 @@ private fun StockRow(
 ) {
     InventoryRowCard(
         modifier = modifier,
-        showExpiry = display.showExpiry,
+        display = display,
         row = row,
         onClick = {
             if (selection == null) onOpenBatch(row.batchId) else onToggle(row.batchId)
@@ -351,7 +351,6 @@ private fun StockRow(
         } else {
             null
         },
-        showLocation = display.showLocation,
         selected = selection?.contains(row.batchId),
     )
 }

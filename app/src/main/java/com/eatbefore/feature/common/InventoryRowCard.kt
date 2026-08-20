@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +60,22 @@ private fun StorageType.icon(): ImageVector = when (this) {
 }
 
 /**
+ * What a row leaves out, or says more briefly.
+ *
+ * Every flag here answers the same question — what did the heading above this row already
+ * say? — so they travel together rather than as three more arguments on a call that the
+ * complexity budget had already run out of room for.
+ */
+data class RowDisplay(
+    /** Off when one place is already chosen, and the chip above the list names it. */
+    val showLocation: Boolean = true,
+    /** Off under a heading that says the whole of it — see [headingSaysItAll]. */
+    val showExpiry: Boolean = true,
+    /** See [com.eatbefore.core.designsystem.component.ExpiryLabel]'s own parameter. */
+    val conciseExpiry: Boolean = false,
+)
+
+/**
  * A tappable card summarizing one inventory batch.
  *
  * Passing [onQuickAction] adds a long-press menu. Writing off what you just ate is the
@@ -71,17 +88,17 @@ fun InventoryRowCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     onQuickAction: ((QuickAction) -> Unit)? = null,
-    showLocation: Boolean = true,
-    /**
-     * Off where the row sits under a heading that already says the same thing — see
-     * [com.eatbefore.feature.common.headingSaysItAll]. The label is wide, and on a phone
-     * it was taking the width the product's own place needed.
-     */
-    showExpiry: Boolean = true,
+    display: RowDisplay = RowDisplay(),
     selected: Boolean? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
+
+    // At the largest system font sizes the expiry label and the product's name cannot
+    // both fit on one line, and the label wins: it is measured before the name's weighted
+    // column, so at a scale of 2.0 the row showed a full-width red slab and no name at
+    // all. Above 1.5 the label moves under the name instead of beside it.
+    val stackExpiry = LocalDensity.current.fontScale >= STACK_EXPIRY_FONT_SCALE
 
     // Crossing between the plain and the ticked state rather than swapping: entering
     // selection mode recolours every visible row at once, and twenty simultaneous cuts read
@@ -175,16 +192,28 @@ fun InventoryRowCard(
                     Text(
                         // The place is dropped when the list is already grouped by it —
                         // repeating the group heading on every one of its rows is noise.
-                        text = if (showLocation) "$amount · $location" else amount,
+                        text = if (display.showLocation) "$amount · $location" else amount,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                if (display.showExpiry && stackExpiry) {
+                    ExpiryLabel(
+                        status = row.expiryStatus,
+                        remainingDays = row.remainingDays,
+                        modifier = Modifier.padding(top = Dimens.spaceXs),
+                        concise = display.conciseExpiry,
+                    )
+                }
             }
-            if (showExpiry) {
-                ExpiryLabel(status = row.expiryStatus, remainingDays = row.remainingDays)
+            if (display.showExpiry && !stackExpiry) {
+                ExpiryLabel(
+                    status = row.expiryStatus,
+                    remainingDays = row.remainingDays,
+                    concise = display.conciseExpiry,
+                )
             }
 
             if (onQuickAction != null) {
@@ -254,3 +283,15 @@ private fun QuickActionItem(labelRes: Int, icon: ImageVector, onClick: () -> Uni
         onClick = onClick,
     )
 }
+
+/**
+ * System font scale at and above which the expiry label stops sharing a line with the
+ * product's name.
+ *
+ * Set from what the device actually does, not from taste. The label is measured before
+ * the name's weighted column and takes whatever it wants, so the name gets the remainder:
+ * at 1.3 that remainder was wide enough for an ellipsis and nothing else, and at 2.0 the
+ * row was a full-width red slab with no name on it at all. Anything above the default
+ * therefore stops trying to fit both on one line.
+ */
+private const val STACK_EXPIRY_FONT_SCALE = 1.2f

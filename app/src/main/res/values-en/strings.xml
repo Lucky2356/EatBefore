@@ -23,6 +23,7 @@
     <string name="expires_today">Expires today</string>
     <string name="expires_tomorrow">Expires tomorrow</string>
     <string name="expired_days_ago">Expired %1$d days ago</string>
+    <string name="expired_days_ago_short">%1$d days ago</string>
 
     <!-- Common states -->
     <string name="empty_generic_title">Nothing here yet</string>

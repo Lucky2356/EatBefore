@@ -32,6 +32,7 @@
     <string name="expires_today">Истекает сегодня</string>
     <string name="expires_tomorrow">Истекает завтра</string>
     <string name="expired_days_ago">Просрочен %1$d дн. назад</string>
+    <string name="expired_days_ago_short">%1$d дн. назад</string>
 
     <!-- Common states -->
     <string name="empty_generic_title">Пока пусто</string>

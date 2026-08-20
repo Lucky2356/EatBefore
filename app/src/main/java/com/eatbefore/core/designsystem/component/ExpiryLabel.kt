@@ -30,9 +30,21 @@ fun ExpiryLabel(
     status: ExpiryStatus,
     remainingDays: Long?,
     modifier: Modifier = Modifier,
+    /**
+     * Drops the state word from an expired batch, leaving the number: "2 days ago" rather
+     * than "Expired 2 days ago". For rows sitting under a heading that already reads
+     * "Expired" — the word was the widest part of the widest label in the app, and it was
+     * pushing the product's own name out of its row.
+     */
+    concise: Boolean = false,
 ) {
     val visual = status.toVisual()
-    val text = remainingText(remainingDays) ?: stringResource(R.string.status_no_date)
+    val text = when {
+        concise && remainingDays != null && remainingDays < 0 ->
+            stringResource(R.string.expired_days_ago_short, (-remainingDays).toInt())
+
+        else -> remainingText(remainingDays) ?: stringResource(R.string.status_no_date)
+    }
 
     if (visual.emphasis.isChip) {
         StatusChip(visual = visual, text = text, modifier = modifier)

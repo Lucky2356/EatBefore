@@ -55,6 +55,7 @@ import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
+import com.eatbefore.feature.common.RowDisplay
 import com.eatbefore.feature.common.headingSaysItAll
 import com.eatbefore.feature.common.rememberQuickActionHandler
 import com.eatbefore.feature.common.timeline
@@ -192,7 +193,11 @@ fun HomeScreen(
                     row = row,
                     onClick = { onOpenBatch(row.batchId) },
                     onQuickAction = { onQuickAction(it, row.batchId) },
-                    showExpiry = !bucket.headingSaysItAll,
+                    display = RowDisplay(
+                        showExpiry = !bucket.headingSaysItAll,
+                        // The heading says "Expired"; the label only owes the number.
+                        conciseExpiry = true,
+                    ),
                 )
             }
         }
