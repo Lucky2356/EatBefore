@@ -14,6 +14,7 @@ import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.QuickActionSignal
 import com.eatbefore.feature.common.QuickActions
+import com.eatbefore.feature.common.TimeBucket
 import com.eatbefore.feature.common.TimelineGroup
 import com.eatbefore.feature.common.groupByTime
 import com.eatbefore.feature.common.toRowUi
@@ -86,7 +87,7 @@ class InventoryViewModel @Inject constructor(
     preferences: UserPreferencesRepository,
     private val determineExpiryStatus: DetermineExpiryStatusUseCase,
     private val quickActions: QuickActions,
-    private val filterRequest: InventoryFilterRequest,
+    private val focusRequest: InventoryFocusRequest,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -111,18 +112,15 @@ class InventoryViewModel @Inject constructor(
      */
     val selection: StateFlow<Set<Long>?> = _selection.asStateFlow()
 
-    init {
-        // Arriving from the "expired" tile should land on the expired items; asking for a
-        // filter is a one-shot, so it is cleared as soon as it has been applied.
-        viewModelScope.launch {
-            filterRequest.pending.collect { requested ->
-                if (requested != null) {
-                    viewOptions.update { it.copy(status = requested) }
-                    filterRequest.consume()
-                }
-            }
-        }
-    }
+    /**
+     * A division of the axis another screen asked this one to open on, or null.
+     *
+     * Left for the screen to act on rather than folded into [uiState]: what it means is
+     * "scroll here once", and a ViewModel has no list to scroll.
+     */
+    val focus: StateFlow<TimeBucket?> = focusRequest.pending
+
+    fun consumeFocus() = focusRequest.consume()
 
     /**
      * What the search field shows. It must reflect every keystroke immediately — driving

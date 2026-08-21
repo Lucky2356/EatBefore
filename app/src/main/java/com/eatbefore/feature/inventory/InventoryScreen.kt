@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -60,6 +61,7 @@ import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.RowDisplay
+import com.eatbefore.feature.common.headingIndexOf
 import com.eatbefore.feature.common.headingSaysItAll
 import com.eatbefore.feature.common.rememberQuickActionHandler
 import com.eatbefore.feature.common.timeline
@@ -108,6 +110,19 @@ fun InventoryScreen(
     }
 
     val selected = selection
+    val listState = rememberLazyListState()
+
+    // Another screen can point at a division of the axis — see InventoryFocusRequest. The
+    // request is honoured once the list actually holds that division: the tab's state is
+    // kept alive between visits, so the ask can land before the rows it names have loaded.
+    val focus by viewModel.focus.collectAsStateWithLifecycle()
+    LaunchedEffect(focus, state.timeline) {
+        val bucket = focus ?: return@LaunchedEffect
+        val index = state.timeline.headingIndexOf(bucket) ?: return@LaunchedEffect
+        listState.animateScrollToItem(index)
+        viewModel.consumeFocus()
+    }
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -241,6 +256,7 @@ fun InventoryScreen(
                 )
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(Dimens.spaceLg),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),

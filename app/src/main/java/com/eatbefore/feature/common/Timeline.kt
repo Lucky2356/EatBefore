@@ -1,8 +1,10 @@
 package com.eatbefore.feature.common
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -35,10 +37,14 @@ import com.eatbefore.core.designsystem.theme.Dimens
  * The caller draws its own [row] because the two screens using this disagree about what a
  * tap does — one opens the batch, the other ticks it — and pushing that decision in here
  * would mean teaching the axis about selection mode.
+ *
+ * [onHeadingClick] makes the headings themselves the way to the rest of a bucket. Left out
+ * on a screen that is already showing all of it.
  */
 fun LazyListScope.timeline(
     groups: List<TimelineGroup>,
     itemSpacing: Dp,
+    onHeadingClick: ((TimeBucket) -> Unit)? = null,
     row: @Composable (InventoryRowUi, TimeBucket, Modifier) -> Unit,
 ) {
     val lastBucket = groups.lastOrNull()?.bucket
@@ -50,16 +56,14 @@ fun LazyListScope.timeline(
             TimelineHeading(
                 bucket = group.bucket,
                 count = group.rows.size,
+                onClick = onHeadingClick?.let { click -> { click(group.bucket) } },
                 modifier = animatedItem()
                     .fillMaxWidth()
-                    // Groups need more air between them than rows do inside one, and the
-                    // gap has to belong to an item so the rail can be drawn through it.
-                    .padding(top = if (isFirstGroup) 0.dp else Dimens.spaceSm)
                     .timelineRail(
                         node = group.bucket.markerColor(),
                         // The very first line starts at its own node, not at the top edge:
                         // an axis beginning above its first mark reads as cropped.
-                        topInset = if (isFirstGroup) NODE_CENTER_Y else 0.dp,
+                        startAtNode = isFirstGroup,
                         bottomExtra = itemSpacing,
                     ),
             )
@@ -70,7 +74,8 @@ fun LazyListScope.timeline(
             key = { _, item -> item.batchId },
             contentType = { _, _ -> "timelineRow" },
         ) { rowIndex, item ->
-            val isLastRowOverall = group.bucket == lastBucket && rowIndex == group.rows.lastIndex
+            val isLastRow = rowIndex == group.rows.lastIndex
+            val isLastRowOverall = group.bucket == lastBucket && isLastRow
             row(
                 item,
                 group.bucket,
@@ -86,11 +91,25 @@ fun LazyListScope.timeline(
     }
 }
 
-/** One bucket's heading: the coloured word, and how many are in it. */
+/**
+ * One bucket's heading: the coloured word, and how many are in it.
+ *
+ * A full touch target tall even where nothing can be tapped. The separation between groups
+ * used to come from padding above the heading, and padding is outside the rail's own box —
+ * so the line broke for seven pixels before every group but the first. Height belongs to
+ * the rail; padding did not.
+ */
 @Composable
-private fun TimelineHeading(bucket: TimeBucket, count: Int, modifier: Modifier = Modifier) {
+private fun TimelineHeading(
+    bucket: TimeBucket,
+    count: Int,
+    onClick: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     Row(
-        modifier = modifier,
+        modifier = modifier
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .heightIn(min = Dimens.minTouchTarget),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -113,29 +132,29 @@ private fun TimelineHeading(bucket: TimeBucket, count: Int, modifier: Modifier =
  *
  * [bottomExtra] continues the line past this item's own bottom edge to bridge the gap
  * before the next one; lazy items are not clipped against each other, so the halves meet.
+ *
+ * The node is centred on the item rather than placed at a fixed offset, so it stays level
+ * with its heading when the system font scale makes that heading taller.
  */
 @Composable
 private fun Modifier.timelineRail(
     node: Color? = null,
-    topInset: Dp = 0.dp,
+    startAtNode: Boolean = false,
     bottomFraction: Float = 1f,
     bottomExtra: Dp = 0.dp,
 ): Modifier {
     val lineColor = MaterialTheme.colorScheme.outlineVariant
     return drawBehind {
         val x = RAIL_LINE_X.toPx()
+        val centerY = size.height / 2
         drawLine(
             color = lineColor,
-            start = Offset(x, topInset.toPx()),
+            start = Offset(x, if (startAtNode) centerY else 0f),
             end = Offset(x, size.height * bottomFraction + bottomExtra.toPx()),
             strokeWidth = Dimens.hairline.toPx(),
         )
         if (node != null) {
-            drawCircle(
-                color = node,
-                radius = NODE_DIAMETER.toPx() / 2,
-                center = Offset(x, NODE_CENTER_Y.toPx()),
-            )
+            drawCircle(color = node, radius = NODE_DIAMETER.toPx() / 2, center = Offset(x, centerY))
         }
     }.padding(start = RAIL_WIDTH)
 }
@@ -150,8 +169,5 @@ private val RAIL_WIDTH = 22.dp
 private val RAIL_LINE_X = 6.dp
 
 private val NODE_DIAMETER = 12.dp
-
-/** Node centre, level with the middle of a `labelLarge` line. */
-private val NODE_CENTER_Y = 10.dp
 
 private const val HALF = 0.5f

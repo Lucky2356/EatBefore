@@ -1,6 +1,5 @@
 package com.eatbefore.feature.home
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,11 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Restaurant
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Button
@@ -50,7 +47,6 @@ import com.eatbefore.core.designsystem.component.animatedItem
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
-import com.eatbefore.core.designsystem.theme.LocalStatusColors
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
@@ -143,22 +139,6 @@ fun HomeScreen(
                 }
             }
 
-            // One line, and only when it has something to say. The band of tiles it
-            // replaced spent a quarter of the screen announcing "nothing to do".
-            // Kept as a permanent, keyed item so that going from "nothing to do" to
-            // "one thing to do" is something the eye can catch rather than a jump.
-            item(key = "attention") {
-                AnimatedVisibility(visible = state.needsAttentionCount > 0) {
-                    AttentionBanner(
-                        count = state.needsAttentionCount,
-                        onClick = {
-                            viewModel.requestAttentionFilter()
-                            onOpenInventory()
-                        },
-                    )
-                }
-            }
-
             state.eatFirst?.let { row ->
                 item(key = "eat-first") {
                     EatFirstCard(
@@ -187,6 +167,13 @@ fun HomeScreen(
             timeline(
                 groups = state.timeline,
                 itemSpacing = Dimens.spaceMd,
+                // The heading is the way to the rest of its bucket. This replaced a banner
+                // that counted "expired plus due today" and opened a filter — one number
+                // over two headings that already say it, and a filter no heading names.
+                onHeadingClick = { bucket ->
+                    viewModel.focusInventoryOn(bucket)
+                    onOpenInventory()
+                },
             ) { row, bucket, rowModifier ->
                 InventoryRowCard(
                     modifier = rowModifier,
@@ -200,43 +187,6 @@ fun HomeScreen(
                     ),
                 )
             }
-        }
-    }
-}
-
-/**
- * The one thing the home screen leads with: how much is waiting to be dealt with, and a
- * way straight to it. Shown only when the count is above zero — see the call site.
- *
- * A tint, not a fill. This used to be `errorContainer`, which in the dark theme is pure
- * #93000A: one carton of milk due tonight painted a block of emergency red across the top
- * of the screen, louder than anything the app has to say about actual spoiled food. The
- * count is the loud part now, and it is loud by being the largest number on screen.
- */
-@Composable
-private fun AttentionBanner(count: Int, onClick: () -> Unit) {
-    val role = LocalStatusColors.current.today
-
-    AppCard(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        shape = Shapes.row,
-        containerColor = role.container,
-        contentColor = role.onContainer,
-        border = null,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
-        ) {
-            Icon(Icons.Outlined.Schedule, contentDescription = null)
-            Text(
-                text = pluralStringResource(R.plurals.home_needs_attention, count, count),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
         }
     }
 }

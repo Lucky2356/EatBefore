@@ -42,7 +42,7 @@ class InventoryViewModelTest {
     private val fridge = StorageLocation(id = 1, name = "Fridge", type = StorageType.FRIDGE)
     private val freezer = StorageLocation(id = 2, name = "Freezer", type = StorageType.FREEZER)
     private val inventory = FakeInventoryRepository()
-    private val filterRequest = InventoryFilterRequest()
+    private val focusRequest = InventoryFocusRequest()
 
     /** Places come back in the order the user arranged them, as the real DAO returns them. */
     private val activeLocations = listOf(fridge, freezer)
@@ -85,7 +85,7 @@ class InventoryViewModelTest {
             preferences = prefs,
             determineExpiryStatus = DetermineExpiryStatusUseCase(),
             quickActions = mockk<QuickActions>(relaxed = true),
-            filterRequest = filterRequest,
+            focusRequest = focusRequest,
             clock = clock,
         )
     }
@@ -161,19 +161,20 @@ class InventoryViewModelTest {
         }
     }
 
-    /** The home screen's "expired" tile asks for this before switching tabs. */
+    /**
+     * The home screen points here when one of its headings is tapped. The request is a
+     * one-shot: the screen scrolls to the division and clears it, so coming back to the
+     * tab later does not jump again.
+     */
     @Test
-    fun `a requested filter is applied and then forgotten`() = runTest {
+    fun `a requested division is offered and can be forgotten`() = runTest {
         seed()
-        filterRequest.request(InventoryStatusFilter.EXPIRED)
+        focusRequest.request(TimeBucket.EXPIRED)
         val vm = viewModel()
 
-        vm.uiState.test {
-            val state = awaitItemWhere { it.statusFilter == InventoryStatusFilter.EXPIRED }
-            assertEquals(listOf("Просроченное"), state.rows.map { it.productName })
-            cancelAndIgnoreRemainingEvents()
-        }
-        assertEquals(null, filterRequest.pending.value)
+        assertEquals(TimeBucket.EXPIRED, vm.focus.value)
+        vm.consumeFocus()
+        assertEquals(null, vm.focus.value)
     }
 
     /** The axis runs in one direction only: past, today, tomorrow, this week, later, undated. */

@@ -4,6 +4,7 @@ import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -53,7 +54,28 @@ class TimeBucketTest {
         assertEquals(listOf(1L, 2L), group.rows.map { it.batchId })
     }
 
-    private fun row(remainingDays: Long?, id: Long = 1) = InventoryRowUi(
+    /**
+     * The index the inventory scrolls to when a heading is tapped elsewhere. It counts the
+     * heading of every earlier group plus that group's rows, because the axis emits both
+     * as list items — an off-by-one here lands the user on somebody else's products.
+     */
+    @Test
+    fun `heading index counts every earlier heading and its rows`() {
+        val groups = listOf(row(-1), row(0), row(0), row(30)).groupByTime()
+
+        assertEquals(0, groups.headingIndexOf(TimeBucket.EXPIRED))
+        // one heading + one expired row
+        assertEquals(2, groups.headingIndexOf(TimeBucket.TODAY))
+        // ...plus its heading and two rows of today
+        assertEquals(5, groups.headingIndexOf(TimeBucket.LATER))
+    }
+
+    @Test
+    fun `a bucket that is not on the axis has no index`() {
+        val groups = listOf(row(0)).groupByTime()
+
+        assertNull(groups.headingIndexOf(TimeBucket.EXPIRED))
+    } private fun row(remainingDays: Long?, id: Long = 1) = InventoryRowUi(
         batchId = id,
         productName = "Молоко",
         brand = null,

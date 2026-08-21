@@ -10,8 +10,8 @@ import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.model.StorageType
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
 import com.eatbefore.feature.common.QuickActions
-import com.eatbefore.feature.inventory.InventoryFilterRequest
-import com.eatbefore.feature.inventory.InventoryStatusFilter
+import com.eatbefore.feature.common.TimeBucket
+import com.eatbefore.feature.inventory.InventoryFocusRequest
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeInventoryRepository
 import com.eatbefore.testutil.MainDispatcherRule
@@ -34,7 +34,7 @@ class HomeViewModelTest {
     private val today: LocalDate get() = clock.today()
     private val fridge = StorageLocation(id = 1, name = "Fridge", type = StorageType.FRIDGE)
     private val inventory = FakeInventoryRepository()
-    private val filterRequest = InventoryFilterRequest()
+    private val focusRequest = InventoryFocusRequest()
 
     private fun opened(item: InventoryItem) =
         item.copy(batch = item.batch.copy(openedAt = clock.now()))
@@ -60,7 +60,7 @@ class HomeViewModelTest {
             preferences = prefs,
             determineExpiryStatus = DetermineExpiryStatusUseCase(),
             quickActions = mockk<QuickActions>(relaxed = true),
-            filterRequest = filterRequest,
+            focusRequest = focusRequest,
             clock = clock,
         )
     }
@@ -109,9 +109,12 @@ class HomeViewModelTest {
         }
     }
 
-    /** The headline number: what has gone off, plus what runs out before the day is over. */
+    /**
+     * What has gone off and what runs out today are two divisions of the axis, and the
+     * screen leads with them as such. A banner used to add the two into one number.
+     */
     @Test
-    fun `the summary counts what is off and what runs out today`() = runTest {
+    fun `what is off and what runs out today are separate divisions`() = runTest {
         inventory.expiringItems.value = listOf(
             item(1, today.minusDays(2)),
             item(2, today),
@@ -119,20 +122,12 @@ class HomeViewModelTest {
         )
 
         viewModel().uiState.test {
-            val state = awaitItemWhere { !it.isLoading }
-            assertEquals(2, state.needsAttentionCount)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    /** Zero means the home screen shows no banner at all — see HomeScreen. */
-    @Test
-    fun `nothing urgent means nothing to lead with`() = runTest {
-        inventory.expiringItems.value = listOf(item(1, today.plusDays(2)))
-
-        viewModel().uiState.test {
-            val state = awaitItemWhere { !it.isLoading }
-            assertEquals(0, state.needsAttentionCount)
+            val state = awaitItemWhere { it.eatFirst != null && it.timeline.isNotEmpty() }
+            // The card takes the most urgent one; the rest hang off their own divisions.
+            assertEquals(
+                listOf(TimeBucket.TODAY, TimeBucket.THIS_WEEK),
+                state.timeline.map { it.bucket },
+            )
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -197,14 +192,14 @@ class HomeViewModelTest {
     }
 
     /**
-     * The filter must show exactly what the banner counted. Landing on a list holding
-     * more or fewer items than the number just tapped makes the number untrustworthy.
+     * The stock list is asked for the very division that was tapped. It draws the same
+     * axis, so what opens cannot hold more or fewer items than the heading counted.
      */
     @Test
-    fun `tapping the summary asks the stock list for the same set`() = runTest {
-        viewModel().requestAttentionFilter()
+    fun `tapping a heading points the stock list at the same division`() = runTest {
+        viewModel().focusInventoryOn(TimeBucket.EXPIRED)
 
-        assertEquals(InventoryStatusFilter.TODAY, filterRequest.pending.value)
+        assertEquals(TimeBucket.EXPIRED, focusRequest.pending.value)
     }
 }
 

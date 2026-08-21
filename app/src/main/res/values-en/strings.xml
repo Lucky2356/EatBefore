@@ -69,10 +69,6 @@
     <string name="home_quick_scan">Scan</string>
     <string name="home_quick_add_manual">Add</string>
     <string name="home_quick_shopping">Shopping</string>
-    <plurals name="home_needs_attention">
-        <item quantity="one">%1$d product to deal with today</item>
-        <item quantity="other">%1$d products to deal with today</item>
-    </plurals>
     <plurals name="home_products_at_home">
         <item quantity="one">%1$d product at home</item>
         <item quantity="other">%1$d products at home</item>

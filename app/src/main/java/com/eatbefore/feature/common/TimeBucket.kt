@@ -55,6 +55,24 @@ fun List<InventoryRowUi>.groupByTime(): List<TimelineGroup> = groupBy { it.timeB
     .sortedBy { it.key.ordinal }
     .map { TimelineGroup(it.key, it.value) }
 
+/**
+ * Where [bucket]'s heading sits among the items the axis emits, or null when the bucket is
+ * not on it.
+ *
+ * Each group contributes one heading plus its rows, so the index is that running total.
+ * Used to jump the inventory to the same bucket a heading was tapped on elsewhere — a
+ * filter would have had to match the tapped count exactly, and the two lists already show
+ * the same axis, so scrolling to it is both simpler and impossible to get out of step.
+ */
+fun List<TimelineGroup>.headingIndexOf(bucket: TimeBucket): Int? {
+    var index = 0
+    for (group in this) {
+        if (group.bucket == bucket) return index
+        index += 1 + group.rows.size
+    }
+    return null
+}
+
 /** The heading shown for this bucket. */
 val TimeBucket.labelRes: Int
     get() = when (this) {

@@ -78,12 +78,6 @@
     <string name="home_quick_scan">Сканер</string>
     <string name="home_quick_add_manual">Добавить</string>
     <string name="home_quick_shopping">Покупки</string>
-    <plurals name="home_needs_attention">
-        <item quantity="one">Разобрать сегодня: %1$d продукт</item>
-        <item quantity="few">Разобрать сегодня: %1$d продукта</item>
-        <item quantity="many">Разобрать сегодня: %1$d продуктов</item>
-        <item quantity="other">Разобрать сегодня: %1$d продукта</item>
-    </plurals>
     <plurals name="home_products_at_home">
         <item quantity="one">%1$d продукт дома</item>
         <item quantity="few">%1$d продукта дома</item>
