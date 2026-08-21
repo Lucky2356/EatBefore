@@ -13,8 +13,21 @@ import javax.inject.Inject
 
 private const val PERCENT = 100
 
-/** Added vs wasted counts for one ISO week (Monday-based). */
-data class WeeklyStat(val weekStart: LocalDate, val added: Int, val wasted: Int)
+/**
+ * How one ISO week (Monday-based) ended for the batches that closed in it: how many were
+ * used and how many were thrown away.
+ *
+ * One cohort, not two. The chart used to put "added" beside "wasted", which are different
+ * sets of batches counted in different weeks — a purchase this Tuesday and a bin this
+ * Tuesday have nothing to do with each other, and no honest chart can stack them. Closed
+ * batches can be split, and [used] + [wasted] is the whole of that week's outcome. It is
+ * also the cohort [AnalyticsSummary.usedInTimePercent] reports over the whole period, so
+ * the columns and the number above them now measure the same thing.
+ */
+data class WeeklyStat(val weekStart: LocalDate, val used: Int, val wasted: Int) {
+    /** Batches that finished, one way or the other, in this week. */
+    val closed: Int get() = used + wasted
+}
 
 /**
  * Money thrown away, and how much of the waste it actually covers.
@@ -80,7 +93,7 @@ class BuildAnalyticsUseCase @Inject constructor() {
         var wastedCurrency: String? = null
         val wastedByCategory = mutableMapOf<String, Int>()
         val addedByProduct = mutableMapOf<Long, Int>()
-        val addedByWeek = mutableMapOf<LocalDate, Int>()
+        val usedByWeek = mutableMapOf<LocalDate, Int>()
         val wastedByWeek = mutableMapOf<LocalDate, Int>()
 
         fun weekOf(instant: Instant): LocalDate = instant.atZone(zone).toLocalDate()
@@ -91,10 +104,12 @@ class BuildAnalyticsUseCase @Inject constructor() {
                 EventType.ADDED -> {
                     added++
                     addedByProduct.merge(event.productId, 1, Int::plus)
-                    addedByWeek.merge(weekOf(event.createdAt), 1, Int::plus)
                 }
 
-                EventType.CONSUMED -> consumed++
+                EventType.CONSUMED -> {
+                    consumed++
+                    usedByWeek.merge(weekOf(event.createdAt), 1, Int::plus)
+                }
 
                 EventType.DISCARDED, EventType.EXPIRED -> {
                     if (event.eventType == EventType.DISCARDED) discarded++ else expired++
@@ -114,7 +129,7 @@ class BuildAnalyticsUseCase @Inject constructor() {
         }
 
         return AnalyticsSummary(
-            weeklyTrend = weeklyTrend(addedByWeek, wastedByWeek),
+            weeklyTrend = weeklyTrend(usedByWeek, wastedByWeek),
             wastedMoney = if (wastedPriced == 0) {
                 null
             } else {
@@ -147,18 +162,18 @@ class BuildAnalyticsUseCase @Inject constructor() {
      * a quiet week is information, and skipping it would compress the chart into a lie.
      */
     private fun weeklyTrend(
-        addedByWeek: Map<LocalDate, Int>,
+        usedByWeek: Map<LocalDate, Int>,
         wastedByWeek: Map<LocalDate, Int>,
     ): List<WeeklyStat> = buildList {
-        val lastWeek = (addedByWeek.keys + wastedByWeek.keys).maxOrNull() ?: return@buildList
-        val firstWeek = (addedByWeek.keys + wastedByWeek.keys).min()
+        val lastWeek = (usedByWeek.keys + wastedByWeek.keys).maxOrNull() ?: return@buildList
+        val firstWeek = (usedByWeek.keys + wastedByWeek.keys).min()
             .coerceAtLeast(lastWeek.minusWeeks((TREND_WEEKS - 1).toLong()))
         var week = firstWeek
         while (!week.isAfter(lastWeek)) {
             add(
                 WeeklyStat(
                     weekStart = week,
-                    added = addedByWeek[week] ?: 0,
+                    used = usedByWeek[week] ?: 0,
                     wasted = wastedByWeek[week] ?: 0,
                 ),
             )

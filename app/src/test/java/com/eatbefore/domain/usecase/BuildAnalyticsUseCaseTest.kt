@@ -151,23 +151,41 @@ class BuildAnalyticsUseCaseTest {
     fun weeklyTrend_groupsByIsoWeekAndFillsGaps() {
         // 2026-07-06 and 2026-07-20 are Mondays; the week between them has no events.
         val events = listOf(
-            event(EventType.ADDED, at = "2026-07-07T10:00:00Z"),
-            event(EventType.ADDED, at = "2026-07-12T10:00:00Z"), // Sunday, same ISO week
+            event(EventType.CONSUMED, at = "2026-07-07T10:00:00Z"),
+            event(EventType.CONSUMED, at = "2026-07-12T10:00:00Z"), // Sunday, same ISO week
             event(EventType.DISCARDED, at = "2026-07-21T10:00:00Z"),
         )
         val trend = useCase(events, products, from, ZoneOffset.UTC).weeklyTrend
 
         assertEquals(3, trend.size)
-        assertEquals(WeeklyStat(LocalDate.parse("2026-07-06"), added = 2, wasted = 0), trend[0])
-        assertEquals(WeeklyStat(LocalDate.parse("2026-07-13"), added = 0, wasted = 0), trend[1])
-        assertEquals(WeeklyStat(LocalDate.parse("2026-07-20"), added = 0, wasted = 1), trend[2])
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-06"), used = 2, wasted = 0), trend[0])
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-13"), used = 0, wasted = 0), trend[1])
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-20"), used = 0, wasted = 1), trend[2])
+    }
+
+    /**
+     * The column is one cohort split two ways, so its height is the whole of the week's
+     * outcome — and buying something is not an outcome.
+     */
+    @Test
+    fun weeklyTrend_countsOnlyBatchesThatClosed() {
+        val events = listOf(
+            event(EventType.ADDED, at = "2026-07-07T10:00:00Z"),
+            event(EventType.CONSUMED, at = "2026-07-08T10:00:00Z"),
+            event(EventType.EXPIRED, at = "2026-07-09T10:00:00Z"),
+        )
+        val trend = useCase(events, products, from, ZoneOffset.UTC).weeklyTrend
+
+        assertEquals(1, trend.size)
+        assertEquals(WeeklyStat(LocalDate.parse("2026-07-06"), used = 1, wasted = 1), trend[0])
+        assertEquals(2, trend[0].closed)
     }
 
     @Test
     fun weeklyTrend_capsAtTrendWeeks() {
         val events = (0 until 20).map { week ->
             event(
-                EventType.ADDED,
+                EventType.CONSUMED,
                 at = Instant.parse("2026-01-05T10:00:00Z")
                     .plusSeconds(week * 7L * 24 * 3600).toString(),
             )

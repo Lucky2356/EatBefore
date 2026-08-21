@@ -474,7 +474,7 @@
     <!-- Analytics: report extensions -->
     <string name="analytics_share">Поделиться отчётом</string>
     <string name="analytics_trend">Динамика по неделям</string>
-    <string name="analytics_trend_added">Добавлено</string>
+    <string name="analytics_trend_used">Использовано</string>
     <string name="analytics_trend_wasted">Выброшено</string>
     <string name="analytics_by_location">Сейчас в запасах</string>
     <string name="analytics_report_title">Отчёт EatBefore</string>

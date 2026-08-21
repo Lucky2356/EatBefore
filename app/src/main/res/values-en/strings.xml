@@ -447,7 +447,7 @@
     <!-- Analytics: report extensions -->
     <string name="analytics_share">Share report</string>
     <string name="analytics_trend">Weekly trend</string>
-    <string name="analytics_trend_added">Added</string>
+    <string name="analytics_trend_used">Used</string>
     <string name="analytics_trend_wasted">Wasted</string>
     <string name="analytics_by_location">Currently in stock</string>
     <string name="analytics_report_title">EatBefore report</string>

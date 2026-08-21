@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -283,11 +284,11 @@ private fun SummaryContent(summary: AnalyticsSummary) {
 /** Grouped bar chart: added vs wasted per week. Values are also readable from labels. */
 @Composable
 private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
-    val max = trend.maxOf { maxOf(it.added, it.wasted) }.coerceAtLeast(1)
-    val barMaxHeight = 96.dp
+    val max = trend.maxOf { it.closed }.coerceAtLeast(1)
     val weekFormatter = DateTimeFormatter.ofPattern("dd.MM")
-    val addedColor = MaterialTheme.colorScheme.primary
+    val usedColor = MaterialTheme.colorScheme.primary
     val wastedColor = MaterialTheme.colorScheme.error
+    val lastWeek = trend.last().weekStart
 
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(Dimens.spaceLg), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
@@ -297,58 +298,90 @@ private fun WeeklyTrendCard(trend: List<WeeklyStat>) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
+                horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
                 verticalAlignment = Alignment.Bottom,
             ) {
                 trend.forEach { week ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                            verticalAlignment = Alignment.Bottom,
-                        ) {
-                            TrendBar(week.added, max, barMaxHeight, addedColor)
-                            TrendBar(week.wasted, max, barMaxHeight, wastedColor)
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            week.weekStart.format(weekFormatter),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    TrendColumn(
+                        week = week,
+                        max = max,
+                        usedColor = usedColor,
+                        wastedColor = wastedColor,
+                        label = week.weekStart.format(weekFormatter),
+                        // The week in progress is the one the user can still change.
+                        isCurrent = week.weekStart == lastWeek,
+                    )
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-                LegendDot(addedColor, stringResource(R.string.analytics_trend_added))
+                LegendDot(usedColor, stringResource(R.string.analytics_trend_used))
                 LegendDot(wastedColor, stringResource(R.string.analytics_trend_wasted))
             }
         }
     }
 }
 
+/**
+ * One week as a single column: how many batches closed, split by how they ended.
+ *
+ * Stacked rather than side by side, because both halves are parts of one whole — the
+ * height is the week's throughput and the red is the share of it that went in the bin.
+ * Two separate bars invited reading the difference between them, which meant nothing.
+ */
 @Composable
-private fun TrendBar(value: Int, max: Int, maxHeight: androidx.compose.ui.unit.Dp, color: Color) {
+private fun TrendColumn(
+    week: WeeklyStat,
+    max: Int,
+    usedColor: Color,
+    wastedColor: Color,
+    label: String,
+    isCurrent: Boolean,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        if (value > 0) {
-            Text(
-                value.toString(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Box(
+        Text(
+            if (week.closed > 0) week.closed.toString() else "",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Column(
             modifier = Modifier
-                .width(14.dp)
-                // Even zero gets a sliver so the week visibly exists.
-                .height((maxHeight * value / max).coerceAtLeast(2.dp))
+                .width(TREND_BAR_WIDTH)
+                // Even an empty week gets a sliver: a gap in the row would read as a week
+                // that was never recorded rather than one where nothing finished.
+                .height((TREND_BAR_MAX_HEIGHT * week.closed / max).coerceAtLeast(2.dp))
+                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                 .background(
-                    color = if (value > 0) color else MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
+                    if (week.closed > 0) usedColor else MaterialTheme.colorScheme.surfaceVariant,
                 ),
+        ) {
+            if (week.wasted > 0) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(week.wasted.toFloat())
+                        .background(wastedColor),
+                )
+            }
+            if (week.used > 0) {
+                Box(modifier = Modifier.fillMaxWidth().weight(week.used.toFloat()))
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isCurrent) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         )
     }
 }
+
+private val TREND_BAR_WIDTH = 28.dp
+private val TREND_BAR_MAX_HEIGHT = 96.dp
 
 @Composable
 private fun LegendDot(color: Color, label: String) {
