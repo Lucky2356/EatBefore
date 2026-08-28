@@ -11,17 +11,28 @@ EATBEFORE_KEY_ALIAS, EATBEFORE_KEY_PASSWORD. Значения нигде не п
 
     powershell -ExecutionPolicy Bypass -File scripts\setup-release-secrets.ps1
 
+Проверить, ничего не записывая, — добавить -WhatIf:
+
+    powershell -ExecutionPolicy Bypass -File scripts\setup-release-secrets.ps1 -WhatIf
+
 ВАЖНО: секреты GitHub нельзя прочитать обратно — это не резервная копия. Сам файл
 `.jks` и пароль к нему сохраните отдельно (менеджер паролей, внешний диск).
 Потеряете ключ — обновить уже установленные копии приложения будет нечем.
 #>
 
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess = $true)]
 param(
-    [string]$LocalProperties = (Join-Path $PSScriptRoot '..\local.properties')
+    [string]$LocalProperties
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Не значением по умолчанию у параметра: при запуске через `powershell -File`
+# $PSScriptRoot в блоке param ещё пуст, и Join-Path падает на пустом пути.
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if (-not $LocalProperties) {
+    $LocalProperties = Join-Path $repoRoot 'local.properties'
+}
 
 function Read-Properties([string]$path) {
     $map = @{}
@@ -59,16 +70,23 @@ if (-not (Test-Path -LiteralPath $keystore)) {
 Write-Host "Ключ: $keystore"
 Write-Host 'Загружаю секреты в репозиторий (значения не печатаются)...'
 
-$base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($keystore))
+$secrets = [ordered]@{
+    EATBEFORE_KEYSTORE_BASE64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($keystore))
+    EATBEFORE_STORE_PASSWORD  = $props['release.storePassword']
+    EATBEFORE_KEY_ALIAS       = $props['release.keyAlias']
+    EATBEFORE_KEY_PASSWORD    = $props['release.keyPassword']
+}
 
-# --body, а не stdin: gh может оставить перевод строки в конце значения, а лишний
-# символ в пароле сорвёт подпись только на середине сборки в CI.
-gh secret set EATBEFORE_KEYSTORE_BASE64 --body $base64
-gh secret set EATBEFORE_STORE_PASSWORD  --body $props['release.storePassword']
-gh secret set EATBEFORE_KEY_ALIAS       --body $props['release.keyAlias']
-gh secret set EATBEFORE_KEY_PASSWORD    --body $props['release.keyPassword']
+foreach ($secret in $secrets.GetEnumerator()) {
+    if ($PSCmdlet.ShouldProcess($secret.Key, 'gh secret set')) {
+        # --body, а не stdin: gh может оставить перевод строки в конце значения, а
+        # лишний символ в пароле сорвёт подпись только на середине сборки в CI.
+        gh secret set $secret.Key --body $secret.Value
+        if ($LASTEXITCODE -ne 0) { throw "Не удалось записать секрет $($secret.Key)." }
+    }
+}
 
-$version = (Select-String -Path (Join-Path $PSScriptRoot '..\app\build.gradle.kts') `
+$version = (Select-String -Path (Join-Path $repoRoot 'app\build.gradle.kts') `
     -Pattern 'versionName = "([^"]+)"').Matches[0].Groups[1].Value
 
 Write-Host ''
