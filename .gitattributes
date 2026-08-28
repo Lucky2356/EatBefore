@@ -1,0 +1,21 @@
+# Эти файлы исполняются на Linux — в Actions и в облачной среде разработки. Попав
+# туда с CRLF, скрипт падает так, что причину видно не сразу: интерпретатор читает
+# возврат каретки как часть команды.
+*.sh      text eol=lf
+*.py      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+gradlew   text eol=lf
+
+# PowerShell, наоборот, живёт на Windows.
+*.ps1     text eol=crlf
+
+*.jar     binary
+*.png     binary
+*.jpg     binary
+*.webp    binary
+*.apk     binary
+*.jks     binary
+*.keystore binary
+*.ttf     binary
+*.otf     binary

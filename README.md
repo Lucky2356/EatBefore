@@ -84,6 +84,16 @@ Coil · Onest ([SIL OFL](app/src/main/assets/licenses/onest-ofl.txt)).
 - Single-module (`:app`) с чётким пакетным разделением (core / domain / data / feature),
   готовым к последующему выделению модулей (см. [ARCHITECTURE.md](ARCHITECTURE.md)).
 
+## Где всё собирается
+
+Сборка, тесты и публикация подписанного релиза идут в GitHub Actions, а править код
+можно в облачной среде прямо из браузера: на своём компьютере не нужно ни JDK, ни
+Android SDK, ни Android Studio. Порядок — [docs/CLOUD.md](docs/CLOUD.md); там же
+список того, чего в репозитории нет и что нужно сохранить самому, прежде чем
+переставлять систему.
+
+Дальше описано, как то же самое делается локально.
+
 ## Требования для сборки
 
 - JDK 17+ (подходит JBR из состава Android Studio, JDK 21).
@@ -153,6 +163,8 @@ Windows.
 
 В CI вместо файла работают переменные окружения `EATBEFORE_STORE_FILE`,
 `EATBEFORE_STORE_PASSWORD`, `EATBEFORE_KEY_ALIAS`, `EATBEFORE_KEY_PASSWORD`.
+Workflow **Release** берёт их из секретов репозитория; загрузить туда ключ —
+`scripts/setup-release-secrets.ps1`, подробности в [docs/CLOUD.md](docs/CLOUD.md).
 
 Если пароль указан неверно, сборка **падает** с `KeytoolException` — тихого
 отката на debug-ключ не происходит. Сообщение различает случаи: «не открылось
@@ -258,7 +270,8 @@ app/src/main/java/com/eatbefore/
 [ARCHITECTURE.md](ARCHITECTURE.md) · [ROADMAP.md](ROADMAP.md) ·
 [PROJECT_STATE.md](PROJECT_STATE.md) · [THREAT_MODEL.md](THREAT_MODEL.md) ·
 [PRIVACY.md](PRIVACY.md) · [PERFORMANCE.md](PERFORMANCE.md) · [TESTING.md](TESTING.md) ·
-[CHANGELOG.md](CHANGELOG.md) · [TODO.md](TODO.md) · [ADR](docs/adr/)
+[CLOUD.md](docs/CLOUD.md) · [CHANGELOG.md](CHANGELOG.md) · [TODO.md](TODO.md) ·
+[ADR](docs/adr/)
 
 ## Конфиденциальность
 

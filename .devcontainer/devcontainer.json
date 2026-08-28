@@ -1,0 +1,40 @@
+{
+  // Облачная среда разработки (GitHub Codespaces): JDK 17 и Android SDK поднимаются
+  // сами, на своём компьютере ставить нечего. Подробности — docs/CLOUD.md.
+  "name": "EatBefore",
+  "image": "mcr.microsoft.com/devcontainers/java:1-17-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "containerEnv": {
+    // Тот же путь, что у раннеров GitHub Actions, — чтобы команды из документации
+    // работали одинаково и здесь, и в CI.
+    "ANDROID_HOME": "/usr/local/lib/android/sdk",
+    "ANDROID_SDK_ROOT": "/usr/local/lib/android/sdk"
+  },
+
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/usr/local/lib/android/sdk/platform-tools:/usr/local/lib/android/sdk/cmdline-tools/latest/bin"
+  },
+
+  // onCreate, а не postCreate: этот шаг попадает в prebuild, если он будет включён,
+  // и тогда среда открывается уже с готовым SDK.
+  "onCreateCommand": "bash .devcontainer/install-android-sdk.sh",
+
+  // SDK и кэш Gradle вместе занимают около 10 ГБ.
+  "hostRequirements": {
+    "storage": "32gb"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "fwcd.kotlin",
+        "vscjava.vscode-gradle",
+        "mathiasfrohlich.Kotlin"
+      ]
+    }
+  }
+}
