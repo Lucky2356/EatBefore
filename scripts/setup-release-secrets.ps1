@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Загружает ключ подписи релиза в секреты GitHub, чтобы релиз собирался в Actions.
 
@@ -68,8 +68,16 @@ gh secret set EATBEFORE_STORE_PASSWORD  --body $props['release.storePassword']
 gh secret set EATBEFORE_KEY_ALIAS       --body $props['release.keyAlias']
 gh secret set EATBEFORE_KEY_PASSWORD    --body $props['release.keyPassword']
 
+$version = (Select-String -Path (Join-Path $PSScriptRoot '..\app\build.gradle.kts') `
+    -Pattern 'versionName = "([^"]+)"').Matches[0].Groups[1].Value
+
 Write-Host ''
-Write-Host 'Готово. Проверить список:  gh secret list'
-Write-Host 'Дальше релиз собирается на GitHub: Actions -> Release -> Run workflow.'
+Write-Host 'Готово. Список секретов:  gh secret list'
+Write-Host ''
+Write-Host 'Проверить, что ключ работает, ничего не публикуя (соберёт и сверит отпечаток,'
+Write-Host 'APK положит в артефакты запуска):'
+Write-Host ''
+Write-Host "    gh workflow run Release -f version=$version -f dry_run=true"
+Write-Host '    gh run watch'
 Write-Host ''
 Write-Host 'Не забудьте сохранить сам .jks и пароль отдельно — из секретов их не достать.'
