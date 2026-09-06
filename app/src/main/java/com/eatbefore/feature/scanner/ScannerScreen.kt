@@ -80,6 +80,7 @@ fun ScannerScreen(
     val snackbarHost = remember { SnackbarHostState() }
     val addedMessage = stringResource(R.string.scanner_added)
     var showManualDialog by remember { mutableStateOf(false) }
+    var cameraUnavailable by remember { mutableStateOf(false) }
 
     LaunchedEffectAdded(
         addedBatchId = state.addedBatchId,
@@ -138,10 +139,14 @@ fun ScannerScreen(
                             }
                         },
                         modifier = Modifier.fillMaxSize(),
+                        onUnavailable = { cameraUnavailable = true },
                     )
                 }
                 ScanOverlay(
                     hint = when {
+                        // Pointing a camera that never bound at a barcode is advice the
+                        // user cannot follow; manual entry is already in the app bar.
+                        cameraUnavailable -> stringResource(R.string.scanner_camera_unavailable)
                         onCodeFound != null -> stringResource(R.string.scanner_lookup_hint)
                         state.batchMode -> stringResource(R.string.scanner_batch_hint)
                         else -> stringResource(R.string.scanner_hint)

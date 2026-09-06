@@ -27,12 +27,17 @@ import kotlin.coroutines.suspendCoroutine
  * CameraX preview bound to an ML Kit barcode analyzer. Fully on-device. Torch is driven by
  * [torchEnabled]; detections are reported through [onCode]. The analyzer executor and the
  * ML Kit client are released when the composable leaves composition.
+ *
+ * [onUnavailable] fires when binding fails. Without it the screen kept showing a black
+ * rectangle and a hint telling the user to point the camera at a barcode — advice they
+ * had no way to follow, and no way to know was pointless.
  */
 @Composable
 fun CameraPreview(
     torchEnabled: Boolean,
     onCode: (ScannedCode) -> Unit,
     modifier: Modifier = Modifier,
+    onUnavailable: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -86,7 +91,7 @@ fun CameraPreview(
                 analysis,
             )
             cameraHolder[0]?.cameraControl?.enableTorch(torchEnabled)
-        }
+        }.onFailure { onUnavailable() }
     }
 
     LaunchedEffect(torchEnabled) {

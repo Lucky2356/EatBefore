@@ -23,11 +23,16 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * CameraX preview with a bound [ImageCapture]. The capture use case is hoisted via
  * [onCaptureReady] so the hosting screen's shutter button can trigger [takePhoto].
+ *
+ * [onUnavailable] fires when binding fails. It has to: [onCaptureReady] is only reached on
+ * success, so the screen was left holding a null capture and a shutter button that did
+ * nothing at all when pressed — which reads as a broken app rather than a missing camera.
  */
 @Composable
 fun OcrCameraView(
     onCaptureReady: (ImageCapture) -> Unit,
     modifier: Modifier = Modifier,
+    onUnavailable: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -54,7 +59,7 @@ fun OcrCameraView(
                 imageCapture,
             )
             onCaptureReady(imageCapture)
-        }
+        }.onFailure { onUnavailable() }
     }
 
     AndroidView(factory = { previewView }, modifier = modifier)
