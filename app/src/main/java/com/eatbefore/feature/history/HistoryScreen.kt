@@ -17,10 +17,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,10 +46,23 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val message by viewModel.message.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+
+    val messageText = message?.let { stringResource(it.textRes) }
+    LaunchedEffect(message) {
+        if (message != null && messageText != null) {
+            // No action on this snackbar: what it reports is a restore or an undo that did
+            // not happen, and there is nothing to offer undoing.
+            snackbarHost.showSnackbar(message = messageText, withDismissAction = true)
+            viewModel.consumeMessage()
+        }
+    }
 
     ScreenScaffold(
         title = stringResource(R.string.history_title),
         onBack = onBack,
+        snackbarHostState = snackbarHost,
         actions = {
             IconButton(onClick = viewModel::undoLast) {
                 Icon(
@@ -97,7 +113,7 @@ fun HistoryScreen(
                         lastVisible >= listState.layoutInfo.totalItemsCount - 5
                     }
                 }
-                androidx.compose.runtime.LaunchedEffect(shouldLoadMore) {
+                LaunchedEffect(shouldLoadMore) {
                     if (shouldLoadMore) viewModel.loadMore()
                 }
 

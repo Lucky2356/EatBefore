@@ -1,7 +1,9 @@
 package com.eatbefore.feature.history
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eatbefore.R
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
@@ -12,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -29,6 +32,14 @@ data class HistoryUiState(
     val peerNames: Map<String, String> = emptyMap(),
 )
 
+/**
+ * Something worth saying out loud after a restore or an undo.
+ *
+ * [id] increments on every message so two identical ones in a row still re-trigger the
+ * snackbar, the same way [com.eatbefore.feature.shopping.ShoppingMessage] does.
+ */
+data class HistoryMessage(@StringRes val textRes: Int, val id: Long)
+
 /** Event types that removed stock and can therefore be restored from the list. */
 private val RESTORABLE = setOf(EventType.CONSUMED, EventType.DISCARDED, EventType.EXPIRED)
 
@@ -43,6 +54,11 @@ class HistoryViewModel @Inject constructor(
 
     private val filter = MutableStateFlow<EventType?>(null)
     private val limit = MutableStateFlow(PAGE_SIZE)
+
+    private val _message = MutableStateFlow<HistoryMessage?>(null)
+    val message: StateFlow<HistoryMessage?> = _message.asStateFlow()
+
+    private var messageCounter = 0L
 
     private val query = combine(filter, limit) { activeFilter, activeLimit ->
         activeFilter to activeLimit
@@ -84,11 +100,31 @@ class HistoryViewModel @Inject constructor(
     fun isRestorable(event: InventoryEvent): Boolean = event.eventType in RESTORABLE
 
     fun restore(event: InventoryEvent) {
-        viewModelScope.launch { runCatching { restoreBatch(event.inventoryBatchId) } }
+        viewModelScope.launch {
+            // Success is deliberately silent: restoring writes a RESTORED event, which
+            // appears as the first row of the very list being looked at. A snackbar saying
+            // the same thing on top of it is noise.
+            runCatching { restoreBatch(event.inventoryBatchId) }
+                .onFailure { announce(R.string.history_restore_failed) }
+        }
     }
 
     fun undoLast() {
-        viewModelScope.launch { runCatching { undoLastAction() } }
+        viewModelScope.launch {
+            runCatching { undoLastAction() }
+                // false means there was nothing left to undo — not a failure, but not
+                // nothing either: in silence it is indistinguishable from a dead button.
+                .onSuccess { undone -> if (!undone) announce(R.string.history_undo_nothing) }
+                .onFailure { announce(R.string.history_undo_failed) }
+        }
+    }
+
+    fun consumeMessage() {
+        _message.value = null
+    }
+
+    private fun announce(@StringRes textRes: Int) {
+        _message.value = HistoryMessage(textRes = textRes, id = ++messageCounter)
     }
 
     private companion object {

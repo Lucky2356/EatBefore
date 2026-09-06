@@ -10,6 +10,8 @@ import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import com.eatbefore.testutil.FakeHistoryRepository
 import com.eatbefore.testutil.FakeInventoryRepository
 import com.eatbefore.testutil.MainDispatcherRule
+import com.eatbefore.R
+import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -18,6 +20,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -169,6 +172,45 @@ class HistoryViewModelTest {
         advanceUntilIdle()
 
         coVerify { undoLastAction() }
+    }
+
+    /**
+     * A restore that throws used to change nothing and say nothing, which from the user's
+     * side is indistinguishable from having missed the button.
+     */
+    @Test
+    fun `a restore that fails is announced`() = runTest {
+        coEvery { restoreBatch(any()) } throws IllegalArgumentException("Unknown batch")
+        val vm = viewModel()
+
+        vm.restore(event(EventType.DISCARDED))
+        advanceUntilIdle()
+
+        assertEquals(R.string.history_restore_failed, vm.message.value?.textRes)
+    }
+
+    /** Nothing left to undo is not a failure, but silence about it reads as a dead button. */
+    @Test
+    fun `undo with nothing to undo says so`() = runTest {
+        coEvery { undoLastAction() } returns false
+        val vm = viewModel()
+
+        vm.undoLast()
+        advanceUntilIdle()
+
+        assertEquals(R.string.history_undo_nothing, vm.message.value?.textRes)
+    }
+
+    /** A successful undo is left to the list itself: the reversal is visible in it. */
+    @Test
+    fun `a successful undo says nothing`() = runTest {
+        coEvery { undoLastAction() } returns true
+        val vm = viewModel()
+
+        vm.undoLast()
+        advanceUntilIdle()
+
+        assertNull(vm.message.value)
     }
 
     /** The names arrive with the peer's journal; without them a row can only say "id". */
