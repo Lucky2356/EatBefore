@@ -171,6 +171,8 @@
     <string name="event_moved">Moved</string>
     <string name="event_consumed">Used</string>
     <string name="event_discarded">Thrown away</string>
+    <string name="quick_action_undo_failed">Could not put it back. Check the history</string>
+    <string name="quick_action_bulk_partial">Some were not written off and are still in stock</string>
     <string name="event_expired">Expired</string>
     <string name="event_restored">Restored</string>
     <string name="event_added_to_shopping">To shopping list</string>
@@ -253,6 +255,7 @@
     <!-- Scanner -->
     <string name="scanner_title">Scanning</string>
     <string name="scanner_hint">Point the camera at a barcode or QR code</string>
+    <string name="scanner_camera_unavailable">The camera is unavailable. Enter the code by hand — the button is top right</string>
     <string name="scanner_lookup_hint">Point at a barcode — I will tell you if it is at home</string>
     <string name="scanner_torch">Flashlight</string>
     <string name="scanner_manual">Enter code manually</string>
@@ -298,6 +301,7 @@
     <string name="ocr_pick_date">Pick the recognized date:</string>
     <string name="ocr_confidence">confidence %1$d%%</string>
     <string name="ocr_none_title">No date recognized</string>
+    <string name="ocr_camera_unavailable">The camera is unavailable. Enter the expiry date by hand</string>
     <string name="ocr_none_body">Could not read a date. Take another photo or enter it manually.</string>
     <string name="ocr_retry">Take another photo</string>
     <string name="ocr_enter_manually">Enter manually</string>

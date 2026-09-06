@@ -60,6 +60,7 @@ fun OcrScreen(
     val context = LocalContext.current
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var cameraUnavailable by remember { mutableStateOf(false) }
 
     ScreenScaffold(
         title = stringResource(R.string.ocr_title),
@@ -85,14 +86,22 @@ fun OcrScreen(
                 )
 
                 else -> CaptureContent(
+                    cameraUnavailable = cameraUnavailable,
                     onCaptureReady = { imageCapture = it },
+                    onCameraUnavailable = { cameraUnavailable = true },
                     onShutter = {
-                        val capture = imageCapture ?: return@CaptureContent
+                        // A shutter that silently does nothing reads as a broken app. Say
+                        // the camera is unavailable instead; the date can still be typed.
+                        val capture = imageCapture
+                        if (capture == null) {
+                            cameraUnavailable = true
+                            return@CaptureContent
+                        }
                         takePhoto(
                             context = context,
                             imageCapture = capture,
                             onSaved = { uri -> viewModel.recognize(uri.toString()) },
-                            onError = { /* keep preview; user can retry */ },
+                            onError = { cameraUnavailable = true },
                         )
                     },
                 )
@@ -102,15 +111,28 @@ fun OcrScreen(
 }
 
 @Composable
-private fun CaptureContent(onCaptureReady: (ImageCapture) -> Unit, onShutter: () -> Unit) {
+private fun CaptureContent(
+    cameraUnavailable: Boolean,
+    onCaptureReady: (ImageCapture) -> Unit,
+    onCameraUnavailable: () -> Unit,
+    onShutter: () -> Unit,
+) {
     Box(modifier = Modifier.fillMaxSize()) {
-        OcrCameraView(onCaptureReady = onCaptureReady, modifier = Modifier.fillMaxSize())
+        OcrCameraView(
+            onCaptureReady = onCaptureReady,
+            modifier = Modifier.fillMaxSize(),
+            onUnavailable = onCameraUnavailable,
+        )
         Surface(
             color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f),
             modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
         ) {
             Text(
-                text = stringResource(R.string.ocr_hint),
+                text = if (cameraUnavailable) {
+                    stringResource(R.string.ocr_camera_unavailable)
+                } else {
+                    stringResource(R.string.ocr_hint)
+                },
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),

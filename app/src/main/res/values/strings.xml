@@ -188,6 +188,8 @@
     <string name="event_moved">Перемещено</string>
     <string name="event_consumed">Использовано</string>
     <string name="event_discarded">Выброшено</string>
+    <string name="quick_action_undo_failed">Не удалось вернуть. Проверьте историю</string>
+    <string name="quick_action_bulk_partial">Списаны не все — часть осталась в запасах</string>
     <string name="event_expired">Просрочено</string>
     <string name="event_restored">Восстановлено</string>
     <string name="event_added_to_shopping">В список покупок</string>
@@ -270,6 +272,7 @@
     <!-- Scanner -->
     <string name="scanner_title">Сканирование</string>
     <string name="scanner_hint">Наведите камеру на штрихкод или QR-код</string>
+    <string name="scanner_camera_unavailable">Камера недоступна. Введите код вручную — кнопка в правом верхнем углу</string>
     <string name="scanner_lookup_hint">Наведите на штрихкод — покажу, есть ли это дома</string>
     <string name="scanner_torch">Фонарик</string>
     <string name="scanner_manual">Ввести код вручную</string>
@@ -319,6 +322,7 @@
     <string name="ocr_pick_date">Выберите распознанную дату:</string>
     <string name="ocr_confidence">уверенность %1$d%%</string>
     <string name="ocr_none_title">Дата не распознана</string>
+    <string name="ocr_camera_unavailable">Камера недоступна. Введите срок годности вручную</string>
     <string name="ocr_none_body">Не удалось распознать дату. Сфотографируйте ещё раз или введите вручную.</string>
     <string name="ocr_retry">Сфотографировать снова</string>
     <string name="ocr_enter_manually">Ввести вручную</string>

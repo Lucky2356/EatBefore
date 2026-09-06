@@ -141,14 +141,18 @@ class QuickActions @Inject constructor(
                 }
             }.isSuccess
         }
+        // Nothing changed: every batch was already gone, which after an exchange with the
+        // other phone is ordinary. Announcing a failure here would cry wolf.
         if (done.isEmpty()) return
 
         bulkBatchIds = done
         _signal.value = QuickActionSignal(
-            messageRes = if (action == QuickAction.DISCARD) {
-                R.string.event_discarded
-            } else {
-                R.string.event_consumed
+            // Reporting "discarded" after three of four went through is a lie the user only
+            // discovers by counting the list afterwards.
+            messageRes = when {
+                done.size < batchIds.size -> R.string.quick_action_bulk_partial
+                action == QuickAction.DISCARD -> R.string.event_discarded
+                else -> R.string.event_consumed
             },
             undoable = true,
             id = ++counter,
@@ -157,15 +161,25 @@ class QuickActions @Inject constructor(
 
     suspend fun undo() {
         val bulk = bulkBatchIds
-        if (bulk != null) {
+        val restored = if (bulk != null) {
             // Restoring by id rather than replaying the undo chain: the chain only knows
             // about the last event, and here there were several.
             bulkBatchIds = null
-            bulk.forEach { batchId -> runCatching { restoreBatch(batchId) } }
+            bulk.all { batchId -> runCatching { restoreBatch(batchId) }.isSuccess }
         } else {
-            runCatching { undoLastAction() }
+            runCatching { undoLastAction() }.isSuccess
         }
-        _signal.value = null
+        // An undo that failed used to just dismiss the snackbar — leaving the user certain
+        // the item was back when it never was.
+        _signal.value = if (restored) {
+            null
+        } else {
+            QuickActionSignal(
+                messageRes = R.string.quick_action_undo_failed,
+                undoable = false,
+                id = ++counter,
+            )
+        }
     }
 
     fun consumeSignal() {
