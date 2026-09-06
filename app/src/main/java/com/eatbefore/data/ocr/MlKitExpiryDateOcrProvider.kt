@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.domain.ocr.ExpiryDateOcrProvider
 import com.eatbefore.domain.ocr.ExpiryDateParser
 import com.eatbefore.domain.ocr.OcrResult
@@ -30,6 +31,7 @@ class MlKitExpiryDateOcrProvider @Inject constructor(
     @ApplicationContext private val context: Context,
     private val parser: ExpiryDateParser,
     private val clock: AppClock,
+    private val diagnostics: DiagnosticsLog,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ExpiryDateOcrProvider {
 
@@ -44,7 +46,11 @@ class MlKitExpiryDateOcrProvider @Inject constructor(
             val text = recognizer.use { it.processAwait(image) }
             OcrResult(rawText = text, candidates = parser.parse(text, clock.today()))
         } catch (e: Exception) {
-            // Corrupt image, unreadable URI, or recognizer failure — never crash.
+            // Corrupt image, unreadable URI, or recognizer failure — never crash. On screen
+            // this is indistinguishable from "no dates on the packet", so the difference
+            // has to survive somewhere: a recognizer that never works is a defect, and an
+            // empty result is not.
+            diagnostics.record("OCR", "Recognition failed; falling back to an empty result", e)
             EMPTY
         }
     }

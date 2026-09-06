@@ -33,8 +33,9 @@ UI (Compose, ViewModel)  ->  Domain (use cases, интерфейсы)  ->  Data 
 - Мутации, меняющие запас, применяются **атомарно вместе с событием истории**
   (`addBatchWithEvent`, `updateBatchWithEvent` через `db.withTransaction`), поэтому
   аудит-лог не может рассинхронизироваться с данными.
-- Fake-провайдеры (`FakeProductCatalogProvider`, `NoopExpiryDateOcrProvider`) — рабочие
-  заглушки до подключения реальных сервисов.
+- Реальные провайдеры: `OpenFoodFactsCatalogProvider` за `ChainedCatalogProvider`
+  (каталог) и `MlKitExpiryDateOcrProvider` (OCR). Заглушки, стоявшие здесь до подключения
+  сервисов, удалены — они пережили свои milestone'ы и ни на что не были связаны.
 
 ### core
 - `core/database` — Room: entity, DAO, `Converters`, `EatBeforeDatabase`, `Migrations`,

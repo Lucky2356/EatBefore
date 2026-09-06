@@ -11,6 +11,8 @@ import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.core.security.SecretCipher
 import com.eatbefore.testutil.FakeAppClock
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -91,6 +93,23 @@ class SyncManagerTest {
         prefsFile.delete()
         prefsScope.cancel()
     }
+
+    /**
+     * The same manager pointed at a folder we control completely. A real directory cannot
+     * refuse to create a file while still reporting itself writable, and that combination
+     * is exactly what SAF does when a cloud client has the folder locked.
+     */
+    private fun managerWith(folder: DocumentFile) = SyncManager(
+        appContext = context,
+        engine = SyncEngine(db, clock),
+        preferences = preferences,
+        diagnostics = DiagnosticsLog(context, clock),
+        folderResolver = { folder },
+        deviceIdProvider = DeviceIdProvider(preferences),
+        json = json,
+        clock = clock,
+        ioDispatcher = UnconfinedTestDispatcher(),
+    )
 
     /** The id is generated on first use and kept in preferences, so ask rather than assume. */
     private suspend fun ourJournalName(): String =
@@ -270,5 +289,28 @@ class SyncManagerTest {
         manager.sync()
 
         assertEquals(clock.now().toEpochMilli(), preferences.preferences.first().lastSyncAt)
+    }
+
+    /**
+     * The one failure that used to look like success. SAF reports "no file for you" by
+     * returning null instead of throwing, so publishing fell through a bare `return` and
+     * the exchange still answered Success: the other phone went on receiving the previous
+     * journal, or none at all, while both devices claimed the exchange had worked.
+     *
+     * The timestamp matters as much as the result — leaving it moved would tell the next
+     * exchange, and the user, that everything was up to date.
+     */
+    @Test
+    fun `an exchange that cannot publish our journal fails and records no sync time`() = runTest {
+        val lockedFolder = mockk<DocumentFile>()
+        every { lockedFolder.canWrite() } returns true
+        every { lockedFolder.listFiles() } returns emptyArray()
+        every { lockedFolder.createFile(any(), any()) } returns null
+        val before = preferences.preferences.first().lastSyncAt
+
+        val result = managerWith(lockedFolder).sync()
+
+        assertTrue("publishing nothing is not a successful exchange", result is SyncResult.Failed)
+        assertEquals(before, preferences.preferences.first().lastSyncAt)
     }
 }
