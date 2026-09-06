@@ -225,6 +225,7 @@
     <string name="settings_auto_backup_desc">Save your data to a chosen folder every day</string>
     <string name="settings_auto_backup_last">Last backup: %1$s</string>
     <string name="settings_auto_backup_on">Automatic backups are on</string>
+    <string name="settings_folder_permission_denied">No lasting access to that folder. Please pick it again</string>
     <string name="settings_export">Export backup</string>
     <string name="settings_export_desc">Save all data to a file</string>
     <string name="settings_import">Import from file</string>
@@ -236,6 +237,7 @@
     <string name="backup_export_error">Could not save the backup</string>
     <string name="backup_import_done">Data restored</string>
     <string name="backup_import_error">The file is damaged or unsupported</string>
+    <string name="backup_import_no_safety_copy">Import stopped: could not save a copy of your current data</string>
     <string name="backup_import_confirm_title">Replace data?</string>
     <string name="backup_import_confirm_body">Your current products, history and shopping list will be replaced with the file contents. This cannot be undone.</string>
     <string name="backup_import_confirm_yes">Replace</string>

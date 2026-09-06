@@ -24,8 +24,12 @@ export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"
 emulator -avd eatbefore_test -no-window -gpu swiftshader_indirect -no-snapshot &
 adb wait-for-device && adb root
 
-./gradlew :app:generateBaselineProfile
+./gradlew :app:generateBaselineProfile -PallAbis=true
 ```
+
+`-PallAbis=true` обязателен. Release-сборка обычно кладёт в APK только `arm64-v8a` и
+`armeabi-v7a` (x86 нужен одному эмулятору и весит 34 МБ), а `nonMinifiedRelease`
+наследует эту настройку от `release` — без флага APK просто не встанет на x86_64-эмулятор.
 
 Задача сама собирает вариант `nonMinifiedRelease` (release без R8 — иначе имена методов
 в профиле не совпали бы с реальными), гоняет сценарий из

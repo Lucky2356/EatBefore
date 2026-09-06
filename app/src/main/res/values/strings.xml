@@ -242,6 +242,7 @@
     <string name="settings_auto_backup_desc">Ежедневно сохранять данные в выбранную папку</string>
     <string name="settings_auto_backup_last">Последняя копия: %1$s</string>
     <string name="settings_auto_backup_on">Автокопии включены</string>
+    <string name="settings_folder_permission_denied">Нет постоянного доступа к папке. Выберите её заново</string>
     <string name="settings_export">Экспорт резервной копии</string>
     <string name="settings_export_desc">Сохранить все данные в файл</string>
     <string name="settings_import">Импорт из файла</string>
@@ -253,6 +254,7 @@
     <string name="backup_export_error">Не удалось сохранить копию</string>
     <string name="backup_import_done">Данные восстановлены</string>
     <string name="backup_import_error">Файл повреждён или не подходит</string>
+    <string name="backup_import_no_safety_copy">Импорт отменён: не удалось сохранить копию текущих данных</string>
     <string name="backup_import_confirm_title">Заменить данные?</string>
     <string name="backup_import_confirm_body">Текущие продукты, история и список покупок будут заменены данными из файла. Это действие нельзя отменить.</string>
     <string name="backup_import_confirm_yes">Заменить</string>

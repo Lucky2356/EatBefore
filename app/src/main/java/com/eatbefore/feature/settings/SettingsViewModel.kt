@@ -179,17 +179,32 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Keeps access to a chosen folder across restarts.
+     *
+     * Returning false rather than carrying on is the point: without the persistable grant
+     * the folder stays readable only until this process ends, so switching the feature on
+     * regardless produced a setting that said "on" and a job that failed from the next
+     * launch onwards — with nothing said to anyone.
+     */
+    private fun takeFolderPermission(folderUri: Uri): Boolean = runCatching {
+        context.contentResolver.takePersistableUriPermission(
+            folderUri,
+            android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+        )
+    }.onFailure { error ->
+        diagnostics.record("SETTINGS", "Could not keep access to the chosen folder", error)
+    }.isSuccess
+
+    /**
      * Turns automatic backup on with the folder the user just granted access to. The
      * permission must outlive this process, hence takePersistableUriPermission.
      */
     fun enableAutoBackup(folderUri: Uri) {
         viewModelScope.launch {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    folderUri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
+            if (!takeFolderPermission(folderUri)) {
+                _message.value = R.string.settings_folder_permission_denied
+                return@launch
             }
             preferences.setAutoBackup(enabled = true, folderUri = folderUri.toString())
             _message.value = R.string.settings_auto_backup_on
@@ -206,12 +221,9 @@ class SettingsViewModel @Inject constructor(
      */
     fun enableSharing(folderUri: Uri) {
         viewModelScope.launch {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    folderUri,
-                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
+            if (!takeFolderPermission(folderUri)) {
+                _message.value = R.string.settings_folder_permission_denied
+                return@launch
             }
             preferences.setSyncFolder(folderUri.toString())
             syncScheduler.apply(preferences.preferences.first())
@@ -279,13 +291,18 @@ class SettingsViewModel @Inject constructor(
                     val content = context.contentResolver.openInputStream(uri)?.use { stream ->
                         readLimited(stream)
                     } ?: error("Cannot open input")
-                    // Import rewrites everything; keep an escape hatch on disk first.
-                    saveSafetyCopy()
+                    // Import rewrites everything; keep an escape hatch on disk first. A copy
+                    // that could not be written is a reason to stop rather than a detail to
+                    // skip: it is the only way back from an import chosen by mistake.
+                    if (!saveSafetyCopy()) return@runCatching null
                     backupManager.import(content, mode)
                 }
             }
-            _message.value =
-                if (result.isSuccess) R.string.backup_import_done else R.string.backup_import_error
+            _message.value = when {
+                result.isFailure -> R.string.backup_import_error
+                result.getOrNull() == null -> R.string.backup_import_no_safety_copy
+                else -> R.string.backup_import_done
+            }
         }
     }
 
@@ -293,12 +310,12 @@ class SettingsViewModel @Inject constructor(
      * Writes the current data to app storage before a destructive import, so a mistaken
      * import is recoverable even though the user has no copy of their own.
      */
-    private suspend fun saveSafetyCopy() {
-        runCatching {
-            val dir = java.io.File(context.filesDir, SAFETY_DIR).apply { mkdirs() }
-            java.io.File(dir, SAFETY_FILE).writeText(backupManager.export())
-        }
-    }
+    private suspend fun saveSafetyCopy(): Boolean = runCatching {
+        val dir = java.io.File(context.filesDir, SAFETY_DIR).apply { mkdirs() }
+        java.io.File(dir, SAFETY_FILE).writeText(backupManager.export())
+    }.onFailure { error ->
+        diagnostics.record("BACKUP", "Could not write the safety copy; import stopped", error)
+    }.isSuccess
 
     fun consumeMessage() {
         _message.value = null

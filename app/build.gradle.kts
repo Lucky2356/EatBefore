@@ -62,6 +62,18 @@ android {
             isDebuggable = true
         }
         release {
+            // The ML Kit pipelines are native code, and a universal APK carries a full set
+            // per ABI: libmlkit_google_ocr_pipeline.so is 10.5 MB and libbarhopper_v3.so a
+            // further 4.7 MB, four times over. x86 and x86_64 exist only for emulators —
+            // dropping them takes the published APK from 69 MB to about 35, which is what
+            // the in-app updater pulls over Wi-Fi on every release.
+            //
+            // Baseline Profile generation is the one thing that needs them: it builds
+            // nonMinifiedRelease from this build type and runs it on an x86_64 emulator,
+            // so that task takes -PallAbis=true. See docs/BASELINE_PROFILE.md.
+            if (!project.hasProperty("allAbis")) {
+                ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

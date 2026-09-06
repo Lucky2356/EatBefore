@@ -95,7 +95,11 @@ class SyncManager @Inject constructor(
                     total = total.plus(stats)
                 }
 
-            writeOwnJournal(folder, deviceId)
+            // Merging peers is only half an exchange. Until our own journal is on the
+            // folder the other phone has received nothing, so this is not a success.
+            if (!writeOwnJournal(folder, deviceId)) {
+                return SyncResult.Failed("Own journal not published")
+            }
             preferences.setLastSyncAt(clock.now().toEpochMilli())
             SyncResult.Success(total)
         } catch (e: Exception) {
@@ -121,7 +125,16 @@ class SyncManager @Inject constructor(
         diagnostics.record("SYNC", "Could not read peer journal ${file.name}", error)
     }.getOrNull()
 
-    private suspend fun writeOwnJournal(folder: DocumentFile, deviceId: String) {
+    /**
+     * Publishes this device's journal; returns false when the folder gave us nothing to
+     * write into.
+     *
+     * SAF reports both failures by returning null rather than by throwing, so they used to
+     * fall through a bare `return` — and the exchange went on to report success having
+     * published nothing at all. The peer kept receiving the previous journal, or none, and
+     * the two phones drifted apart with both of them saying the exchange had worked.
+     */
+    private suspend fun writeOwnJournal(folder: DocumentFile, deviceId: String): Boolean {
         val name = SyncJournal.fileNameFor(deviceId)
         val content = json.encodeToString(
             SyncJournal.serializer(),
@@ -133,14 +146,24 @@ class SyncManager @Inject constructor(
         val target = ours.firstOrNull { it.name == name }
             ?: ours.firstOrNull()
             ?: folder.createFile(MIME_TYPE, name)
-            ?: return
-        appContext.contentResolver.openOutputStream(target.uri, "wt")?.use { stream ->
+            ?: run {
+                // The file name is safe to log; the journal's contents are not.
+                diagnostics.record("SYNC", "Could not create $name in the shared folder")
+                return false
+            }
+        val written = appContext.contentResolver.openOutputStream(target.uri, "wt")?.use { stream ->
             stream.write(content.toByteArray(Charsets.UTF_8))
+            true
+        }
+        if (written != true) {
+            diagnostics.record("SYNC", "Could not open $name for writing")
+            return false
         }
 
         // Tidy up "journal-<id> (1).json" copies left by the race fixed above, or by a
         // cloud client resolving a conflict. Only ever our own files.
         ours.filter { it.uri != target.uri }.forEach { runCatching { it.delete() } }
+        return true
     }
 
     /** Our own journal, including duplicates a cloud client may have made. */
