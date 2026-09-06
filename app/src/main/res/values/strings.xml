@@ -179,6 +179,9 @@
     <string name="history_filter_all">Все</string>
     <string name="history_action_restore">Восстановить</string>
     <string name="history_undo_last">Отменить последнее</string>
+    <string name="history_restore_failed">Не удалось восстановить. Попробуйте ещё раз</string>
+    <string name="history_undo_failed">Не удалось отменить это действие</string>
+    <string name="history_undo_nothing">Отменять нечего</string>
 
     <!-- Event types (history labels) -->
     <string name="event_added">Добавлено</string>

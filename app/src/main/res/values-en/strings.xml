@@ -162,6 +162,9 @@
     <string name="history_filter_all">All</string>
     <string name="history_action_restore">Restore</string>
     <string name="history_undo_last">Undo last action</string>
+    <string name="history_restore_failed">Could not restore it. Try again</string>
+    <string name="history_undo_failed">Could not undo that action</string>
+    <string name="history_undo_nothing">There is nothing to undo</string>
 
     <!-- Event types (history labels) -->
     <string name="event_added">Added</string>
