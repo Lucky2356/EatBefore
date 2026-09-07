@@ -320,12 +320,13 @@
     <string name="ocr_title">Распознать срок</string>
     <string name="ocr_hint">Наведите камеру на дату на упаковке и сделайте снимок</string>
     <string name="ocr_capture">Сделать снимок</string>
+    <string name="ocr_pick_from_gallery">Выбрать из галереи</string>
     <string name="ocr_recognizing">Распознаём…</string>
     <string name="ocr_recognized_text">Распознанный текст</string>
     <string name="ocr_pick_date">Выберите распознанную дату:</string>
     <string name="ocr_confidence">уверенность %1$d%%</string>
     <string name="ocr_none_title">Дата не распознана</string>
-    <string name="ocr_camera_unavailable">Камера недоступна. Введите срок годности вручную</string>
+    <string name="ocr_camera_unavailable">Камера недоступна. Выберите фото из галереи или введите срок вручную</string>
     <string name="ocr_none_body">Не удалось распознать дату. Сфотографируйте ещё раз или введите вручную.</string>
     <string name="ocr_retry">Сфотографировать снова</string>
     <string name="ocr_enter_manually">Ввести вручную</string>

@@ -1,6 +1,9 @@
 package com.eatbefore.feature.ocr
 
 import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,6 +66,16 @@ fun OcrScreen(
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     var cameraUnavailable by remember { mutableStateOf(false) }
 
+    // The photo picker needs no permission at all, which is the point: it is the one way
+    // into this screen that works when the camera is refused or busy. A date photographed
+    // in the shop and read at home is the other half of it.
+    val pickPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let { viewModel.recognize(it.toString()) } }
+    val onPickFromGallery = {
+        pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
     ScreenScaffold(
         title = stringResource(R.string.ocr_title),
         onBack = onBack,
@@ -70,6 +84,7 @@ fun OcrScreen(
             when {
                 !cameraPermission.status.isGranted -> PermissionPrompt(
                     onGrant = { cameraPermission.launchPermissionRequest() },
+                    onPickFromGallery = onPickFromGallery,
                     onManual = onBack,
                 )
 
@@ -89,6 +104,7 @@ fun OcrScreen(
                     cameraUnavailable = cameraUnavailable,
                     onCaptureReady = { imageCapture = it },
                     onCameraUnavailable = { cameraUnavailable = true },
+                    onPickFromGallery = onPickFromGallery,
                     onShutter = {
                         // A shutter that silently does nothing reads as a broken app. Say
                         // the camera is unavailable instead; the date can still be typed.
@@ -115,6 +131,7 @@ private fun CaptureContent(
     cameraUnavailable: Boolean,
     onCaptureReady: (ImageCapture) -> Unit,
     onCameraUnavailable: () -> Unit,
+    onPickFromGallery: () -> Unit,
     onShutter: () -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -136,6 +153,19 @@ private fun CaptureContent(
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            )
+        }
+        // Left of the shutter, not beside it: the big round button in the middle is where
+        // a hand reaches without looking, and moving it to make room would be a worse
+        // trade than the gallery is worth.
+        FloatingActionButton(
+            onClick = onPickFromGallery,
+            modifier = Modifier.align(Alignment.BottomStart).padding(Dimens.spaceXl),
+            shape = CircleShape,
+        ) {
+            Icon(
+                Icons.Outlined.PhotoLibrary,
+                contentDescription = stringResource(R.string.ocr_pick_from_gallery),
             )
         }
         FloatingActionButton(
@@ -214,7 +244,7 @@ private fun OcrResultContent(
 }
 
 @Composable
-private fun PermissionPrompt(onGrant: () -> Unit, onManual: () -> Unit) {
+private fun PermissionPrompt(onGrant: () -> Unit, onPickFromGallery: () -> Unit, onManual: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(Dimens.spaceXxl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -226,6 +256,11 @@ private fun PermissionPrompt(onGrant: () -> Unit, onManual: () -> Unit) {
         )
         Button(onClick = onGrant, modifier = Modifier.padding(top = Dimens.spaceLg)) {
             Text(stringResource(R.string.scanner_permission_grant))
+        }
+        // Refusing the camera used to leave typing as the only way out. A photo already in
+        // the gallery needs no permission and reads just as well.
+        OutlinedButton(onClick = onPickFromGallery, modifier = Modifier.padding(top = Dimens.spaceSm)) {
+            Text(stringResource(R.string.ocr_pick_from_gallery))
         }
         OutlinedButton(onClick = onManual, modifier = Modifier.padding(top = Dimens.spaceSm)) {
             Text(stringResource(R.string.ocr_enter_manually))

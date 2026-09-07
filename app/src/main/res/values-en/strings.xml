@@ -299,12 +299,13 @@
     <string name="ocr_title">Scan expiry date</string>
     <string name="ocr_hint">Point the camera at the date on the package and take a photo</string>
     <string name="ocr_capture">Take a photo</string>
+    <string name="ocr_pick_from_gallery">Pick from gallery</string>
     <string name="ocr_recognizing">Recognizing…</string>
     <string name="ocr_recognized_text">Recognized text</string>
     <string name="ocr_pick_date">Pick the recognized date:</string>
     <string name="ocr_confidence">confidence %1$d%%</string>
     <string name="ocr_none_title">No date recognized</string>
-    <string name="ocr_camera_unavailable">The camera is unavailable. Enter the expiry date by hand</string>
+    <string name="ocr_camera_unavailable">The camera is unavailable. Pick a photo from the gallery or enter the date by hand</string>
     <string name="ocr_none_body">Could not read a date. Take another photo or enter it manually.</string>
     <string name="ocr_retry">Take another photo</string>
     <string name="ocr_enter_manually">Enter manually</string>
