@@ -1,6 +1,7 @@
 package com.eatbefore.feature.history
 
 import app.cash.turbine.test
+import com.eatbefore.R
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.EventType
@@ -10,7 +11,6 @@ import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import com.eatbefore.testutil.FakeHistoryRepository
 import com.eatbefore.testutil.FakeInventoryRepository
 import com.eatbefore.testutil.MainDispatcherRule
-import com.eatbefore.R
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
