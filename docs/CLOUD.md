@@ -43,6 +43,26 @@ Workflow **CI** (`.github/workflows/ci.yml`) идёт на каждый push и 
 двадцати минут, и среди них единственная автоматическая защита от потери данных при
 обновлении (тест миграции Room).
 
+### Проверить формат, не дожидаясь CI
+
+Круг CI занимает пять минут, и обиднее всего потратить его на порядок импортов. ktlint —
+самостоятельный бинарник, которому не нужны ни Gradle, ни Android SDK, поэтому его можно
+держать под рукой где угодно, включая среду без SDK:
+
+```bash
+curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.5.0/ktlint
+chmod +x ktlint
+./ktlint --relative "app/src/**/*.kt"
+```
+
+Версия должна совпадать с `ktlint` в `gradle/libs.versions.toml`. Учтите: запущенный так
+ktlint берёт стиль `ktlint_official` по умолчанию, а проект настраивает spotless иначе
+(`build.gradle.kts`, `ktlintRules`), поэтому он ругается и на давно лежащий в репозитории
+код. Смотреть надо на правила, которых касаются именно ваши строки, — в первую очередь
+`standard:import-ordering`: порядок лексикографический, и прописные буквы в нём идут
+раньше строчных (`StateFlow` перед `asStateFlow`, `com.eatbefore.R` перед
+`com.eatbefore.core`).
+
 ## Релиз
 
 Workflow **Release** (`.github/workflows/release.yml`) собирает подписанный APK и
