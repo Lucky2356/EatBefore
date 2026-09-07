@@ -5,7 +5,9 @@ import com.eatbefore.R
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.ContributionResult
+import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.AddManualProductUseCase
 import com.eatbefore.navigation.Routes
@@ -13,6 +15,7 @@ import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.flow.Flow
@@ -58,15 +61,19 @@ class AddManualViewModelTest {
     private fun viewModel(
         barcode: String? = null,
         expiryEpochDay: Long? = null,
+        catalogue: List<Product> = emptyList(),
     ): AddManualViewModel {
         val args = mutableMapOf<String, Any?>()
         if (barcode != null) args[Routes.ADD_MANUAL_ARG_BARCODE] = barcode
         if (expiryEpochDay != null) args[Routes.ADD_MANUAL_ARG_EXPIRY] = expiryEpochDay
+        val products = mockk<ProductRepository>()
+        every { products.observeActive() } returns flowOf(catalogue)
         return AddManualViewModel(
             savedStateHandle = SavedStateHandle(args),
             addManualProduct = addManualProduct,
             catalogContributor = contributor,
             storageLocationRepository = locations,
+            productRepository = products,
             clock = clock,
         )
     }
@@ -148,6 +155,7 @@ class AddManualViewModelTest {
         coVerify { addManualProduct(capture(params)) }
         assertEquals("Гречка", params.captured.name)
         assertEquals("Мистраль", params.captured.brand)
+        assertNull("an untouched category must not invent one", params.captured.category)
         assertEquals(2.0, params.captured.quantity, 0.0)
         assertEquals(LocalDate.of(2026, 8, 8), params.captured.expirationDate)
         assertEquals(11L, vm.state.value.savedBatchId)
@@ -388,5 +396,56 @@ class AddManualViewModelTest {
         vm.onName("Молоко")
 
         assertNull(vm.state.value.expirationDate)
+    }
+
+    /**
+     * Until now the category could only be set afterwards, on the product card. Set here
+     * it also sharpens the opening shelf-life guess, which the use case derives from the
+     * name *and* the category.
+     */
+    @Test
+    fun `a category typed on the form reaches the use case`() = runTest {
+        coEvery { addManualProduct(any()) } returns 3L
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onName("Кефир")
+        vm.onCategory("  Молочное  ")
+
+        vm.save()
+        advanceUntilIdle()
+
+        val params = slot<AddManualProductUseCase.Params>()
+        coVerify { addManualProduct(capture(params)) }
+        assertEquals("  Молочное  ", params.captured.category)
+    }
+
+    /**
+     * Offering what is already in use is the whole point: typed by hand every time, one
+     * household ends up with «молочка», «Молочное» and «молоко» as three categories.
+     * Case is the commonest way the same word comes back looking different.
+     */
+    @Test
+    fun `known categories are offered once each, whatever the case`() = runTest {
+        val vm = viewModel(
+            catalogue = listOf(
+                Product(name = "Кефир", category = "Молочное"),
+                Product(name = "Сметана", category = "молочное"),
+                Product(name = "Хлеб", category = "Выпечка"),
+                Product(name = "Соль", category = null),
+                Product(name = "Перец", category = "   "),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(listOf("Выпечка", "Молочное"), vm.state.value.knownCategories)
+    }
+
+    /** A category never used before is not a category the chips can offer. */
+    @Test
+    fun `an empty catalogue offers no categories`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.knownCategories.isEmpty())
     }
 }
