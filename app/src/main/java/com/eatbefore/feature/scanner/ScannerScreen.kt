@@ -40,8 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.eatbefore.R
 import com.eatbefore.core.designsystem.component.ScreenScaffold
 import com.eatbefore.core.designsystem.theme.Dimens
@@ -367,24 +370,40 @@ private fun ScanResultDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.scanner_found_title)) },
             text = {
-                Column {
-                    Text(resolution.product.name, style = MaterialTheme.typography.titleMedium)
-                    resolution.product.brand?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                    resolution.expiryFromCode?.let { date ->
-                        Text(
-                            stringResource(R.string.scanner_expiry_from_code, date.toString()),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = Dimens.spaceSm),
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                    // The catalog photo, when there is one. It is the fastest way to tell
+                    // «that is the packet in my hand» from «the catalog matched the wrong
+                    // thing» — the name alone often fits both. Nothing stands in for a
+                    // missing photo: a grey square would just take the width away.
+                    resolution.product.imageUri?.let { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(Dimens.heroThumbnailSize)
+                                .clip(Shapes.control),
+                            contentScale = ContentScale.Crop,
                         )
                     }
-                    if (resolution.fromNetwork) {
-                        Text(
-                            stringResource(R.string.scanner_found_network),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = Dimens.spaceSm),
-                        )
+                    Column {
+                        Text(resolution.product.name, style = MaterialTheme.typography.titleMedium)
+                        resolution.product.brand?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        resolution.expiryFromCode?.let { date ->
+                            Text(
+                                stringResource(R.string.scanner_expiry_from_code, date.toString()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = Dimens.spaceSm),
+                            )
+                        }
+                        if (resolution.fromNetwork) {
+                            Text(
+                                stringResource(R.string.scanner_found_network),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = Dimens.spaceSm),
+                            )
+                        }
                     }
                 }
             },
