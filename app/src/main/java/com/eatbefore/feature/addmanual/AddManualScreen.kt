@@ -132,6 +132,30 @@ fun AddManualScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
+                value = state.category,
+                onValueChange = viewModel::onCategory,
+                label = { Text(stringResource(R.string.add_category)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            // Tapping an existing category is what keeps «молочка», «Молочное» and
+            // «молоко» from becoming three separate things in one household.
+            if (state.knownCategories.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+                ) {
+                    state.knownCategories.forEach { category ->
+                        FilterChip(
+                            selected = state.category.equals(category, ignoreCase = true),
+                            onClick = { viewModel.onCategory(category) },
+                            label = { Text(category) },
+                        )
+                    }
+                }
+            }
+            OutlinedTextField(
                 value = state.barcode,
                 onValueChange = viewModel::onBarcode,
                 label = { Text(stringResource(R.string.add_barcode)) },

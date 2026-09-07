@@ -12,6 +12,7 @@ import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.shelflife.TypicalShelfLife
 import com.eatbefore.domain.usecase.AddManualProductUseCase
@@ -28,6 +29,18 @@ import javax.inject.Inject
 data class AddManualUiState(
     val name: String = "",
     val brand: String = "",
+    /**
+     * Free text, like the same field on the product card. Optional, but worth asking for
+     * here: set at the moment of adding it also sharpens the opening shelf-life guess,
+     * which [AddManualProductUseCase] derives from name *and* category.
+     */
+    val category: String = "",
+    /**
+     * Categories already in use, offered as chips. Typing a category by hand every time
+     * is how one household ends up with «молочка», «Молочное» and «молоко» as three
+     * different things; tapping the one that already exists is what keeps them one.
+     */
+    val knownCategories: List<String> = emptyList(),
     /** Empty unless scanned or typed; a product with one can be offered to the catalog. */
     val barcode: String = "",
     val quantity: String = "1",
@@ -69,6 +82,7 @@ class AddManualViewModel @Inject constructor(
     private val addManualProduct: AddManualProductUseCase,
     private val catalogContributor: CatalogContributor,
     private val storageLocationRepository: StorageLocationRepository,
+    private val productRepository: ProductRepository,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -105,6 +119,17 @@ class AddManualViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            // Cards in use only: a category that survives solely on a struck-off card is
+            // not one the household still sorts by, and offering it invites it back.
+            productRepository.observeActive().collect { products ->
+                val categories = products
+                    .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
+                    .distinctBy { it.lowercase() }
+                    .sorted()
+                _state.update { it.copy(knownCategories = categories) }
+            }
+        }
     }
 
     fun onName(value: String) = _state.update {
@@ -118,6 +143,7 @@ class AddManualViewModel @Inject constructor(
         )
     }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
+    fun onCategory(value: String) = _state.update { it.copy(category = value) }
 
     // Barcodes are digits and, for Честный знак, a few symbols; whitespace never belongs.
     fun onBarcode(value: String) =
@@ -166,6 +192,7 @@ class AddManualViewModel @Inject constructor(
                 AddManualProductUseCase.Params(
                     name = current.name,
                     brand = current.brand.ifBlank { null },
+                    category = current.category.ifBlank { null },
                     barcode = barcode,
                     barcodeType = if (barcode != null) BarcodeType.OTHER else BarcodeType.NONE,
                     storageLocationId = locationId,
