@@ -36,6 +36,7 @@ fun ProductEntity.toDomain(): Product = Product(
     createdAt = createdAt.toInstant(),
     updatedAt = updatedAt.toInstant(),
     deletedAt = deletedAt.toInstantOrNull(),
+    notificationsMuted = notificationsMuted,
 )
 
 fun Product.toEntity(): ProductEntity = ProductEntity(
@@ -56,6 +57,7 @@ fun Product.toEntity(): ProductEntity = ProductEntity(
     createdAt = createdAt.toEpochMilli(),
     updatedAt = updatedAt.toEpochMilli(),
     deletedAt = deletedAt?.toEpochMilli(),
+    notificationsMuted = notificationsMuted,
 )
 
 fun StorageLocationEntity.toDomain(): StorageLocation = StorageLocation(

@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 private const val VERSION_1 = 1
 private const val VERSION_2 = 2
 private const val VERSION_3 = 3
+private const val VERSION_4 = 4
 
 /**
  * Adds stable cross-device identifiers required by household sync (ADR-0004):
@@ -56,10 +57,26 @@ val MIGRATION_2_3 = object : Migration(VERSION_2, VERSION_3) {
 }
 
 /**
+ * Adds `notifications_muted` to products, so the daily reminder can be silenced for one
+ * product without silencing it for everything.
+ *
+ * The default is 0 — «keep reminding» — and that is the whole point of stating it: an
+ * upgrade must not quietly stop warning anyone about food already in the fridge. NOT NULL
+ * with a default is safe here because SQLite fills existing rows with it in place.
+ */
+val MIGRATION_3_4 = object : Migration(VERSION_3, VERSION_4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE products ADD COLUMN notifications_muted INTEGER NOT NULL DEFAULT 0",
+        )
+    }
+}
+
+/**
  * Schema migrations. Every version bump gets one here rather than a destructive
  * fallback — user data must never be silently dropped.
  *
  * Exported schemas live in `app/schemas/` (see the `room.schemaLocation` KSP arg) and are
  * used by `MigrationTest`.
  */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

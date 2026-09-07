@@ -37,6 +37,30 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --no-daemon
 
+      # Схемы Room экспортирует KSP во время сборки, и они коммитятся — это контракт, по
+      # которому MigrationTest проверяет обновление уже установленного приложения. Забыть
+      # их приложить нечем не наказывалось: тест собирался по старой схеме и молча
+      # проверял не то. Здесь расхождение видно сразу, а сгенерированный файл печатается —
+      # его можно взять из лога и закоммитить, не собирая проект у себя.
+      - name: Схемы Room совпадают с экспортированными
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only -- app/schemas)
+          # Новая версия схемы приходит неотслеживаемым файлом, которого git diff не видит
+          # вовсе — без этой половины проверка молча проходила бы ровно в том случае,
+          # ради которого она и написана.
+          added=$(git ls-files --others --exclude-standard -- app/schemas)
+          if [ -z "$changed$added" ]; then
+            echo "Схемы Room совпадают с закоммиченными."
+            exit 0
+          fi
+          echo "::error::Экспортированные схемы Room отличаются от закоммиченных."
+          for f in $changed $added; do
+            echo "----- $f -----"
+            cat "$f"
+          done
+          exit 1
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v7
         with:

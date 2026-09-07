@@ -49,6 +49,40 @@ class NotificationLogicTest {
     }
 
     /**
+     * Silencing a product is a promise that it will not be brought up again. Counting it
+     * and then leaving it out of the text would break that promise in the most confusing
+     * way available: «3 продукта истекают» naming two.
+     */
+    @Test
+    fun aSilencedProductIsNotCountedAtAll() {
+        val yeast = item(today.minusDays(2)).let {
+            it.copy(product = it.product.copy(name = "Дрожжи", notificationsMuted = true))
+        }
+        val milk = item(today).let { it.copy(product = it.product.copy(name = "Молоко")) }
+
+        val plan = build(listOf(yeast, milk), today, soonThresholdDays = 3)
+
+        assertEquals(0, plan.expiredCount)
+        assertEquals(1, plan.todayCount)
+        assertEquals(1, plan.total)
+        // With the silenced one gone the milk is alone, so the shade can act on it.
+        assertEquals("Молоко", plan.singleProductName)
+    }
+
+    /** Silencing everything expiring means no notification at all, not an empty one. */
+    @Test
+    fun silencingEverythingLeavesNothingToSay() {
+        val items = listOf(item(today.minusDays(1)), item(today)).map {
+            it.copy(product = it.product.copy(notificationsMuted = true))
+        }
+
+        val plan = build(items, today, soonThresholdDays = 3)
+
+        assertEquals(0, plan.total)
+        assertFalse(plan.hasContent)
+    }
+
+    /**
      * The reminder must follow the date the food actually goes off. An opened pack with a
      * distant printed date is the whole point of tracking shelf life after opening — it
      * belongs in the count, and as "expiring soon", not "fresh".

@@ -61,6 +61,12 @@ data class SyncProduct(
      * which is what those versions meant.
      */
     val deletedAt: Long? = null,
+    /**
+     * Whether the other household member silenced this product's reminder. Defaulted so a
+     * journal written by an older version still reads: silence there means "keep
+     * reminding", which is what those versions meant.
+     */
+    val notificationsMuted: Boolean = false,
 )
 
 @Serializable

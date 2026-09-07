@@ -84,6 +84,14 @@ interface ProductDao {
     @Query("UPDATE products SET deleted_at = :at, updated_at = :now WHERE id = :id")
     suspend fun setDeletedAt(id: Long, at: Long?, now: Long)
 
+    /**
+     * `updated_at` moves for the same reason as above: the exchange keeps whichever copy
+     * of the card was written last, so silencing a product without touching the timestamp
+     * would be quietly overruled by the peer's older copy on the next sync.
+     */
+    @Query("UPDATE products SET notifications_muted = :muted, updated_at = :now WHERE id = :id")
+    suspend fun setNotificationsMuted(id: Long, muted: Boolean, now: Long)
+
     // Backup/export support.
     @Query("SELECT * FROM products")
     suspend fun getAll(): List<ProductEntity>

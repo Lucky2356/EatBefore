@@ -143,6 +143,8 @@
     <string name="product_purchase_date">Куплено</string>
     <string name="product_price">Цена</string>
     <string name="product_history">История</string>
+    <string name="product_reminders">Напоминать о сроке</string>
+    <string name="product_reminders_hint">Выключите для того, что хранится долго и не требует присмотра</string>
     <string name="product_details">Подробности</string>
     <string name="product_remaining">Осталось</string>
     <string name="product_action_open">Открыть</string>

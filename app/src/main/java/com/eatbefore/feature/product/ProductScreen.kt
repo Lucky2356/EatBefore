@@ -74,6 +74,7 @@ import com.eatbefore.core.designsystem.component.ExpiryLabel
 import com.eatbefore.core.designsystem.component.ExpiryOnlyDialog
 import com.eatbefore.core.designsystem.component.QuantityStepper
 import com.eatbefore.core.designsystem.component.SectionCard
+import com.eatbefore.core.designsystem.component.SettingSwitchRow
 import com.eatbefore.core.designsystem.component.StatusBadge
 import com.eatbefore.core.designsystem.component.toVisual
 import com.eatbefore.core.designsystem.format.currencySymbol
@@ -340,6 +341,7 @@ fun ProductScreen(
                     // the days left; repeating all three here read as a stutter, and one
                     // of the rows was literally labelled "Left" with "27 days left" in it.
                     showDates = state.shelfLife == null,
+                    onRemindersChange = viewModel::setNotificationsMuted,
                 )
 
                 OtherBatchesSection(
@@ -527,6 +529,7 @@ private fun DetailsCard(
     item: com.eatbefore.domain.model.InventoryItem,
     remainingDays: Long?,
     showDates: Boolean,
+    onRemindersChange: (Boolean) -> Unit,
 ) {
     SectionCard(title = stringResource(R.string.product_details)) {
         DetailRow(stringResource(R.string.product_location), item.location.displayName())
@@ -561,6 +564,15 @@ private fun DetailsCard(
                 )
             }
         }
+        // Reads as one thing with the expiry date above it, which is what it is about.
+        // The switch is on the product card, not this packet: a jar of yeast bought again
+        // next year should stay as quiet as this one.
+        SettingSwitchRow(
+            title = stringResource(R.string.product_reminders),
+            subtitle = stringResource(R.string.product_reminders_hint),
+            checked = !item.product.notificationsMuted,
+            onCheckedChange = { remind -> onRemindersChange(!remind) },
+        )
     }
 }
 

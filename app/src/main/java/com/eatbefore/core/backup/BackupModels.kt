@@ -82,6 +82,12 @@ data class BackupProduct(
      * existed, and absence means "in use" — which is what those files meant.
      */
     val deletedAt: Long? = null,
+    /**
+     * Whether the daily reminder is silenced for this product. Absent in files written
+     * before this existed, and absence means "keep reminding" — which is what those files
+     * meant. A restore must not quietly stop warning about food already in the fridge.
+     */
+    val notificationsMuted: Boolean = false,
 )
 
 @Serializable
