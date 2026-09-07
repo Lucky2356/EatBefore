@@ -47,21 +47,43 @@ Workflow **CI** (`.github/workflows/ci.yml`) идёт на каждый push и 
 
 Круг CI занимает пять минут, и обиднее всего потратить его на порядок импортов. ktlint —
 самостоятельный бинарник, которому не нужны ни Gradle, ни Android SDK, поэтому его можно
-держать под рукой где угодно, включая среду без SDK:
+держать под рукой где угодно, включая среду без SDK.
+
+**Важно: одного бинарника мало, нужен ещё файл настроек.** Запущенный просто так, ktlint
+берёт стиль `ktlint_official`, а spotless — `intellij_idea`, и это не оттенок: по
+`class-signature` они требуют прямо противоположного. `ktlint_official` заставляет
+разносить конструктор с двумя параметрами по строкам, `intellij_idea` — наоборот
+собирать в одну, пока она влезает в 140 символов. Голый ktlint при этом выдаёт около
+двух тысяч замечаний на давно лежащем в репозитории коде, среди которых своё не найти,
+и одновременно молчит там, где CI упадёт.
+
+Поэтому стиль задаётся явно, отдельным файлом (в самом репозитории его быть не должно —
+IDE читают корневой `.editorconfig`, и `ktlint_code_style` там сменил бы правила для
+всех):
 
 ```bash
 curl -sSLo ktlint https://github.com/pinterest/ktlint/releases/download/1.5.0/ktlint
 chmod +x ktlint
-./ktlint --relative "app/src/**/*.kt"
+
+cat > /tmp/spotless.editorconfig <<'EOF'
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = intellij_idea
+max_line_length = 140
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ktlint_standard_function-naming = disabled
+ktlint_standard_function-signature = disabled
+EOF
+
+./ktlint --editorconfig=/tmp/spotless.editorconfig --relative "app/src/**/*.kt"
 ```
 
-Версия должна совпадать с `ktlint` в `gradle/libs.versions.toml`. Учтите: запущенный так
-ktlint берёт стиль `ktlint_official` по умолчанию, а проект настраивает spotless иначе
-(`build.gradle.kts`, `ktlintRules`), поэтому он ругается и на давно лежащий в репозитории
-код. Смотреть надо на правила, которых касаются именно ваши строки, — в первую очередь
-`standard:import-ordering`: порядок лексикографический, и прописные буквы в нём идут
-раньше строчных (`StateFlow` перед `asStateFlow`, `com.eatbefore.R` перед
-`com.eatbefore.core`).
+Свойства повторяют `ktlintRules` из корневого `build.gradle.kts`; версия бинарника должна
+совпадать с `ktlint` в `gradle/libs.versions.toml`. Так запущенный ktlint на чистом
+репозитории не выдаёт **ничего**, то есть любое сообщение — ваше. Добавьте `--format`,
+чтобы он поправил сам.
 
 ## Релиз
 
