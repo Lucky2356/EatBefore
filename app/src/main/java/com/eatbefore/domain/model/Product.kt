@@ -32,4 +32,9 @@ data class Product(
      * if the same thing is bought again; null means it is in use.
      */
     val deletedAt: Instant? = null,
+    /**
+     * Silences the daily expiry reminder for this product. The stock itself is untouched:
+     * the packets stay in the list and in the analytics, they just stop asking.
+     */
+    val notificationsMuted: Boolean = false,
 )

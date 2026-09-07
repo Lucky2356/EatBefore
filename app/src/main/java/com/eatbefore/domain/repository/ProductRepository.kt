@@ -26,6 +26,12 @@ interface ProductRepository {
     suspend fun setDeleted(productId: Long, deleted: Boolean)
 
     /**
+     * Silences, or restores, the daily expiry reminder for one product. The stock is
+     * untouched — only whether it asks to be eaten.
+     */
+    suspend fun setNotificationsMuted(productId: Long, muted: Boolean)
+
+    /**
      * Most frequently added products (repeat purchases), most frequent first. Only
      * products added at least [minTimes] times qualify, so one-off buys don't show up.
      */

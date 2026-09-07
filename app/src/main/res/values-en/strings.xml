@@ -130,6 +130,8 @@
     <string name="product_purchase_date">Bought</string>
     <string name="product_price">Price</string>
     <string name="product_history">History</string>
+    <string name="product_reminders">Remind about the expiry date</string>
+    <string name="product_reminders_hint">Turn off for things that keep for a long time and need no watching</string>
     <string name="product_details">Details</string>
     <string name="product_remaining">Time left</string>
     <string name="product_action_open">Open</string>

@@ -42,4 +42,14 @@ data class ProductEntity(
      * like a row it has and we don't, and the next exchange would hand it straight back.
      */
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
+    /**
+     * Silences the daily expiry reminder for this product, without touching the stock
+     * itself: the packets stay in the list and in the analytics, they just stop asking.
+     *
+     * A property of the card rather than of the phone, so it travels with the card to the
+     * other device (ADR-0004) and survives a reinstall in the backup. Muting the yeast
+     * that lives in the freezer for a year is a decision about the yeast, not about whose
+     * phone happens to be running the reminder.
+     */
+    @ColumnInfo(name = "notifications_muted") val notificationsMuted: Boolean = false,
 )

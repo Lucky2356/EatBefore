@@ -161,6 +161,41 @@ class MigrationTest {
         db.close()
     }
 
+    /**
+     * The v3→v4 step adds `products.notifications_muted`. Every product already on the
+     * phone must come through still asking to be eaten: a migration that defaulted the
+     * column the other way would silence the reminders on upgrade, and the failure mode
+     * is the worst kind — nothing happens, and food goes off while the app says nothing.
+     */
+    @Test
+    fun migrate3To4_keepsProductsAndSilencesNone() {
+        helper.createDatabase(TEST_DB, 3).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO products (id, uuid, barcode, barcode_type, name, brand, category, description,
+                    package_size, measurement_unit, image_uri, source, is_user_created, created_at,
+                    updated_at, deleted_at)
+                VALUES (1, 'uuid-1', '4620017700531', 'EAN_13', 'Tea nic лимон', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'SCAN_CACHE', 0, 1, 1, NULL),
+                    (2, 'uuid-2', NULL, 'NONE', 'Дрожжи', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'USER', 1, 1, 1, NULL)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT name, notifications_muted FROM products ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToFirst()
+            assertEquals("Tea nic лимон", c.getString(0))
+            assertEquals("an upgrade must not stop reminding", 0, c.getInt(1))
+            c.moveToNext()
+            assertEquals("an upgrade must not stop reminding", 0, c.getInt(1))
+        }
+        db.close()
+    }
+
     @Test
     fun currentSchemaOpensWithDeclaredMigrations() {
         helper.createDatabase(TEST_DB, EatBeforeDatabase.VERSION).close()

@@ -37,9 +37,10 @@ abstract class EatBeforeDatabase : RoomDatabase() {
     companion object {
         /**
          * v2 added uuid/device_id for household sync (ADR-0004);
-         * v3 added products.deleted_at so a card can be struck off the catalogue.
+         * v3 added products.deleted_at so a card can be struck off the catalogue;
+         * v4 added products.notifications_muted so one product can stop reminding.
          */
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "eatbefore.db"
     }
 }

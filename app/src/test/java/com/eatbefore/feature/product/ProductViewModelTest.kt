@@ -26,6 +26,7 @@ import com.eatbefore.navigation.Routes
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeHistoryRepository
 import com.eatbefore.testutil.FakeInventoryRepository
+import com.eatbefore.testutil.FakeProductRepository
 import com.eatbefore.testutil.MainDispatcherRule
 import io.mockk.coVerify
 import io.mockk.every
@@ -85,6 +86,8 @@ class ProductViewModelTest {
     private val updateItemDetails = mockk<UpdateItemDetailsUseCase>(relaxed = true)
     private val addToShoppingList = mockk<AddToShoppingListUseCase>(relaxed = true)
     private val addBatch = mockk<com.eatbefore.domain.usecase.AddBatchUseCase>(relaxed = true)
+    private val catalogue = mutableMapOf(3L to product)
+    private val products = FakeProductRepository(catalogue)
 
     private fun viewModel(preferences: UserPreferences = UserPreferences()): ProductViewModel {
         inventory.batches[batchId] = batch
@@ -106,6 +109,7 @@ class ProductViewModelTest {
             updateItemDetails = updateItemDetails,
             addToShoppingList = addToShoppingList,
             addBatch = addBatch,
+            productRepository = products,
             clock = clock,
         )
     }
@@ -428,6 +432,41 @@ class ProductViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         coVerify { moveBatch(batchId, 9) }
+    }
+
+    /**
+     * Silencing a product is a decision about the card, so it must reach the card and not
+     * merely the screen: the next daily check reads the database, not this state.
+     */
+    @Test
+    fun `silencing the reminder is written to the product card`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.setNotificationsMuted(true)
+            cancelAndIgnoreRemainingEvents()
+        }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(catalogue.getValue(3L).notificationsMuted)
+    }
+
+    /**
+     * And it must be reversible in the same place. A one-way switch would leave the only
+     * way back through deleting and re-adding the product.
+     */
+    @Test
+    fun `letting the reminder speak again is written too`() = runTest {
+        catalogue[3L] = product.copy(notificationsMuted = true)
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.setNotificationsMuted(false)
+            cancelAndIgnoreRemainingEvents()
+        }
+        mainDispatcherRule.dispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(catalogue.getValue(3L).notificationsMuted)
     }
 
     /**

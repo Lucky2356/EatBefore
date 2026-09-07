@@ -15,6 +15,7 @@ import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
+import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
@@ -161,6 +162,7 @@ class ProductViewModel @Inject constructor(
     private val updateItemDetails: UpdateItemDetailsUseCase,
     private val addToShoppingList: AddToShoppingListUseCase,
     private val addBatch: AddBatchUseCase,
+    private val productRepository: ProductRepository,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -314,6 +316,22 @@ class ProductViewModel @Inject constructor(
                 expirationDate = expirationDate,
             ),
         )
+    }
+
+    /**
+     * Silences the daily reminder for this product, or lets it speak again.
+     *
+     * Deliberately not [runAction]: that offers «Отменить», and undo here works on the
+     * last *inventory* event, so the button would quietly roll back something else
+     * entirely. Nor is there a snackbar — the switch reads its state back from the card,
+     * so it only stays flipped once the write has landed and snaps back if it has not.
+     * That is the confirmation, and a truthful one.
+     */
+    fun setNotificationsMuted(muted: Boolean) {
+        val productId = uiState.value.item?.product?.id ?: return
+        viewModelScope.launch {
+            runCatching { productRepository.setNotificationsMuted(productId, muted) }
+        }
     }
 
     /** Quick action: put this product on the shopping list without writing it off. */

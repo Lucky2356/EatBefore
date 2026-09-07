@@ -44,6 +44,10 @@ class ProductRepositoryImpl @Inject constructor(private val productDao: ProductD
         productDao.setDeletedAt(id = productId, at = if (deleted) now else null, now = now)
     }
 
+    override suspend fun setNotificationsMuted(productId: Long, muted: Boolean) {
+        productDao.setNotificationsMuted(id = productId, muted = muted, now = clock.now().toEpochMilli())
+    }
+
     override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
         productDao.observeFrequent(limit, minTimes).map { list -> list.map { it.toDomain() } }
 }

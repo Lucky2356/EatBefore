@@ -73,6 +73,12 @@ class FakeProductRepository(private val products: MutableMap<Long, Product> = mu
         publish()
     }
 
+    override suspend fun setNotificationsMuted(productId: Long, muted: Boolean) {
+        val product = products[productId] ?: return
+        products[productId] = product.copy(notificationsMuted = muted)
+        publish()
+    }
+
     override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
         state.map { list -> list.filter { it.deletedAt == null }.take(limit) }
 

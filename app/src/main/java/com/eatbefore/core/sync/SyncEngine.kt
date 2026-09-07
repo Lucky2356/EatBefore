@@ -180,6 +180,7 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         imageUri = imageUri,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
+        notificationsMuted = notificationsMuted,
     )
 
     private fun SyncProduct.toEntity() = ProductEntity(
@@ -198,6 +199,7 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         createdAt = updatedAt,
         updatedAt = updatedAt,
         deletedAt = deletedAt,
+        notificationsMuted = notificationsMuted,
     )
 
     private fun InventoryBatchEntity.toSync(productUuid: String, locationName: String?) = SyncBatch(

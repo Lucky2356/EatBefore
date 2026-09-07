@@ -22,6 +22,10 @@ class BuildExpiryNotificationUseCase @Inject constructor(private val determineEx
         var soon = 0
         val counted = mutableListOf<InventoryItem>()
         for (item in items) {
+            // Silenced products drop out before they are counted, not after: leaving them
+            // in the tally would produce «3 продукта истекают» naming only two, which is
+            // worse than either telling or not telling.
+            if (item.product.notificationsMuted) continue
             val status = determineExpiryStatus.forDate(item.batch.effectiveExpirationDate, today, soonThresholdDays)
             val relevant = when (status) {
                 ExpiryStatus.EXPIRED -> {
