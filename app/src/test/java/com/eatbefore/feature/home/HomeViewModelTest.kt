@@ -23,6 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
+import java.time.Duration
 import java.time.LocalDate
 
 class HomeViewModelTest {
@@ -52,9 +53,9 @@ class HomeViewModelTest {
         location = fridge,
     )
 
-    private fun viewModel(): HomeViewModel {
+    private fun viewModel(preferences: UserPreferences = UserPreferences(soonThresholdDays = 3)): HomeViewModel {
         val prefs = mockk<UserPreferencesRepository>()
-        every { prefs.preferences } returns flowOf(UserPreferences(soonThresholdDays = 3))
+        every { prefs.preferences } returns flowOf(preferences)
         return HomeViewModel(
             inventoryRepository = inventory,
             preferences = prefs,
@@ -63,6 +64,29 @@ class HomeViewModelTest {
             focusRequest = focusRequest,
             clock = clock,
         )
+    }
+
+    /** The rule itself is covered by DataSafetyWarningTest; this is that it reaches the screen. */
+    @Test
+    fun `a backup that has stopped is shown on the home screen`() = runTest {
+        val stalled = UserPreferences(
+            autoBackupEnabled = true,
+            autoBackupFolderUri = "content://tree/backups",
+            lastAutoBackupAt = clock.now().minus(Duration.ofDays(5)).toEpochMilli(),
+        )
+
+        viewModel(stalled).uiState.test {
+            assertEquals(DataSafetyWarning.BACKUP_STALLED, awaitItemWhere { !it.isLoading }.dataWarning)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `nothing is shown while backup and sharing are off`() = runTest {
+        viewModel().uiState.test {
+            assertNull(awaitItemWhere { !it.isLoading }.dataWarning)
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
