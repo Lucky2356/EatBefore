@@ -38,8 +38,13 @@ class AutoBackupWorker @AssistedInject constructor(
 
         return runCatching {
             val folder = DocumentFile.fromTreeUri(appContext, folderUri)
-            // The folder can be deleted or the permission revoked long after setup.
-            if (folder == null || !folder.canWrite()) return Result.failure()
+            // The folder can be deleted or the permission revoked long after setup. Retrying
+            // cannot fix that — only choosing the folder again can — but it must still leave
+            // a trace: otherwise backups stop for good and nothing anywhere says so.
+            if (folder == null || !folder.canWrite()) {
+                diagnostics.record("BACKUP", "Backup folder is gone or no longer writable")
+                return Result.failure()
+            }
 
             val stamp = clock.now().atZone(clock.zone()).format(FILE_STAMP)
             val name = "eatbefore-$stamp.json"

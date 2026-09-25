@@ -72,7 +72,12 @@ class SyncManager @Inject constructor(
         val folderUri = preferences.preferences.first().syncFolderUri
             ?: return SyncResult.NotConfigured
         val folder = folderResolver.resolve(folderUri)
-        if (folder == null || !folder.canWrite()) return SyncResult.FolderUnavailable
+        if (folder == null || !folder.canWrite()) {
+            // The background worker treats this as nothing to do, so without a record here
+            // an exchange that stopped weeks ago looks exactly like one that is working.
+            diagnostics.record("SYNC", "Shared folder is gone or no longer writable")
+            return SyncResult.FolderUnavailable
+        }
 
         val deviceId = deviceIdProvider.deviceId()
 
