@@ -419,6 +419,8 @@
     <string name="product_discard_confirm_message">Партия будет списана как выброшенная и попадёт в статистику потерь. Действие можно отменить в истории.</string>
 
     <string name="settings_section_sharing">Совместный доступ</string>
+    <string name="settings_background_restricted">Экономия батареи может не пропускать напоминания. Разрешите приложению работать в фоне.</string>
+    <string name="settings_background_allow">Разрешить</string>
     <string name="settings_sharing_desc">Выберите папку, которая синхронизируется между вашими устройствами, и ту же папку на втором телефоне. Приложение будет обмениваться изменениями через неё — без регистрации и без наших серверов. Надёжнее всего — папка в памяти телефона (например, Documents/EatBefore), которую синхронизирует приложение вроде Syncthing: Google Диск и многие другие облака не дают выбрать свои папки в этом окне.</string>
     <string name="settings_sharing_folder">Общая папка</string>
     <string name="settings_sharing_folder_none">Не выбрана — запасы видны только на этом телефоне</string>

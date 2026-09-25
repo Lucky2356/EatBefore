@@ -394,6 +394,8 @@
     <string name="product_discard_confirm_message">The batch will be written off as discarded and counted as waste. You can undo this from History.</string>
 
     <string name="settings_section_sharing">Household sharing</string>
+    <string name="settings_background_restricted">Battery saving may hold back reminders. Allow the app to run in the background.</string>
+    <string name="settings_background_allow">Allow</string>
     <string name="settings_sharing_desc">Pick a folder that syncs between your devices, and the same folder on the second phone. The app exchanges changes through it — no accounts, no servers of ours. The most reliable is a folder in phone storage (for example Documents/EatBefore) kept in sync by an app such as Syncthing: Google Drive and many other clouds do not let you pick their folders here.</string>
     <string name="settings_sharing_folder">Shared folder</string>
     <string name="settings_sharing_folder_none">Not chosen — stock is visible on this phone only</string>
