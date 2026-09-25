@@ -25,6 +25,7 @@ import com.eatbefore.core.designsystem.theme.EatBeforeTheme
 import com.eatbefore.feature.addmanual.AddManualScreen
 import com.eatbefore.feature.analytics.AnalyticsScreen
 import com.eatbefore.feature.history.HistoryScreen
+import com.eatbefore.feature.home.DataSafetyWarning
 import com.eatbefore.feature.home.HomeScreen
 import com.eatbefore.feature.inventory.InventoryScreen
 import com.eatbefore.feature.locations.LocationsScreen
@@ -152,6 +153,14 @@ private fun MainNavigation(
                     // switches tabs instead of stacking a second inventory on the back stack.
                     onOpenInventory = { navigateTopLevel(TopLevelDestination.INVENTORY) },
                     onOpenBatch = { navController.navigate(Routes.product(it)) },
+                    onFixDataWarning = { warning ->
+                        navController.navigate(
+                            when (warning) {
+                                DataSafetyWarning.BACKUP_STALLED -> Routes.SETTINGS_DATA
+                                DataSafetyWarning.SYNC_STALLED -> Routes.SETTINGS_SHARING
+                            },
+                        )
+                    },
                 )
             }
 

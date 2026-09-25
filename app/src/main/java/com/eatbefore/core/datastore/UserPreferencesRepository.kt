@@ -54,6 +54,11 @@ data class UserPreferences(
     /** Epoch millis of the last successful automatic backup, 0 when never run. */
     val lastAutoBackupAt: Long = 0,
     /**
+     * When automatic backup was last switched on, 0 when unknown (turned on before this was
+     * recorded). Together with [lastAutoBackupAt] it tells "not due yet" from "never worked".
+     */
+    val autoBackupArmedAt: Long = 0,
+    /**
      * Open Food Facts account name, null when the user has not linked one. Contributing a
      * product to the shared catalog requires an account — the API rejects anonymous
      * writes — so this doubles as "contributing is possible".
@@ -66,6 +71,8 @@ data class UserPreferences(
     val syncFolderUri: String? = null,
     /** Epoch millis of the last successful exchange, 0 when never run. */
     val lastSyncAt: Long = 0,
+    /** When the shared folder was last chosen, 0 when unknown. See [autoBackupArmedAt]. */
+    val syncArmedAt: Long = 0,
     /**
      * What the other household member sees next to actions done here. Null means "not
      * chosen", and the phone's model stands in — see
@@ -118,9 +125,11 @@ class UserPreferencesRepository @Inject constructor(
             autoBackupFolderUri = prefs[KEY_AUTO_BACKUP_FOLDER],
             autoBackupKeepCount = prefs[KEY_AUTO_BACKUP_KEEP] ?: DEFAULT_BACKUP_KEEP_COUNT,
             lastAutoBackupAt = prefs[KEY_LAST_AUTO_BACKUP] ?: 0L,
+            autoBackupArmedAt = prefs[KEY_AUTO_BACKUP_ARMED] ?: 0L,
             offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
             syncFolderUri = prefs[KEY_SYNC_FOLDER]?.takeIf { it.isNotBlank() },
             lastSyncAt = prefs[KEY_LAST_SYNC] ?: 0L,
+            syncArmedAt = prefs[KEY_SYNC_ARMED] ?: 0L,
             updateCheckEnabled = prefs[UpdatePreferences.KEY_ENABLED] ?: true,
             lastUpdateCheckAt = prefs[UpdatePreferences.KEY_LAST_CHECK] ?: 0L,
             availableUpdateVersion = prefs[UpdatePreferences.KEY_AVAILABLE]?.takeIf { it.isNotBlank() },
@@ -198,9 +207,11 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     /** Sync folder shared with the other household member (SAF tree URI). */
-    suspend fun setSyncFolder(uri: String?) {
+    /** [armedAt] is when the folder was chosen, epoch millis; null leaves it as it was. */
+    suspend fun setSyncFolder(uri: String?, armedAt: Long? = null) {
         dataStore.edit { prefs ->
             if (uri == null) prefs.remove(KEY_SYNC_FOLDER) else prefs[KEY_SYNC_FOLDER] = uri
+            if (armedAt != null) prefs[KEY_SYNC_ARMED] = armedAt
         }
     }
 
@@ -208,11 +219,15 @@ class UserPreferencesRepository @Inject constructor(
         dataStore.edit { it[KEY_LAST_SYNC] = epochMillis }
     }
 
-    /** Enabling requires a folder; the caller picks it via SAF first. */
-    suspend fun setAutoBackup(enabled: Boolean, folderUri: String?) {
+    /**
+     * Enabling requires a folder; the caller picks it via SAF first. [armedAt] is when it
+     * was switched on, epoch millis; null leaves it as it was.
+     */
+    suspend fun setAutoBackup(enabled: Boolean, folderUri: String?, armedAt: Long? = null) {
         dataStore.edit {
             it[KEY_AUTO_BACKUP] = enabled
             if (folderUri != null) it[KEY_AUTO_BACKUP_FOLDER] = folderUri
+            if (armedAt != null) it[KEY_AUTO_BACKUP_ARMED] = armedAt
         }
     }
 
@@ -297,11 +312,13 @@ class UserPreferencesRepository @Inject constructor(
         val KEY_AUTO_BACKUP_FOLDER = stringPreferencesKey("auto_backup_folder_uri")
         val KEY_AUTO_BACKUP_KEEP = intPreferencesKey("auto_backup_keep_count")
         val KEY_LAST_AUTO_BACKUP = longPreferencesKey("last_auto_backup_at")
+        val KEY_AUTO_BACKUP_ARMED = longPreferencesKey("auto_backup_armed_at")
         val KEY_OFF_USERNAME = stringPreferencesKey("off_username")
         val KEY_OFF_PASSWORD = stringPreferencesKey("off_password_encrypted")
         val KEY_DEVICE_ID = stringPreferencesKey("device_id")
         val KEY_SYNC_FOLDER = stringPreferencesKey("sync_folder_uri")
         val KEY_LAST_SYNC = longPreferencesKey("last_sync_at")
+        val KEY_SYNC_ARMED = longPreferencesKey("sync_armed_at")
         val KEY_DEVICE_NAME = stringPreferencesKey("device_name")
         const val PEER_NAME_PREFIX = "peer_name_"
     }

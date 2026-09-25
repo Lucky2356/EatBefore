@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
@@ -64,6 +66,7 @@ fun HomeScreen(
     onOpenShopping: () -> Unit,
     onOpenInventory: () -> Unit,
     onOpenBatch: (Long) -> Unit,
+    onFixDataWarning: (DataSafetyWarning) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -146,6 +149,19 @@ fun HomeScreen(
                         row = row,
                         onOpen = { onOpenBatch(row.batchId) },
                         onFinished = { onQuickAction(QuickAction.FINISHED, row.batchId) },
+                    )
+                }
+            }
+
+            // Below the card, not above it: the card is what the screen is for, and this is
+            // a reminder about the plumbing. It still sits above the axis, where it is seen
+            // every time the app opens rather than scrolled past.
+            state.dataWarning?.let { warning ->
+                item(key = "data-warning") {
+                    DataWarningCard(
+                        modifier = animatedItem(),
+                        warning = warning,
+                        onClick = { onFixDataWarning(warning) },
                     )
                 }
             }
@@ -281,6 +297,49 @@ private fun EatFirstCard(
                     modifier = Modifier.padding(end = Dimens.spaceSm),
                 )
                 Text(stringResource(R.string.product_action_finished))
+            }
+        }
+    }
+}
+
+/**
+ * Backup or exchange has quietly stopped. Tapping opens the settings section where it is
+ * fixed; there is no dismiss, because the only way to make it go away should be to make the
+ * job work again.
+ */
+@Composable
+private fun DataWarningCard(warning: DataSafetyWarning, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val (icon, title, text) = when (warning) {
+        DataSafetyWarning.BACKUP_STALLED -> Triple(
+            Icons.Outlined.Backup,
+            R.string.home_warning_backup_title,
+            R.string.home_warning_backup_text,
+        )
+        DataSafetyWarning.SYNC_STALLED -> Triple(
+            Icons.Outlined.CloudOff,
+            R.string.home_warning_sync_title,
+            R.string.home_warning_sync_text,
+        )
+    }
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.errorContainer,
+        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        border = null,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(Dimens.spaceLg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
+        ) {
+            Icon(icon, contentDescription = null)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+            ) {
+                Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(text), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

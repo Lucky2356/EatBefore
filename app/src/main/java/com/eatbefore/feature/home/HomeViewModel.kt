@@ -44,6 +44,8 @@ data class HomeUiState(
     val timeline: List<TimelineGroup> = emptyList(),
     /** Already past its date — counted separately, because it needs a different reaction. */
     val expiredCount: Int = 0,
+    /** Backup or exchange has stopped working; null while both are fine or switched off. */
+    val dataWarning: DataSafetyWarning? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -89,6 +91,7 @@ class HomeViewModel @Inject constructor(
             // Whatever the card is showing is left out of the axis under it: the same row
             // twice, once as an instruction and once as an item, reads as two products.
             timeline = expiringRows.filterNot { it.batchId == eatFirst?.batchId }.groupByTime(),
+            dataWarning = dataSafetyWarning(prefs, clock.now()),
         )
     }.stateIn(
         scope = viewModelScope,

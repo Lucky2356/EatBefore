@@ -9,6 +9,7 @@ import com.eatbefore.core.backup.AutoBackupCatalog
 import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.common.dispatcher.IoDispatcher
+import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
@@ -46,6 +47,7 @@ class SettingsViewModel @Inject constructor(
     private val syncScheduler: SyncScheduler,
     private val updatePreferences: UpdatePreferences,
     private val catalogContributor: CatalogContributor,
+    private val clock: AppClock,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
@@ -206,7 +208,11 @@ class SettingsViewModel @Inject constructor(
                 _message.value = R.string.settings_folder_permission_denied
                 return@launch
             }
-            preferences.setAutoBackup(enabled = true, folderUri = folderUri.toString())
+            preferences.setAutoBackup(
+                enabled = true,
+                folderUri = folderUri.toString(),
+                armedAt = clock.now().toEpochMilli(),
+            )
             _message.value = R.string.settings_auto_backup_on
         }
     }
@@ -225,7 +231,7 @@ class SettingsViewModel @Inject constructor(
                 _message.value = R.string.settings_folder_permission_denied
                 return@launch
             }
-            preferences.setSyncFolder(folderUri.toString())
+            preferences.setSyncFolder(folderUri.toString(), armedAt = clock.now().toEpochMilli())
             syncScheduler.apply(preferences.preferences.first())
             syncNow()
         }

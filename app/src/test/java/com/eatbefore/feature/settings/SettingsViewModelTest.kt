@@ -92,6 +92,8 @@ class SettingsViewModelTest {
         prefsScope.cancel()
     }
 
+    private val clock = FakeAppClock()
+
     private fun viewModel() = SettingsViewModel(
         context = context,
         preferences = preferences,
@@ -103,6 +105,7 @@ class SettingsViewModelTest {
         syncScheduler = syncScheduler,
         updatePreferences = UpdatePreferences(dataStore),
         catalogContributor = catalogContributor,
+        clock = clock,
         ioDispatcher = UnconfinedTestDispatcher(),
     )
 
@@ -180,6 +183,8 @@ class SettingsViewModelTest {
         val prefs = stored()
         assertEquals(true, prefs.autoBackupEnabled)
         assertEquals("content://tree/backups", prefs.autoBackupFolderUri)
+        // The home screen measures "backups have stopped" from here until the first copy.
+        assertEquals(clock.now().toEpochMilli(), prefs.autoBackupArmedAt)
         assertEquals(R.string.settings_auto_backup_on, vm.message.value)
     }
 
@@ -224,6 +229,7 @@ class SettingsViewModelTest {
         advanceUntilIdle()
 
         assertEquals("content://tree/shared", stored().syncFolderUri)
+        assertEquals(clock.now().toEpochMilli(), stored().syncArmedAt)
         coVerify { syncScheduler.apply(any()) }
         coVerify { syncManager.sync() }
         assertEquals(R.string.settings_sharing_done, vm.message.value)
