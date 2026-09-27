@@ -350,6 +350,22 @@ class SyncEngineTest {
     }
 
     /**
+     * The other phone still runs a version without the field and edits the card — muting
+     * it, say. Its newer copy arrives with no kind at all, and must not strip the label.
+     */
+    @Test
+    fun `an older phone editing a home-made card does not make it bought`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal(productHomemadeKind = "DISH", productUpdatedAt = 100L))
+
+        engine.merge(peerJournal(productHomemadeKind = null, productUpdatedAt = 500L))
+
+        val product = db.productDao().getByUuid("p-1")
+        assertEquals("the newer edit still lands", 500L, product?.updatedAt)
+        assertEquals(HomemadeKind.DISH, product?.homemadeKind)
+    }
+
+    /**
      * A kind added by some later version must not stop the exchange: the product still
      * arrives, just as bought food, until this phone is updated too.
      */
