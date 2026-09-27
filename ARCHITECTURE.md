@@ -59,8 +59,16 @@ UI (Compose, ViewModel)  ->  Domain (use cases, интерфейсы)  ->  Data 
 3. Добавить тест в `androidTest/.../MigrationTest.kt`: создать БД предыдущей версии,
    прогнать миграцию, проверить, что данные на месте.
 
-Ближайшее изменение схемы — uuid и deviceId для совместного доступа
-([ADR-0004](docs/adr/0004-household-sharing.md)).
+4. Если новое поле у продукта, партии или события — провести его через обмен
+   (`core/sync/SyncModels.kt`, `SyncEngine.kt`) и резервную копию
+   (`core/backup/BackupModels.kt`, `BackupManager.kt`) со значением по умолчанию:
+   иначе оно теряется при первом же обмене со вторым телефоном.
+
+Текущая схема — **v5**: v2 — uuid и deviceId для совместного доступа
+([ADR-0004](docs/adr/0004-household-sharing.md)), v3 — `products.deleted_at`,
+v4 — `products.notifications_muted`, v5 — `products.homemade_kind`
+([ADR-0007](docs/adr/0007-homemade-food.md)). Совпадение экспортированной схемы с
+закоммиченной проверяет отдельный шаг CI.
 
 ### feature / ui / navigation
 - Каждый экран = `Screen` (Compose) + `ViewModel` (Hilt, `StateFlow<UiState>`).
@@ -89,7 +97,7 @@ MVVM с однонаправленным потоком: `ViewModel` собир�
   (`deletedAt` + терминальный статус) — история и восстановление продолжают работать.
 - **История append-only**: ошибки исправляются компенсирующими событиями (RESTORED,
   обратный MOVED и т.п.), а не редактированием прошлых записей.
-- **Миграции**: фреймворк подключён (`ALL_MIGRATIONS`), схема версии 1 экспортируется;
+- **Миграции**: все версии схемы экспортируются и перечислены в `ALL_MIGRATIONS`;
   при изменении схемы добавляется `Migration` (без разрушающего fallback).
 - **Индексы** Room на barcode, product_id, storage_location_id, expiration_date, status.
 
