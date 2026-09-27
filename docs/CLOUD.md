@@ -85,6 +85,21 @@ EOF
 репозитории не выдаёт **ничего**, то есть любое сообщение — ваше. Добавьте `--format`,
 чтобы он поправил сам.
 
+detekt запускается так же, без Gradle и без SDK — версия бинарника должна совпадать с
+`detekt` в `gradle/libs.versions.toml`, а ключи повторяют блок `detekt {}` корневого
+`build.gradle.kts`:
+
+```bash
+curl -sSLo detekt-cli.jar \
+  https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-cli-1.23.8-all.jar
+
+java -jar detekt-cli.jar --config config/detekt/detekt.yml --build-upon-default-config \
+  --input app/src/main/java,app/src/test/java,app/src/androidTest/java
+```
+
+На чистом репозитории он тоже молчит. Ловит то, чего ktlint не видит: восьмой параметр
+у экрана, двадцать первую функцию в классе.
+
 ## Релиз
 
 Workflow **Release** (`.github/workflows/release.yml`) собирает подписанный APK и
