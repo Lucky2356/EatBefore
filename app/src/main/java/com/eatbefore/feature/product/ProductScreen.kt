@@ -147,6 +147,7 @@ fun ProductScreen(
             ),
             currency = editableItem.batch.currency,
             today = viewModel.today,
+            homemade = editableItem.product.homemadeKind != null,
             onConfirm = { edited ->
                 viewModel.updateDetails(
                     name = edited.name,
@@ -857,6 +858,8 @@ private fun EditDetailsDialog(
     initial: EditedDetails,
     currency: String?,
     today: java.time.LocalDate,
+    // Home cooking keeps the day it was made in the same field, and has to say so here too.
+    homemade: Boolean,
     onConfirm: (EditedDetails) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -960,7 +963,7 @@ private fun EditDetailsDialog(
                 ) {
                     Column {
                         Text(
-                            stringResource(R.string.product_purchase_date),
+                            stringResource(if (homemade) R.string.product_cooked_date else R.string.product_purchase_date),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -232,6 +232,60 @@ class AddManualViewModelTest {
         assertNull("nothing to offer the shop catalogue", vm.state.value.contributeOffer)
     }
 
+    /**
+     * Took the hint, then set the jar's date to last summer: the date follows the hint
+     * rather than staying a year from today under a chip that is no longer selected.
+     */
+    @Test
+    fun `a date taken from the hint follows a later change of the day it was made`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.PRESERVE)
+        advanceUntilIdle()
+        vm.onExpirationDate(clock.today().plusDays(365))
+
+        val madeLastSummer = LocalDate.of(2025, 8, 20)
+        vm.onCookedDate(madeLastSummer)
+
+        assertEquals(madeLastSummer.plusDays(365), vm.state.value.expirationDate)
+    }
+
+    @Test
+    fun `a date taken from the hint follows a switch from dish to preserve`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.DISH)
+        advanceUntilIdle()
+        vm.onExpirationDate(clock.today().plusDays(3))
+
+        vm.onHomemadeKind(HomemadeKind.PRESERVE)
+
+        assertEquals(clock.today().plusDays(365), vm.state.value.expirationDate)
+    }
+
+    /** A date the user chose themselves is theirs, whatever happens to the hint. */
+    @Test
+    fun `a date the user picked is left alone`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.DISH)
+        advanceUntilIdle()
+        val chosen = clock.today().plusDays(5)
+        vm.onExpirationDate(chosen)
+
+        vm.onCookedDate(clock.today().minusDays(1))
+        vm.onHomemadeKind(HomemadeKind.PRESERVE)
+
+        assertEquals(chosen, vm.state.value.expirationDate)
+    }
+
+    @Test
+    fun `clearing the name does not take the chosen date with the hint`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onName("Молоко")
+        val hinted = clock.today().plusDays(vm.state.value.suggestedShelfLifeDays!!.toLong())
+        vm.onExpirationDate(hinted)
+
+        vm.onName("")
+
+        assertEquals(hinted, vm.state.value.expirationDate)
+    }
+
     /** Letters in a number field would otherwise reach the parser and silently become 1. */
     @Test
     fun `the quantity field keeps only digits and a decimal point`() = runTest {
