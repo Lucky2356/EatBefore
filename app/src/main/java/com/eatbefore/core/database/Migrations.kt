@@ -9,6 +9,7 @@ private const val VERSION_1 = 1
 private const val VERSION_2 = 2
 private const val VERSION_3 = 3
 private const val VERSION_4 = 4
+private const val VERSION_5 = 5
 
 /**
  * Adds stable cross-device identifiers required by household sync (ADR-0004):
@@ -73,10 +74,25 @@ val MIGRATION_3_4 = object : Migration(VERSION_3, VERSION_4) {
 }
 
 /**
+ * Adds `products.homemade_kind`. Nullable with no default: everything already on the
+ * phone was bought in a shop, and NULL is exactly what says so. See ADR-0007.
+ */
+val MIGRATION_4_5 = object : Migration(VERSION_4, VERSION_5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE products ADD COLUMN homemade_kind TEXT")
+    }
+}
+
+/**
  * Schema migrations. Every version bump gets one here rather than a destructive
  * fallback — user data must never be silently dropped.
  *
  * Exported schemas live in `app/schemas/` (see the `room.schemaLocation` KSP arg) and are
  * used by `MigrationTest`.
  */
-val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+val ALL_MIGRATIONS: Array<Migration> = arrayOf(
+    MIGRATION_1_2,
+    MIGRATION_2_3,
+    MIGRATION_3_4,
+    MIGRATION_4_5,
+)

@@ -88,6 +88,8 @@ data class BackupProduct(
      * meant. A restore must not quietly stop warning about food already in the fridge.
      */
     val notificationsMuted: Boolean = false,
+    /** Home-made, and what sort; absent in older files, which means "bought". ADR-0007. */
+    val homemadeKind: String? = null,
 )
 
 @Serializable

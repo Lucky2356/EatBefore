@@ -68,6 +68,18 @@ enum class MeasurementUnit {
     PERCENT,
 }
 
+/**
+ * What kind of home-made food a product card is. Null on the card means it came from a
+ * shop. See docs/adr/0007-homemade-food.md.
+ */
+enum class HomemadeKind {
+    /** Cooked to be eaten within days: soup, cutlets, pilaf. */
+    DISH,
+
+    /** Put up to keep for months: jam, pickles, compote in jars. */
+    PRESERVE,
+}
+
 /** Where a product card's data originated. */
 enum class ProductSource {
     USER,

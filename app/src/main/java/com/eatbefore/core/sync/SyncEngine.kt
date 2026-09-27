@@ -10,6 +10,7 @@ import com.eatbefore.core.database.entity.StorageLocationEntity
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.StorageType
@@ -181,6 +182,7 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
+        homemadeKind = homemadeKind?.name,
     )
 
     private fun SyncProduct.toEntity() = ProductEntity(
@@ -200,6 +202,9 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
+        // A kind this version does not know yet reads as bought rather than failing the
+        // whole exchange: the food still arrives, only without its label.
+        homemadeKind = homemadeKind?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } },
     )
 
     private fun InventoryBatchEntity.toSync(productUuid: String, locationName: String?) = SyncBatch(

@@ -196,6 +196,41 @@ class MigrationTest {
         db.close()
     }
 
+    /**
+     * The v4→v5 step adds `products.homemade_kind`. Everything already on the phone was
+     * bought, and must come through as bought: a non-null default would relabel the whole
+     * catalogue as home cooking and give it the wrong shelf life.
+     */
+    @Test
+    fun migrate4To5_keepsProductsStoreBought() {
+        helper.createDatabase(TEST_DB, 4).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO products (id, uuid, barcode, barcode_type, name, brand, category, description,
+                    package_size, measurement_unit, image_uri, source, is_user_created, created_at,
+                    updated_at, deleted_at, notifications_muted)
+                VALUES (1, 'uuid-1', '4620017700531', 'EAN_13', 'Tea nic лимон', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'SCAN_CACHE', 0, 1, 1, NULL, 0),
+                    (2, 'uuid-2', NULL, 'NONE', 'Дрожжи', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'USER', 1, 1, 1, NULL, 1)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 5, true, MIGRATION_4_5)
+
+        db.query("SELECT name, notifications_muted, homemade_kind FROM products ORDER BY id").use { c ->
+            assertEquals(2, c.count)
+            c.moveToFirst()
+            assertEquals("Tea nic лимон", c.getString(0))
+            assertTrue("bought food stays bought", c.isNull(2))
+            c.moveToNext()
+            assertEquals("earlier columns survive the step", 1, c.getInt(1))
+            assertTrue("bought food stays bought", c.isNull(2))
+        }
+        db.close()
+    }
+
     @Test
     fun currentSchemaOpensWithDeclaredMigrations() {
         helper.createDatabase(TEST_DB, EatBeforeDatabase.VERSION).close()

@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.ShoppingPriority
@@ -72,6 +73,14 @@ class Converters {
     @TypeConverter
     fun stringToProductSource(value: String): ProductSource =
         enumValueOrDefault(value, ProductSource.USER)
+
+    @TypeConverter
+    fun homemadeKindToString(value: HomemadeKind?): String? = value?.name
+
+    /** Nullable, and an unknown name reads as "bought": a newer peer must not break this. */
+    @TypeConverter
+    fun stringToHomemadeKind(value: String?): HomemadeKind? =
+        value?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } }
 
     @TypeConverter
     fun shoppingPriorityToString(value: ShoppingPriority): String = value.name

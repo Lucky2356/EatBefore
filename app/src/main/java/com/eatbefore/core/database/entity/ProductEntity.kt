@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.eatbefore.domain.model.BarcodeType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 
@@ -52,4 +53,10 @@ data class ProductEntity(
      * phone happens to be running the reminder.
      */
     @ColumnInfo(name = "notifications_muted") val notificationsMuted: Boolean = false,
+    /**
+     * Home-made, and what sort; null for anything bought. A property of the card rather
+     * than of a batch: the same soup is cooked again next week, and it is the card that
+     * decides how long it keeps and how it is labelled. See ADR-0007.
+     */
+    @ColumnInfo(name = "homemade_kind") val homemadeKind: HomemadeKind? = null,
 )
