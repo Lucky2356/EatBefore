@@ -67,6 +67,42 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
+  # Владелец репозитория — единственный автор его коммитов. Проверяются только новые
+  # коммиты: то, что принёс PR, или то, что пришло этим push'ем.
+  authorship:
+    name: Без соавторства
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: В новых коммитах нет подписей ассистента
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE..$AFTER"
+          else
+            # Новая ветка или история, переписанная целиком: смотрим всё, что есть.
+            range="$AFTER"
+          fi
+          found=$(git log --format='%h %an <%ae> | %cn <%ce>%n%B' "$range" \
+            | grep -inE 'co-authored-by:|claude-session:|noreply@anthropic\.com|generated with \[?claude' || true)
+          if [ -n "$found" ]; then
+            echo "::error::В коммитах есть подпись ассистента. Автор коммитов — владелец репозитория."
+            echo "$found"
+            exit 1
+          fi
+          echo "Подписей ассистента нет."
+
   instrumented:
     name: Instrumented tests (emulator)
     # Only on main. These take ~20 minutes against an emulator, which is too slow to
