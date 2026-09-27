@@ -22,7 +22,6 @@ import androidx.navigation.navArgument
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.component.LoadingState
 import com.eatbefore.core.designsystem.theme.EatBeforeTheme
-import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.feature.addmanual.AddManualScreen
 import com.eatbefore.feature.analytics.AnalyticsScreen
 import com.eatbefore.feature.history.HistoryScreen
@@ -148,8 +147,7 @@ private fun MainNavigation(
             composable(Routes.HOME) {
                 HomeScreen(
                     onScan = { navController.navigate(Routes.SCANNER) },
-                    onAddManual = { navController.navigate(Routes.addManual()) },
-                    onAddHomemade = { navController.navigate(Routes.addManual(homemade = HomemadeKind.DISH.name)) },
+                    onAddManual = { homemade -> navController.navigate(Routes.addManual(homemade = homemade?.name)) },
                     onOpenShopping = { navController.navigate(Routes.SHOPPING) },
                     // Through the same path as the bottom bar, so the "expired" tile
                     // switches tabs instead of stacking a second inventory on the back stack.
