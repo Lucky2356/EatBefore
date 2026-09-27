@@ -2,6 +2,7 @@ package com.eatbefore.domain.usecase
 
 import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.Product
 import org.junit.Assert.assertEquals
@@ -102,6 +103,27 @@ class BuildAnalyticsUseCaseTest {
         assertEquals(1, summary.discardedCount)
         assertEquals(1, summary.expiredCount)
         assertTrue(summary.hasData)
+    }
+
+    /** Soup nobody finished is its own line, not lost among the uncategorised. */
+    @Test
+    fun wastedByCategory_groupsUncategorisedHomeCookingApart() {
+        val withHome = products + mapOf(
+            4L to Product(id = 4, name = "Борщ", homemadeKind = HomemadeKind.DISH),
+            5L to Product(id = 5, name = "Варенье", category = "Сладкое", homemadeKind = HomemadeKind.PRESERVE),
+        )
+        val events = listOf(
+            event(EventType.EXPIRED, productId = 4),
+            event(EventType.DISCARDED, productId = 4),
+            event(EventType.DISCARDED, productId = 5),
+            event(EventType.DISCARDED, productId = 3),
+        )
+
+        val byCategory = useCase(events, withHome, from).wastedByCategory.toMap()
+
+        assertEquals(2, byCategory[BuildAnalyticsUseCase.HOMEMADE])
+        assertEquals("a category the user gave still wins", 1, byCategory["Сладкое"])
+        assertEquals(1, byCategory[BuildAnalyticsUseCase.UNCATEGORIZED])
     }
 
     @Test

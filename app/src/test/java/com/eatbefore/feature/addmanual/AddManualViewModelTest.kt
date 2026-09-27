@@ -5,8 +5,10 @@ import com.eatbefore.R
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.ContributionResult
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.model.StorageType
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.AddManualProductUseCase
@@ -48,10 +50,11 @@ class AddManualViewModelTest {
 
     private val pantry = StorageLocation(id = 5, name = "Шкаф")
     private val fridge = StorageLocation(id = 1, name = "Холодильник", isDefault = true)
+    private val freezer = StorageLocation(id = 7, name = "Морозилка", type = StorageType.FREEZER)
 
     private val locations = object : StorageLocationRepository {
-        override fun observeActive(): Flow<List<StorageLocation>> = flowOf(listOf(pantry, fridge))
-        override fun observeAll(): Flow<List<StorageLocation>> = flowOf(listOf(pantry, fridge))
+        override fun observeActive(): Flow<List<StorageLocation>> = flowOf(listOf(pantry, fridge, freezer))
+        override fun observeAll(): Flow<List<StorageLocation>> = flowOf(listOf(pantry, fridge, freezer))
         override suspend fun getById(id: Long) = fridge
         override suspend fun getDefault() = fridge
         override suspend fun setDefault(id: Long) = Unit
@@ -62,8 +65,10 @@ class AddManualViewModelTest {
         barcode: String? = null,
         expiryEpochDay: Long? = null,
         catalogue: List<Product> = emptyList(),
+        homemade: HomemadeKind? = null,
     ): AddManualViewModel {
         val args = mutableMapOf<String, Any?>()
+        if (homemade != null) args[Routes.ADD_MANUAL_ARG_HOMEMADE] = homemade.name
         if (barcode != null) args[Routes.ADD_MANUAL_ARG_BARCODE] = barcode
         if (expiryEpochDay != null) args[Routes.ADD_MANUAL_ARG_EXPIRY] = expiryEpochDay
         val products = mockk<ProductRepository>()
@@ -160,6 +165,71 @@ class AddManualViewModelTest {
         assertEquals(LocalDate.of(2026, 8, 8), params.captured.expirationDate)
         assertEquals(11L, vm.state.value.savedBatchId)
         assertFalse(vm.state.value.isSaving)
+    }
+
+    @Test
+    fun `the home-made button opens the form for a dish made today`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.DISH)
+        advanceUntilIdle()
+
+        assertEquals(HomemadeKind.DISH, vm.state.value.homemadeKind)
+        assertEquals(clock.today(), vm.state.value.cookedDate)
+        // Before anything is typed: cooked food is three days in the fridge.
+        assertEquals(3, vm.state.value.suggestedShelfLifeDays)
+    }
+
+    @Test
+    fun `the ordinary form is not home-made`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+
+        assertNull(vm.state.value.homemadeKind)
+        assertNull(vm.state.value.cookedDate)
+    }
+
+    @Test
+    fun `switching to a preserve gives a jar's shelf life`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.DISH)
+        advanceUntilIdle()
+
+        vm.onHomemadeKind(HomemadeKind.PRESERVE)
+
+        assertEquals(365, vm.state.value.suggestedShelfLifeDays)
+    }
+
+    @Test
+    fun `a dish going into the freezer keeps for months`() = runTest {
+        val vm = viewModel(homemade = HomemadeKind.DISH)
+        advanceUntilIdle()
+
+        vm.onLocation(freezer.id)
+
+        assertEquals(90, vm.state.value.suggestedShelfLifeDays)
+    }
+
+    /**
+     * Saved with its kind and the day it was made — not today, for a jar from last summer
+     * — and without a barcode or brand, which the home-made form never shows.
+     */
+    @Test
+    fun `saving home cooking passes its kind and the day it was made`() = runTest {
+        coEvery { addManualProduct(any()) } returns 3L
+        val vm = viewModel(homemade = HomemadeKind.PRESERVE)
+        advanceUntilIdle()
+        val madeLastSummer = LocalDate.of(2025, 8, 20)
+        vm.onName("Огурцы маринованные")
+        vm.onCookedDate(madeLastSummer)
+        vm.onBarcode("4620017700531")
+
+        vm.save()
+        advanceUntilIdle()
+
+        val params = slot<AddManualProductUseCase.Params>()
+        coVerify { addManualProduct(capture(params)) }
+        assertEquals(HomemadeKind.PRESERVE, params.captured.homemadeKind)
+        assertEquals(madeLastSummer, params.captured.purchaseDate)
+        assertNull(params.captured.barcode)
+        assertNull("nothing to offer the shop catalogue", vm.state.value.contributeOffer)
     }
 
     /** Letters in a number field would otherwise reach the parser and silently become 1. */

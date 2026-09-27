@@ -30,13 +30,24 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE barcode = :barcode LIMIT 1")
     suspend fun getByBarcode(barcode: String): ProductEntity?
 
-    /** Case-insensitive lookup used when merging duplicate manual entries. */
+    /**
+     * Case-insensitive lookup used when merging duplicate manual entries. Bought food
+     * only: a jar of home-made jam and a bought one share a name, and folding one into the
+     * other would give it the wrong label and the wrong shelf life.
+     */
     @Query(
-        "SELECT * FROM products WHERE barcode IS NULL " +
+        "SELECT * FROM products WHERE barcode IS NULL AND homemade_kind IS NULL " +
             "AND LOWER(name) = LOWER(:name) " +
             "AND (:brand IS NULL AND brand IS NULL OR LOWER(brand) = LOWER(:brand)) LIMIT 1",
     )
     suspend fun findUserProductByNameAndBrand(name: String, brand: String?): ProductEntity?
+
+    /** The home-made counterpart: the same soup cooked again reuses its card. [kind] is a name. */
+    @Query(
+        "SELECT * FROM products WHERE barcode IS NULL AND homemade_kind = :kind " +
+            "AND LOWER(name) = LOWER(:name) LIMIT 1",
+    )
+    suspend fun findHomemadeProductByName(name: String, kind: String): ProductEntity?
 
     /**
      * Every card, struck-off ones included. Screens that only need a name to show against

@@ -2,6 +2,7 @@ package com.eatbefore.domain.usecase
 
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeHistoryRepository
@@ -92,6 +93,43 @@ class InventoryUseCasesTest {
         )
 
         assertEquals(bought, inventory.getBatch(batchId)!!.purchaseDate)
+    }
+
+    /** Home cooking: the card says so, and the date kept is the day it was made. */
+    @Test
+    fun addManual_homemadeKeepsItsKindAndTheDayItWasMade() = runTest {
+        val cooked = clock.today().minusDays(1)
+
+        val batchId = addManual(
+            AddManualProductUseCase.Params(
+                name = "Борщ",
+                storageLocationId = 1,
+                purchaseDate = cooked,
+                homemadeKind = HomemadeKind.DISH,
+            ),
+        )
+
+        val batch = inventory.getBatch(batchId)!!
+        assertEquals(cooked, batch.purchaseDate)
+        assertEquals(HomemadeKind.DISH, products.getById(batch.productId)?.homemadeKind)
+    }
+
+    /**
+     * Home-made jam and bought jam share a name, not a card: folding one into the other
+     * would give the bought jar a home label and the wrong shelf life.
+     */
+    @Test
+    fun addManual_keepsHomemadeAndBoughtOfTheSameNameApart() = runTest {
+        addManual(AddManualProductUseCase.Params(name = "Варенье", storageLocationId = 1))
+        addManual(
+            AddManualProductUseCase.Params(name = "Варенье", storageLocationId = 1, homemadeKind = HomemadeKind.PRESERVE),
+        )
+        addManual(
+            AddManualProductUseCase.Params(name = "варенье", storageLocationId = 1, homemadeKind = HomemadeKind.PRESERVE),
+        )
+
+        assertEquals("one bought card and one home-made card", 2, products.observeAllCount())
+        assertEquals(3, inventory.batches.size)
     }
 
     @Test

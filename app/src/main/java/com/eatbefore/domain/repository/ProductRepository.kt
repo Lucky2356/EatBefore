@@ -1,5 +1,6 @@
 package com.eatbefore.domain.repository
 
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
 import kotlinx.coroutines.flow.Flow
 
@@ -8,6 +9,9 @@ interface ProductRepository {
     fun observeById(id: Long): Flow<Product?>
     suspend fun getByBarcode(barcode: String): Product?
     suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product?
+
+    /** A home-made card of the given [kind] with this name, if one was made before. */
+    suspend fun findHomemadeProductByName(name: String, kind: HomemadeKind): Product?
     suspend fun upsert(product: Product): Long
 
     /** Every card, including ones struck off the catalogue — history still needs their names. */

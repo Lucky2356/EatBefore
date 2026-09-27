@@ -10,10 +10,13 @@ import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.BarcodeType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.StorageLocation
+import com.eatbefore.domain.model.StorageType
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
+import com.eatbefore.domain.shelflife.HomemadeShelfLife
 import com.eatbefore.domain.shelflife.TypicalShelfLife
 import com.eatbefore.domain.usecase.AddManualProductUseCase
 import com.eatbefore.navigation.Routes
@@ -41,6 +44,14 @@ data class AddManualUiState(
      * different things; tapping the one that already exists is what keeps them one.
      */
     val knownCategories: List<String> = emptyList(),
+    /**
+     * Set when the form is for home cooking rather than shopping. The date asked for then
+     * is when it was made, the shelf-life hint comes from the home-made table, and barcode,
+     * brand and the catalogue offer go away — none of them mean anything for a pot of soup.
+     */
+    val homemadeKind: HomemadeKind? = null,
+    /** When it was made. Only used with [homemadeKind]; a jar can be from last summer. */
+    val cookedDate: LocalDate? = null,
     /** Empty unless scanned or typed; a product with one can be offered to the catalog. */
     val barcode: String = "",
     val quantity: String = "1",
@@ -100,12 +111,24 @@ class AddManualViewModel @Inject constructor(
             ?.takeIf { it >= 0 }
             ?.let(LocalDate::ofEpochDay)
 
+    private val initialHomemadeKind: HomemadeKind? =
+        savedStateHandle.get<String>(Routes.ADD_MANUAL_ARG_HOMEMADE)
+            ?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } }
+
     private val _state = MutableStateFlow(
-        AddManualUiState(expirationDate = expiryFromCode, barcode = scannedBarcode.orEmpty()),
+        AddManualUiState(
+            expirationDate = expiryFromCode,
+            barcode = scannedBarcode.orEmpty(),
+            homemadeKind = initialHomemadeKind,
+            cookedDate = initialHomemadeKind?.let { clock.today() },
+        ),
     )
     val state: StateFlow<AddManualUiState> = _state.asStateFlow()
 
     init {
+        // A home-made form has a hint before anything is typed: soup is three days in the
+        // fridge whatever it is called.
+        _state.update { it.withSuggestion() }
         viewModelScope.launch {
             // Keep the picker in sync with locations; default to the primary location.
             storageLocationRepository.observeActive().collect { list ->
@@ -115,7 +138,7 @@ class AddManualViewModel @Inject constructor(
                         selectedLocationId = current.selectedLocationId
                             ?: list.firstOrNull { it.isDefault }?.id
                             ?: list.firstOrNull()?.id,
-                    )
+                    ).withSuggestion()
                 }
             }
         }
@@ -132,15 +155,30 @@ class AddManualViewModel @Inject constructor(
         }
     }
 
-    fun onName(value: String) = _state.update {
-        it.copy(
-            name = value,
-            nameError = false,
-            // Recomputed as the name is typed: the suggestion is only useful while the
-            // expiry is still being chosen, and by then the name is what identifies the
-            // product — the category is rarely filled in by hand.
-            suggestedShelfLifeDays = TypicalShelfLife.suggestDays(value),
-        )
+    // Recomputed as the name is typed: the suggestion is only useful while the expiry is
+    // still being chosen, and by then the name is what identifies the product — the
+    // category is rarely filled in by hand.
+    fun onName(value: String) = _state.update { it.copy(name = value, nameError = false).withSuggestion() }
+
+    /** Dish or preserve. The two keep for days and for months, so the hint follows. */
+    fun onHomemadeKind(kind: HomemadeKind) = _state.update { it.copy(homemadeKind = kind).withSuggestion() }
+
+    fun onCookedDate(date: LocalDate) = _state.update { it.copy(cookedDate = date) }
+
+    /**
+     * The shelf-life hint for what is on the form. Home cooking always gets one — cooked
+     * food in the fridge is three days whatever it is called — and a dish headed for the
+     * freezer gets the freezer's figure.
+     */
+    private fun AddManualUiState.withSuggestion(): AddManualUiState {
+        val kind = homemadeKind
+        val days = if (kind == null) {
+            TypicalShelfLife.suggestDays(name)
+        } else {
+            val frozen = locations.firstOrNull { it.id == selectedLocationId }?.type == StorageType.FREEZER
+            HomemadeShelfLife.suggestDays(name, kind, frozen)
+        }
+        return copy(suggestedShelfLifeDays = days)
     }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
     fun onCategory(value: String) = _state.update { it.copy(category = value) }
@@ -161,7 +199,7 @@ class AddManualViewModel @Inject constructor(
     }
 
     fun onUnit(unit: MeasurementUnit) = _state.update { it.copy(unit = unit) }
-    fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id) }
+    fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id).withSuggestion() }
     fun onNote(value: String) = _state.update { it.copy(note = value) }
 
     // Comma is what a Russian keyboard offers for a decimal; accept it as a full stop
@@ -187,11 +225,13 @@ class AddManualViewModel @Inject constructor(
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             val quantity = current.quantity.toDoubleOrNull() ?: 1.0
-            val barcode = current.barcode.trim().ifBlank { null }
+            val homemade = current.homemadeKind != null
+            // Hidden on the home-made form, so anything left in them is not the user's.
+            val barcode = current.barcode.trim().ifBlank { null }?.takeUnless { homemade }
             val id = addManualProduct(
                 AddManualProductUseCase.Params(
                     name = current.name,
-                    brand = current.brand.ifBlank { null },
+                    brand = current.brand.ifBlank { null }?.takeUnless { homemade },
                     category = current.category.ifBlank { null },
                     barcode = barcode,
                     barcodeType = if (barcode != null) BarcodeType.OTHER else BarcodeType.NONE,
@@ -202,6 +242,8 @@ class AddManualViewModel @Inject constructor(
                     note = current.note.ifBlank { null },
                     price = current.price.toDoubleOrNull()?.takeIf { it > 0 },
                     currency = current.price.toDoubleOrNull()?.let { defaultCurrencyCode() },
+                    homemadeKind = current.homemadeKind,
+                    purchaseDate = current.cookedDate?.takeIf { homemade },
                 ),
             )
             // Offer to publish any product that carries a barcode, however it got there,

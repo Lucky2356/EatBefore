@@ -1,6 +1,7 @@
 package com.eatbefore.domain.usecase
 
 import com.eatbefore.core.common.validation.InputValidator
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.repository.ProductRepository
 import javax.inject.Inject
@@ -15,7 +16,18 @@ import javax.inject.Inject
  */
 class MergeSameProductUseCase @Inject constructor(private val productRepository: ProductRepository) {
 
-    suspend fun findDuplicate(name: String, brand: String?, barcode: String? = null): Product? {
+    suspend fun findDuplicate(
+        name: String,
+        brand: String?,
+        barcode: String? = null,
+        homemadeKind: HomemadeKind? = null,
+    ): Product? {
+        // Home cooking is matched among home cooking only, by name — it has no barcode or
+        // brand, and a bought product of the same name is a different thing.
+        if (homemadeKind != null) {
+            val cleanName = InputValidator.sanitizeText(name, InputValidator.MAX_NAME_LENGTH) ?: return null
+            return productRepository.findHomemadeProductByName(cleanName, homemadeKind)
+        }
         val cleanBarcode = InputValidator.sanitizeBarcode(barcode)
         if (cleanBarcode != null) {
             productRepository.getByBarcode(cleanBarcode)?.let { return it }

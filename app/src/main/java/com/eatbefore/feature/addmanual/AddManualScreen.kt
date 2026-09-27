@@ -11,8 +11,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -48,6 +51,7 @@ import com.eatbefore.core.designsystem.format.formatDate
 import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.shortLabel
 import com.eatbefore.core.designsystem.theme.Dimens
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import java.time.temporal.ChronoUnit
 
@@ -63,6 +67,16 @@ fun AddManualScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showCookedPicker by remember { mutableStateOf(false) }
+    val homemade = state.homemadeKind != null
+
+    if (showCookedPicker) {
+        ExpiryDatePickerDialog(
+            initial = state.cookedDate,
+            onConfirm = viewModel::onCookedDate,
+            onDismiss = { showCookedPicker = false },
+        )
+    }
 
     if (showDatePicker) {
         ExpiryDatePickerDialog(
@@ -96,7 +110,7 @@ fun AddManualScreen(
     }
 
     ScreenScaffold(
-        title = stringResource(R.string.add_title),
+        title = stringResource(if (homemade) R.string.add_title_homemade else R.string.add_title),
         onBack = onBack,
         snackbarHostState = snackbarHost,
     ) { padding ->
@@ -108,6 +122,19 @@ fun AddManualScreen(
                 .padding(Dimens.spaceLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
         ) {
+            state.homemadeKind?.let { kind ->
+                LabeledSection(stringResource(R.string.add_homemade_kind)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
+                        HomemadeKind.entries.forEach { option ->
+                            FilterChip(
+                                selected = kind == option,
+                                onClick = { viewModel.onHomemadeKind(option) },
+                                label = { Text(stringResource(option.labelRes())) },
+                            )
+                        }
+                    }
+                }
+            }
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::onName,
@@ -123,14 +150,17 @@ fun AddManualScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
             )
-            OutlinedTextField(
-                value = state.brand,
-                onValueChange = viewModel::onBrand,
-                label = { Text(stringResource(R.string.add_brand)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // A pot of soup has no brand and no barcode; asking for them would only be noise.
+            if (!homemade) {
+                OutlinedTextField(
+                    value = state.brand,
+                    onValueChange = viewModel::onBrand,
+                    label = { Text(stringResource(R.string.add_brand)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             OutlinedTextField(
                 value = state.category,
                 onValueChange = viewModel::onCategory,
@@ -155,15 +185,17 @@ fun AddManualScreen(
                     }
                 }
             }
-            OutlinedTextField(
-                value = state.barcode,
-                onValueChange = viewModel::onBarcode,
-                label = { Text(stringResource(R.string.add_barcode)) },
-                supportingText = { Text(stringResource(R.string.add_barcode_hint)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (!homemade) {
+                OutlinedTextField(
+                    value = state.barcode,
+                    onValueChange = viewModel::onBarcode,
+                    label = { Text(stringResource(R.string.add_barcode)) },
+                    supportingText = { Text(stringResource(R.string.add_barcode_hint)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
 
             LabeledSection(stringResource(R.string.add_location)) {
                 Row(
@@ -175,6 +207,33 @@ fun AddManualScreen(
                             selected = state.selectedLocationId == location.id,
                             onClick = { viewModel.onLocation(location.id) },
                             label = { Text(location.displayName()) },
+                        )
+                    }
+                }
+            }
+
+            // Home cooking counts from the day it was made, and a jar can be from last summer.
+            state.cookedDate?.let { cooked ->
+                LabeledSection(stringResource(R.string.add_cooked_date)) {
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        FilterChip(
+                            selected = cooked == viewModel.today,
+                            onClick = { viewModel.onCookedDate(viewModel.today) },
+                            label = { Text(stringResource(R.string.add_expiry_today)) },
+                        )
+                        FilterChip(
+                            selected = cooked == viewModel.today.minusDays(1),
+                            onClick = { viewModel.onCookedDate(viewModel.today.minusDays(1)) },
+                            label = { Text(stringResource(R.string.add_cooked_yesterday)) },
+                        )
+                        AssistChip(
+                            onClick = { showCookedPicker = true },
+                            label = { Text(formatDate(cooked)) },
+                            leadingIcon = { Icon(Icons.Outlined.EditCalendar, contentDescription = null) },
                         )
                     }
                 }
@@ -200,6 +259,7 @@ fun AddManualScreen(
                         onPickDate = { showDatePicker = true },
                         modifier = Modifier.fillMaxWidth(),
                         suggestedDays = state.suggestedShelfLifeDays,
+                        suggestedFrom = state.cookedDate ?: viewModel.today,
                     )
                     // A preset says "in three days"; only the date says which day that is,
                     // and the date is what the notification will fire on.
@@ -218,13 +278,16 @@ fun AddManualScreen(
                             }
                         }
                     }
-                    OutlinedButton(onClick = onCaptureExpiry, modifier = Modifier.fillMaxWidth()) {
-                        Icon(
-                            Icons.Outlined.PhotoCamera,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = Dimens.spaceSm),
-                        )
-                        Text(stringResource(R.string.ocr_from_photo))
+                    // Nothing printed to photograph on a home-made jar.
+                    if (!homemade) {
+                        OutlinedButton(onClick = onCaptureExpiry, modifier = Modifier.fillMaxWidth()) {
+                            Icon(
+                                Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = Dimens.spaceSm),
+                            )
+                            Text(stringResource(R.string.ocr_from_photo))
+                        }
                     }
                 }
             }
@@ -317,4 +380,9 @@ private fun LabeledSection(label: String, content: @Composable () -> Unit) {
         Text(text = label, style = MaterialTheme.typography.titleMedium)
         content()
     }
+}
+
+private fun HomemadeKind.labelRes(): Int = when (this) {
+    HomemadeKind.DISH -> R.string.homemade_dish
+    HomemadeKind.PRESERVE -> R.string.homemade_preserve
 }

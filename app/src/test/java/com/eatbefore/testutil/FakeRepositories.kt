@@ -2,6 +2,7 @@ package com.eatbefore.testutil
 
 import com.eatbefore.domain.model.BatchPrice
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
@@ -49,8 +50,14 @@ class FakeProductRepository(private val products: MutableMap<Long, Product> = mu
         products.values.firstOrNull {
             it.isUserCreated &&
                 it.barcode == null &&
+                it.homemadeKind == null &&
                 it.name.equals(name, ignoreCase = true) &&
                 (it.brand?.equals(brand, ignoreCase = true) ?: (brand == null))
+        }
+
+    override suspend fun findHomemadeProductByName(name: String, kind: HomemadeKind): Product? =
+        products.values.firstOrNull {
+            it.barcode == null && it.homemadeKind == kind && it.name.equals(name, ignoreCase = true)
         }
 
     override suspend fun upsert(product: Product): Long {

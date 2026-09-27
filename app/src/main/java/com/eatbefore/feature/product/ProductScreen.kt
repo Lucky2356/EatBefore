@@ -88,6 +88,7 @@ import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Motion
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.ExpiryStatus
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.history.eventAuthor
 import com.eatbefore.feature.history.eventLabel
@@ -531,7 +532,20 @@ private fun DetailsCard(
     showDates: Boolean,
     onRemindersChange: (Boolean) -> Unit,
 ) {
+    val homemade = item.product.homemadeKind
     SectionCard(title = stringResource(R.string.product_details)) {
+        homemade?.let { kind ->
+            Text(
+                stringResource(
+                    when (kind) {
+                        HomemadeKind.DISH -> R.string.product_homemade_dish
+                        HomemadeKind.PRESERVE -> R.string.product_homemade_preserve
+                    },
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
         DetailRow(stringResource(R.string.product_location), item.location.displayName())
         if (showDates) {
             item.batch.effectiveExpirationDate?.let { date ->
@@ -544,8 +558,10 @@ private fun DetailsCard(
         item.batch.openedAt?.let {
             DetailRow(stringResource(R.string.product_opened_at), formatDate(it))
         }
+        // For home cooking the same date is the day it was made, and says so.
         item.batch.purchaseDate?.let { date ->
-            DetailRow(stringResource(R.string.product_purchase_date), formatDate(date))
+            val label = if (homemade != null) R.string.product_cooked_date else R.string.product_purchase_date
+            DetailRow(stringResource(label), formatDate(date))
         }
         item.batch.price?.let { price ->
             DetailRow(
@@ -553,8 +569,9 @@ private fun DetailsCard(
                 formatMoney(price, item.batch.currency),
             )
         }
-        // Before opening, tell the user what opening will cost them in shelf life.
-        if (item.batch.openedAt == null) {
+        // Before opening, tell the user what opening will cost them in shelf life. A dish
+        // has no seal to break, so the hint is for jars and packs only.
+        if (item.batch.openedAt == null && homemade != HomemadeKind.DISH) {
             item.batch.recommendedUseAfterOpeningDays?.let { days ->
                 Text(
                     pluralStringResource(R.plurals.product_after_opening_hint, days, days),

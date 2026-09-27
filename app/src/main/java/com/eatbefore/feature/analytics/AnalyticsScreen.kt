@@ -150,8 +150,7 @@ private fun buildReportText(
             appendLine()
             appendLine(stringResource(R.string.analytics_wasted_by_category) + ":")
             summary.wastedByCategory.forEach { (category, count) ->
-                val label = category.ifBlank { stringResource(R.string.analytics_no_category) }
-                appendLine("  $label — $count")
+                appendLine("  ${categoryLabel(category)} — $count")
             }
         }
         if (summary.topAddedProducts.isNotEmpty()) {
@@ -263,12 +262,7 @@ private fun SummaryContent(summary: AnalyticsSummary) {
         SectionList(
             title = stringResource(R.string.analytics_wasted_by_category),
             rows = summary.wastedByCategory.map { (category, count) ->
-                val label = if (category == BuildAnalyticsUseCase.UNCATEGORIZED) {
-                    stringResource(R.string.analytics_no_category)
-                } else {
-                    category
-                }
-                label to count
+                categoryLabel(category) to count
             },
         )
     }
@@ -425,4 +419,12 @@ private fun PeriodChip(
         onClick = { onSelect(value) },
         label = { Text(stringResource(labelRes)) },
     )
+}
+
+/** The two sentinel keys from [BuildAnalyticsUseCase] in words; anything else is the user's own category. */
+@Composable
+private fun categoryLabel(category: String): String = when (category) {
+    BuildAnalyticsUseCase.UNCATEGORIZED -> stringResource(R.string.analytics_no_category)
+    BuildAnalyticsUseCase.HOMEMADE -> stringResource(R.string.analytics_homemade)
+    else -> category
 }

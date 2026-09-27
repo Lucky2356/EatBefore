@@ -104,6 +104,17 @@
 
     <!-- Add manual -->
     <string name="add_title">Add product</string>
+    <string name="add_title_homemade">Home-made</string>
+    <string name="add_homemade_kind">What is it</string>
+    <string name="homemade_dish">Dish</string>
+    <string name="homemade_preserve">Preserve</string>
+    <string name="add_cooked_date">When it was made</string>
+    <string name="add_cooked_yesterday">Yesterday</string>
+    <string name="home_quick_homemade">Home-made</string>
+    <string name="product_cooked_date">Made</string>
+    <string name="product_homemade_dish">Home-made dish</string>
+    <string name="product_homemade_preserve">Home preserve</string>
+    <string name="analytics_homemade">Home-made</string>
     <string name="add_name">Name</string>
     <string name="add_brand">Brand</string>
     <string name="add_category">Category</string>

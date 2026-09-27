@@ -117,6 +117,17 @@
 
     <!-- Add manual -->
     <string name="add_title">Добавить продукт</string>
+    <string name="add_title_homemade">Домашнее</string>
+    <string name="add_homemade_kind">Что это</string>
+    <string name="homemade_dish">Блюдо</string>
+    <string name="homemade_preserve">Заготовка</string>
+    <string name="add_cooked_date">Когда приготовлено</string>
+    <string name="add_cooked_yesterday">Вчера</string>
+    <string name="home_quick_homemade">Домашнее</string>
+    <string name="product_cooked_date">Приготовлено</string>
+    <string name="product_homemade_dish">Домашнее блюдо</string>
+    <string name="product_homemade_preserve">Домашняя заготовка</string>
+    <string name="analytics_homemade">Домашнее</string>
     <string name="add_name">Название</string>
     <string name="add_brand">Бренд</string>
     <string name="add_category">Категория</string>
