@@ -95,7 +95,17 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
             } else {
                 productIds[remote.uuid] = existing.id
                 if (remote.updatedAt > existing.updatedAt) {
-                    db.productDao().update(remote.toEntity().copy(id = existing.id))
+                    val incoming = remote.toEntity()
+                    db.productDao().update(
+                        incoming.copy(
+                            id = existing.id,
+                            // Nothing in the app turns home cooking back into bought food,
+                            // so a missing kind is a peer too old to know the field — not
+                            // a change. Taking it at its word would strip the label here
+                            // the first time that phone edited the card. ADR-0007.
+                            homemadeKind = incoming.homemadeKind ?: existing.homemadeKind,
+                        ),
+                    )
                 }
             }
         }
