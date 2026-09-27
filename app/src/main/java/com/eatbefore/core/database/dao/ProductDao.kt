@@ -31,23 +31,14 @@ interface ProductDao {
     suspend fun getByBarcode(barcode: String): ProductEntity?
 
     /**
-     * Case-insensitive lookup used when merging duplicate manual entries. Bought food
-     * only: a jar of home-made jam and a bought one share a name, and folding one into the
-     * other would give it the wrong label and the wrong shelf life.
+     * Cards without a barcode whose name is as long as [name] — the candidates for "is this
+     * the same product typed again". Only narrowed here: the comparison itself happens in
+     * Kotlin ([findUserProductByNameAndBrand], [findHomemadeProductByName]), because
+     * SQLite's LOWER() is only guaranteed to fold ASCII, and «Огурцы» must meet «огурцы».
+     * LENGTH() counts characters, not bytes, so the narrowing is safe for Cyrillic.
      */
-    @Query(
-        "SELECT * FROM products WHERE barcode IS NULL AND homemade_kind IS NULL " +
-            "AND LOWER(name) = LOWER(:name) " +
-            "AND (:brand IS NULL AND brand IS NULL OR LOWER(brand) = LOWER(:brand)) LIMIT 1",
-    )
-    suspend fun findUserProductByNameAndBrand(name: String, brand: String?): ProductEntity?
-
-    /** The home-made counterpart: the same soup cooked again reuses its card. [kind] is a name. */
-    @Query(
-        "SELECT * FROM products WHERE barcode IS NULL AND homemade_kind = :kind " +
-            "AND LOWER(name) = LOWER(:name) LIMIT 1",
-    )
-    suspend fun findHomemadeProductByName(name: String, kind: String): ProductEntity?
+    @Query("SELECT * FROM products WHERE barcode IS NULL AND LENGTH(name) = LENGTH(:name)")
+    suspend fun findWithoutBarcodeOfNameLength(name: String): List<ProductEntity>
 
     /**
      * Every card, struck-off ones included. Screens that only need a name to show against
