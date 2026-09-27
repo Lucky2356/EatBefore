@@ -3,6 +3,8 @@ package com.eatbefore.core.backup
 import androidx.room.withTransaction
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.database.EatBeforeDatabase
+import com.eatbefore.core.database.dao.findHomemadeProductByName
+import com.eatbefore.core.database.dao.findUserProductByNameAndBrand
 import com.eatbefore.core.database.entity.InventoryBatchEntity
 import com.eatbefore.core.database.entity.InventoryEventEntity
 import com.eatbefore.core.database.entity.ProductEntity
@@ -155,7 +157,7 @@ class BackupManager @Inject constructor(
         file.products.forEach { dto ->
             val entity = dto.toEntity()
             val match = entity.barcode?.let { db.productDao().getByBarcode(it) }
-                ?: entity.homemadeKind?.let { db.productDao().findHomemadeProductByName(entity.name, it.name) }
+                ?: entity.homemadeKind?.let { db.productDao().findHomemadeProductByName(entity.name, it) }
                 ?: entity.takeIf { it.homemadeKind == null }
                     ?.let { db.productDao().findUserProductByNameAndBrand(it.name, it.brand) }
             productIds[dto.id] = match?.id ?: db.productDao().insert(entity.copy(id = 0))
