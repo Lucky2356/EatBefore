@@ -51,6 +51,7 @@ import com.eatbefore.core.designsystem.format.remainingText
 import com.eatbefore.core.designsystem.format.storageDisplayName
 import com.eatbefore.core.designsystem.theme.Dimens
 import com.eatbefore.core.designsystem.theme.Shapes
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.feature.common.InventoryRowCard
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
@@ -63,8 +64,8 @@ import com.eatbefore.feature.common.timeline
 @Composable
 fun HomeScreen(
     onScan: () -> Unit,
-    onAddManual: () -> Unit,
-    onAddHomemade: () -> Unit,
+    // Null for bought food, a kind for the home-made button — one form, two ways in.
+    onAddManual: (homemade: HomemadeKind?) -> Unit,
     onOpenShopping: () -> Unit,
     onOpenInventory: () -> Unit,
     onOpenBatch: (Long) -> Unit,
@@ -134,7 +135,7 @@ fun HomeScreen(
                     QuickActionButton(
                         Icons.Outlined.AddCircleOutline,
                         stringResource(R.string.home_quick_add_manual),
-                        onAddManual,
+                        { onAddManual(null) },
                     )
                     // Its own button rather than a switch inside «Добавить»: soup goes in the
                     // fridge straight from the stove, and the form it opens asks different
@@ -142,7 +143,7 @@ fun HomeScreen(
                     QuickActionButton(
                         Icons.Outlined.SoupKitchen,
                         stringResource(R.string.home_quick_homemade),
-                        onAddHomemade,
+                        { onAddManual(HomemadeKind.DISH) },
                     )
                     QuickActionButton(
                         Icons.Outlined.ShoppingCart,

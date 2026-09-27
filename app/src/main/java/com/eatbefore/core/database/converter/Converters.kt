@@ -17,7 +17,11 @@ import java.time.LocalDate
  * epoch days ([LocalDate]) — compact, index-friendly, and timezone-stable. Enums are
  * stored by name; unknown names decode to a safe default so a corrupted/older row never
  * crashes the app.
+ *
+ * One pair of functions per stored type is the whole job of this class, so it grows by two
+ * with every enum a column gets; splitting it would only scatter Room's converter list.
  */
+@Suppress("TooManyFunctions")
 class Converters {
 
     @TypeConverter
