@@ -61,6 +61,9 @@ fun ExpiryPresetChips(
     onPickDate: () -> Unit,
     modifier: Modifier = Modifier,
     suggestedDays: Int? = null,
+    // What the typical figure counts from. Today for anything bought; the day it was made
+    // for home cooking, where a jar put up last summer must not get a year from today.
+    suggestedFrom: LocalDate = today,
 ) {
     Row(
         modifier = modifier.horizontalScroll(rememberScrollState()),
@@ -71,7 +74,7 @@ fun ExpiryPresetChips(
         // figure and never applied on its own — a date entered on the user's behalf would
         // make the app warn about the wrong day with complete confidence.
         if (suggestedDays != null) {
-            val suggested = today.plusDays(suggestedDays.toLong())
+            val suggested = suggestedFrom.plusDays(suggestedDays.toLong())
             FilterChip(
                 selected = selected == suggested,
                 onClick = { onSelect(suggested) },

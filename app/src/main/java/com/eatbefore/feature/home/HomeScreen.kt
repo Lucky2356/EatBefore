@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.SoupKitchen
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -63,6 +64,7 @@ import com.eatbefore.feature.common.timeline
 fun HomeScreen(
     onScan: () -> Unit,
     onAddManual: () -> Unit,
+    onAddHomemade: () -> Unit,
     onOpenShopping: () -> Unit,
     onOpenInventory: () -> Unit,
     onOpenBatch: (Long) -> Unit,
@@ -133,6 +135,14 @@ fun HomeScreen(
                         Icons.Outlined.AddCircleOutline,
                         stringResource(R.string.home_quick_add_manual),
                         onAddManual,
+                    )
+                    // Its own button rather than a switch inside «Добавить»: soup goes in the
+                    // fridge straight from the stove, and the form it opens asks different
+                    // questions — when it was made, not where it was bought.
+                    QuickActionButton(
+                        Icons.Outlined.SoupKitchen,
+                        stringResource(R.string.home_quick_homemade),
+                        onAddHomemade,
                     )
                     QuickActionButton(
                         Icons.Outlined.ShoppingCart,

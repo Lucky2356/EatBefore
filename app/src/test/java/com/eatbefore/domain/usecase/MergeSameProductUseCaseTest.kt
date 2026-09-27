@@ -1,6 +1,7 @@
 package com.eatbefore.domain.usecase
 
 import com.eatbefore.domain.model.BarcodeType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.testutil.FakeProductRepository
@@ -41,6 +42,19 @@ class MergeSameProductUseCaseTest {
         val id = products.upsert(Product(name = "Butter", brand = "Farm"))
         val found = useCase.findDuplicate(name = "  butter ", brand = "FARM")
         assertEquals(id, found?.id)
+    }
+
+    @Test
+    fun homemadeMatchesOnlyHomemadeOfTheSameKind() = runTest {
+        products.upsert(Product(name = "Варенье"))
+        val jar = products.upsert(Product(name = "Варенье", homemadeKind = HomemadeKind.PRESERVE))
+
+        assertEquals(jar, useCase.findDuplicate(name = "варенье", brand = null, homemadeKind = HomemadeKind.PRESERVE)?.id)
+        assertNull(useCase.findDuplicate(name = "Варенье", brand = null, homemadeKind = HomemadeKind.DISH))
+        assertNull(
+            "a bought search never lands on the home-made card",
+            useCase.findDuplicate(name = "Варенье", brand = null)?.homemadeKind,
+        )
     }
 
     @Test

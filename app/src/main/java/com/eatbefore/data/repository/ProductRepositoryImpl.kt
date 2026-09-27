@@ -4,6 +4,7 @@ import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.database.dao.ProductDao
 import com.eatbefore.data.mapper.toDomain
 import com.eatbefore.data.mapper.toEntity
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.repository.ProductRepository
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +23,9 @@ class ProductRepositoryImpl @Inject constructor(private val productDao: ProductD
 
     override suspend fun findUserProductByNameAndBrand(name: String, brand: String?): Product? =
         productDao.findUserProductByNameAndBrand(name, brand)?.toDomain()
+
+    override suspend fun findHomemadeProductByName(name: String, kind: HomemadeKind): Product? =
+        productDao.findHomemadeProductByName(name, kind.name)?.toDomain()
 
     override suspend fun upsert(product: Product): Long = if (product.id == 0L) {
         productDao.insert(product.toEntity())

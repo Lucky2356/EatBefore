@@ -5,6 +5,7 @@ import com.eatbefore.core.common.validation.InputValidator
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.InventoryBatch
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.MeasurementUnit
@@ -48,6 +49,11 @@ class AddManualProductUseCase @Inject constructor(
          * always and correctable on the card beats a column nobody ever fills.
          */
         val purchaseDate: LocalDate? = null,
+        /**
+         * Home-made, and what sort; null for anything bought. For home cooking
+         * [purchaseDate] is the day it was made.
+         */
+        val homemadeKind: HomemadeKind? = null,
     )
 
     suspend operator fun invoke(params: Params): Long {
@@ -63,7 +69,12 @@ class AddManualProductUseCase @Inject constructor(
         val now = clock.now()
         val barcode = InputValidator.sanitizeBarcode(params.barcode)
 
-        val existing = mergeSameProduct.findDuplicate(name = name, brand = brand, barcode = barcode)
+        val existing = mergeSameProduct.findDuplicate(
+            name = name,
+            brand = brand,
+            barcode = barcode,
+            homemadeKind = params.homemadeKind,
+        )
         // Buying it again is the plainest possible statement that the card is wanted after
         // all. Leaving it struck off would quietly split the product in two: the old card
         // keeping the entire history, a new one starting from nothing.
@@ -82,6 +93,7 @@ class AddManualProductUseCase @Inject constructor(
                 isUserCreated = true,
                 createdAt = now,
                 updatedAt = now,
+                homemadeKind = params.homemadeKind,
             ),
         )
 

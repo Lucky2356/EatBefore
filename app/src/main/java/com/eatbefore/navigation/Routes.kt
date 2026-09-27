@@ -12,14 +12,20 @@ object Routes {
 
     const val ADD_MANUAL_ARG_BARCODE = "barcode"
     const val ADD_MANUAL_ARG_EXPIRY = "expiryEpochDay"
+    const val ADD_MANUAL_ARG_HOMEMADE = "homemade"
     const val ADD_MANUAL = "add_manual?$ADD_MANUAL_ARG_BARCODE={$ADD_MANUAL_ARG_BARCODE}" +
-        "&$ADD_MANUAL_ARG_EXPIRY={$ADD_MANUAL_ARG_EXPIRY}"
+        "&$ADD_MANUAL_ARG_EXPIRY={$ADD_MANUAL_ARG_EXPIRY}" +
+        "&$ADD_MANUAL_ARG_HOMEMADE={$ADD_MANUAL_ARG_HOMEMADE}"
 
-    /** [expiryEpochDay] carries a date extracted from a scanned GS1 code, if any. */
-    fun addManual(barcode: String? = null, expiryEpochDay: Long? = null): String {
+    /**
+     * [expiryEpochDay] carries a date extracted from a scanned GS1 code, if any.
+     * [homemade] opens the form for home cooking — a [com.eatbefore.domain.model.HomemadeKind] name.
+     */
+    fun addManual(barcode: String? = null, expiryEpochDay: Long? = null, homemade: String? = null): String {
         val params = buildList {
             if (!barcode.isNullOrBlank()) add("$ADD_MANUAL_ARG_BARCODE=$barcode")
             if (expiryEpochDay != null) add("$ADD_MANUAL_ARG_EXPIRY=$expiryEpochDay")
+            if (homemade != null) add("$ADD_MANUAL_ARG_HOMEMADE=$homemade")
         }
         return if (params.isEmpty()) "add_manual" else "add_manual?" + params.joinToString("&")
     }

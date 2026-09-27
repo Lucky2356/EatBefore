@@ -155,7 +155,9 @@ class BackupManager @Inject constructor(
         file.products.forEach { dto ->
             val entity = dto.toEntity()
             val match = entity.barcode?.let { db.productDao().getByBarcode(it) }
-                ?: db.productDao().findUserProductByNameAndBrand(entity.name, entity.brand)
+                ?: entity.homemadeKind?.let { db.productDao().findHomemadeProductByName(entity.name, it.name) }
+                ?: entity.takeIf { it.homemadeKind == null }
+                    ?.let { db.productDao().findUserProductByNameAndBrand(it.name, it.brand) }
             productIds[dto.id] = match?.id ?: db.productDao().insert(entity.copy(id = 0))
         }
 

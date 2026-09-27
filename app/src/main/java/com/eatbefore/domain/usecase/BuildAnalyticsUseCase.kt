@@ -113,8 +113,11 @@ class BuildAnalyticsUseCase @Inject constructor() {
 
                 EventType.DISCARDED, EventType.EXPIRED -> {
                     if (event.eventType == EventType.DISCARDED) discarded++ else expired++
-                    val category = productsById[event.productId]?.category
-                        ?.takeIf { it.isNotBlank() } ?: UNCATEGORIZED
+                    val product = productsById[event.productId]
+                    // Home cooking rarely gets a category, and "uncategorised" would hide
+                    // the one thing the household can actually change: cooking less.
+                    val category = product?.category?.takeIf { it.isNotBlank() }
+                        ?: if (product?.homemadeKind != null) HOMEMADE else UNCATEGORIZED
                     wastedByCategory.merge(category, 1, Int::plus)
                     wastedByWeek.merge(weekOf(event.createdAt), 1, Int::plus)
                     pricesByBatchId[event.inventoryBatchId]?.let { price ->
@@ -183,6 +186,9 @@ class BuildAnalyticsUseCase @Inject constructor() {
 
     companion object {
         const val UNCATEGORIZED = ""
+
+        /** Home-made food with no category of its own. Not a string a user could type. */
+        const val HOMEMADE = "\u0000homemade"
         const val TREND_WEEKS = 8
         private const val TOP_LIMIT = 5
     }
