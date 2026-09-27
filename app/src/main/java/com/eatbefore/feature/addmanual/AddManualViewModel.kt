@@ -128,7 +128,7 @@ class AddManualViewModel @Inject constructor(
     init {
         // A home-made form has a hint before anything is typed: soup is three days in the
         // fridge whatever it is called.
-        _state.update { it.withSuggestion() }
+        _state.update { it.withSuggestion(before = it) }
         viewModelScope.launch {
             // Keep the picker in sync with locations; default to the primary location.
             storageLocationRepository.observeActive().collect { list ->
@@ -138,7 +138,7 @@ class AddManualViewModel @Inject constructor(
                         selectedLocationId = current.selectedLocationId
                             ?: list.firstOrNull { it.isDefault }?.id
                             ?: list.firstOrNull()?.id,
-                    ).withSuggestion()
+                    ).withSuggestion(before = current)
                 }
             }
         }
@@ -158,19 +158,19 @@ class AddManualViewModel @Inject constructor(
     // Recomputed as the name is typed: the suggestion is only useful while the expiry is
     // still being chosen, and by then the name is what identifies the product — the
     // category is rarely filled in by hand.
-    fun onName(value: String) = _state.update { it.copy(name = value, nameError = false).withSuggestion() }
+    fun onName(value: String) = _state.update { it.copy(name = value, nameError = false).withSuggestion(before = it) }
 
     /** Dish or preserve. The two keep for days and for months, so the hint follows. */
-    fun onHomemadeKind(kind: HomemadeKind) = _state.update { it.copy(homemadeKind = kind).withSuggestion() }
+    fun onHomemadeKind(kind: HomemadeKind) = _state.update { it.copy(homemadeKind = kind).withSuggestion(before = it) }
 
-    fun onCookedDate(date: LocalDate) = _state.update { it.copy(cookedDate = date) }
+    fun onCookedDate(date: LocalDate) = _state.update { it.copy(cookedDate = date).withSuggestion(before = it) }
 
     /**
      * The shelf-life hint for what is on the form. Home cooking always gets one — cooked
      * food in the fridge is three days whatever it is called — and a dish headed for the
      * freezer gets the freezer's figure.
      */
-    private fun AddManualUiState.withSuggestion(): AddManualUiState {
+    private fun AddManualUiState.withSuggestion(before: AddManualUiState): AddManualUiState {
         val kind = homemadeKind
         val days = if (kind == null) {
             TypicalShelfLife.suggestDays(name)
@@ -178,8 +178,19 @@ class AddManualViewModel @Inject constructor(
             val frozen = locations.firstOrNull { it.id == selectedLocationId }?.type == StorageType.FREEZER
             HomemadeShelfLife.suggestDays(name, kind, frozen)
         }
-        return copy(suggestedShelfLifeDays = days)
+        val updated = copy(suggestedShelfLifeDays = days)
+        // A date the user took from the hint follows the hint. Otherwise picking «обычно
+        // 365 дн.» and only then setting the jar's date to last summer would keep a year
+        // from today — the chip goes grey, but the date under it stays quietly wrong.
+        // And a hint that disappears (the name was cleared) takes nothing with it.
+        val tookHint = expirationDate != null && expirationDate == before.suggestedExpiry()
+        val followed = updated.suggestedExpiry()
+        return if (tookHint && followed != null) updated.copy(expirationDate = followed) else updated
     }
+
+    /** The date the typical-figure chip stands for, counted as the chip counts it. */
+    private fun AddManualUiState.suggestedExpiry(): LocalDate? =
+        suggestedShelfLifeDays?.let { days -> (cookedDate ?: clock.today()).plusDays(days.toLong()) }
     fun onBrand(value: String) = _state.update { it.copy(brand = value) }
     fun onCategory(value: String) = _state.update { it.copy(category = value) }
 
@@ -199,7 +210,7 @@ class AddManualViewModel @Inject constructor(
     }
 
     fun onUnit(unit: MeasurementUnit) = _state.update { it.copy(unit = unit) }
-    fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id).withSuggestion() }
+    fun onLocation(id: Long) = _state.update { it.copy(selectedLocationId = id).withSuggestion(before = it) }
     fun onNote(value: String) = _state.update { it.copy(note = value) }
 
     // Comma is what a Russian keyboard offers for a decimal; accept it as a full stop
