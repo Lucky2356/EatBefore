@@ -17,6 +17,12 @@ object OpeningShelfLife {
     private data class Rule(val days: Int, val keywords: List<String>)
 
     private val RULES = listOf(
+        // Home preserves, once the jar is open. First, because two of them would otherwise
+        // be caught by broader rules: "икра кабачковая" is not fish roe, and a jar of
+        // pickles is not the two-day tin that "консерв" means below.
+        Rule(5, listOf("кабачков", "баклажан")),
+        Rule(14, listOf("солень", "солёны", "соленые", "огурц", "маринован", "квашен", "pickle")),
+        Rule(7, listOf("лечо", "аджик")),
         // Narrow dairy first — these would otherwise be caught by "молоко"/"milk".
         Rule(14, listOf("сгущен", "сгущён", "condensed")),
         Rule(30, listOf("сухое молоко", "milk powder", "powdered milk")),
