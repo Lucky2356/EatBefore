@@ -12,6 +12,7 @@ import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.security.SecretCipher
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.StorageType
@@ -117,6 +118,30 @@ class BackupManagerTest {
         assertEquals("4600266011152", product.barcode)
         assertEquals(1, db.inventoryBatchDao().getAll().size)
         assertEquals(1, db.storageLocationDao().getAll().size)
+    }
+
+    /** A restore must bring the jam back as home-made jam, with its own shelf life. */
+    @Test
+    fun exportThenImport_keepsHomemadeKind() = runTest {
+        seed()
+        db.productDao().insert(
+            ProductEntity(
+                id = 2, barcode = null, barcodeType = BarcodeType.NONE,
+                name = "Варенье вишнёвое", brand = null, category = null, description = null,
+                packageSize = null, measurementUnit = MeasurementUnit.PIECE, imageUri = null,
+                source = ProductSource.USER, isUserCreated = true, createdAt = 1L, updatedAt = 1L,
+                homemadeKind = HomemadeKind.PRESERVE,
+            ),
+        )
+        val json = manager.export()
+
+        db.inventoryEventDao().deleteAll()
+        db.inventoryBatchDao().deleteAll()
+        db.productDao().deleteAll()
+        manager.import(json)
+
+        assertEquals(HomemadeKind.PRESERVE, db.productDao().getById(2)?.homemadeKind)
+        assertEquals("bought food stays bought", null, db.productDao().getById(1)?.homemadeKind)
     }
 
     @Test

@@ -37,4 +37,10 @@ data class Product(
      * the packets stay in the list and in the analytics, they just stop asking.
      */
     val notificationsMuted: Boolean = false,
+    /**
+     * Made at home rather than bought, and what sort. Its batches keep the date it was
+     * made in [InventoryBatch.purchaseDate], and its shelf life comes from a table of its
+     * own — a jar put up last summer and a pot of soup keep for very different times.
+     */
+    val homemadeKind: HomemadeKind? = null,
 )

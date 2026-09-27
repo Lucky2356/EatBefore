@@ -67,6 +67,12 @@ data class SyncProduct(
      * reminding", which is what those versions meant.
      */
     val notificationsMuted: Boolean = false,
+    /**
+     * Home-made, and what sort (`DISH`, `PRESERVE`); null for bought food. Defaulted so a
+     * journal from an older version reads as "bought", which is what it meant, and an
+     * older reader skips the key it does not know. See ADR-0007.
+     */
+    val homemadeKind: String? = null,
 )
 
 @Serializable

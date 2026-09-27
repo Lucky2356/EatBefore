@@ -10,6 +10,7 @@ import com.eatbefore.core.database.entity.StorageLocationEntity
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.StorageType
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -66,6 +68,7 @@ class SyncEngineTest {
         events: List<SyncEvent> = emptyList(),
         productUpdatedAt: Long = 100L,
         productDeletedAt: Long? = null,
+        productHomemadeKind: String? = null,
     ) = SyncJournal(
         deviceId = "peer-device",
         writtenAtEpochMillis = 100L,
@@ -76,6 +79,7 @@ class SyncEngineTest {
                 name = "Tea nic лимон", brand = null, category = null, packageSize = null,
                 measurementUnit = "PIECE", imageUri = null, updatedAt = productUpdatedAt,
                 deletedAt = productDeletedAt,
+                homemadeKind = productHomemadeKind,
             ),
         ),
         batches = listOf(
@@ -325,6 +329,41 @@ class SyncEngineTest {
      * local act only. The peer still had the card, and the very next exchange handed it
      * straight back — a ghost the user had to delete over and over.
      */
+    /** Jam made on the other phone is jam here too, not a shop-bought jar. */
+    @Test
+    fun `a home-made product arrives as home-made`() = runTest {
+        seedLocal()
+
+        engine.merge(peerJournal(productHomemadeKind = "PRESERVE"))
+
+        assertEquals(HomemadeKind.PRESERVE, db.productDao().getByUuid("p-1")?.homemadeKind)
+    }
+
+    @Test
+    fun `our home-made label is published`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal(productHomemadeKind = "DISH"))
+
+        val journal = engine.buildOwnJournal("my-device")
+
+        assertEquals("DISH", journal.products.first { it.uuid == "p-1" }.homemadeKind)
+    }
+
+    /**
+     * A kind added by some later version must not stop the exchange: the product still
+     * arrives, just as bought food, until this phone is updated too.
+     */
+    @Test
+    fun `a home-made kind this version does not know reads as bought`() = runTest {
+        seedLocal()
+
+        engine.merge(peerJournal(productHomemadeKind = "SOMETHING_NEW"))
+
+        val product = db.productDao().getByUuid("p-1")
+        assertEquals("Tea nic лимон", product?.name)
+        assertNull(product?.homemadeKind)
+    }
+
     @Test
     fun `a product struck off on the other phone goes away here too`() = runTest {
         seedLocal()

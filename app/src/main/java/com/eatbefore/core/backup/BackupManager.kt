@@ -14,6 +14,7 @@ import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
 import com.eatbefore.domain.model.EventType
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import com.eatbefore.domain.model.ShoppingPriority
@@ -289,6 +290,7 @@ class BackupManager @Inject constructor(
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
+        homemadeKind = homemadeKind?.name,
     )
 
     private fun BackupProduct.toEntity() = ProductEntity(
@@ -310,6 +312,7 @@ class BackupManager @Inject constructor(
         updatedAt = updatedAt,
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
+        homemadeKind = homemadeKind?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } },
     )
 
     private fun InventoryBatchEntity.toBackup() = BackupBatch(
