@@ -140,10 +140,15 @@ fun AddManualScreen(
                 onValueChange = viewModel::onName,
                 label = { Text(stringResource(R.string.add_name)) },
                 isError = state.nameError,
-                supportingText = if (state.nameError) {
-                    { Text(stringResource(R.string.add_error_name_required)) }
-                } else {
-                    null
+                supportingText = when {
+                    state.nameError -> {
+                        { Text(stringResource(R.string.add_error_name_required)) }
+                    }
+                    // Said until the name is touched: after that it is the user's own.
+                    state.nameFromCatalog != null && state.name == state.nameFromCatalog -> {
+                        { Text(stringResource(R.string.add_name_from_catalog)) }
+                    }
+                    else -> null
                 },
                 singleLine = true,
                 // Product names read as sentences ("Молоко 3,5 %"), so start capitalized.

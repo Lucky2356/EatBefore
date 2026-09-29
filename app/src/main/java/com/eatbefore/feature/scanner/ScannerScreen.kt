@@ -419,6 +419,53 @@ private fun ScanResultDialog(
             },
         )
 
+        is ScanResolution.Suggested -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(R.string.scanner_suggested_title)) },
+            text = {
+                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                    resolution.suggestion.imageUrl?.let { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(Dimens.heroThumbnailSize)
+                                .clip(Shapes.control),
+                            contentScale = ContentScale.Crop,
+                        )
+                    }
+                    Column {
+                        Text(resolution.suggestion.name, style = MaterialTheme.typography.titleMedium)
+                        resolution.suggestion.brand?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                        resolution.expiryFromCode?.let { date ->
+                            Text(
+                                stringResource(R.string.scanner_expiry_from_code, date.toString()),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = Dimens.spaceSm),
+                            )
+                        }
+                        // Why there is no «add one package» here: this name has not been
+                        // looked at yet, and a card saved from it would carry it for good.
+                        Text(
+                            stringResource(R.string.scanner_suggested_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Dimens.spaceSm),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { onGoManual(resolution.code) }) {
+                    Text(stringResource(R.string.scanner_suggested_review))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            },
+        )
+
         is ScanResolution.NotFound -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.scanner_not_found_title)) },

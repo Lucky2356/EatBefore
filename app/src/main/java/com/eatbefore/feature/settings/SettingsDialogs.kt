@@ -240,6 +240,76 @@ fun OffAccountDialog(
     )
 }
 
+/**
+ * The Go-UPC key. One field: the key is shown hidden like a password, because it is one —
+ * anyone holding it spends the household's monthly requests.
+ */
+@Composable
+fun GoUpcKeyDialog(
+    keySaved: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var key by remember { mutableStateOf("") }
+    var keyVisible by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_goupc_key)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                Text(
+                    stringResource(R.string.settings_goupc_key_help),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = key,
+                    onValueChange = { key = it.trim() },
+                    label = { Text(stringResource(R.string.settings_goupc_key_field)) },
+                    singleLine = true,
+                    visualTransformation = if (keyVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { keyVisible = !keyVisible }) {
+                            Icon(
+                                if (keyVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = stringResource(
+                                    if (keyVisible) {
+                                        R.string.settings_off_password_hide
+                                    } else {
+                                        R.string.settings_off_password_show
+                                    },
+                                ),
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(key) }, enabled = key.isNotBlank()) {
+                Text(stringResource(R.string.action_save))
+            }
+        },
+        dismissButton = {
+            Row {
+                if (keySaved) {
+                    TextButton(onClick = { onSave("") }) {
+                        Text(stringResource(R.string.settings_goupc_key_remove))
+                    }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            }
+        },
+    )
+}
+
 /** Shared by the notification section: two hour steppers side by side. */
 @Composable
 fun QuietHoursRow(

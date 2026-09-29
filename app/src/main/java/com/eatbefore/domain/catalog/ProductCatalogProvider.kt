@@ -27,4 +27,11 @@ data class CatalogProduct(
     val category: String? = null,
     val imageUrl: String? = null,
     val packageSize: String? = null,
+    /**
+     * The source's data is rough enough that it must be seen before it becomes a card:
+     * names scraped from shops abroad, in another language or with «купить в Алматы» on
+     * the end. Such a hit is offered on the add form for correcting instead of being saved
+     * the moment it is scanned.
+     */
+    val needsReview: Boolean = false,
 )

@@ -24,7 +24,8 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
  *
  * The only secret here is the optional Open Food Facts password, and it is stored
  * encrypted via [com.eatbefore.core.security.SecretCipher] and deliberately kept out of
- * this data class so it never reaches UI state or a log.
+ * this data class so it never reaches UI state or a log. The Go-UPC key is kept the same
+ * way by [GoUpcKeyStore].
  */
 data class UserPreferences(
     val onboardingCompleted: Boolean = false,
@@ -64,6 +65,17 @@ data class UserPreferences(
      * writes — so this doubles as "contributing is possible".
      */
     val offUsername: String? = null,
+    /**
+     * Whether a Go-UPC key is stored. Only that it is — the key itself stays encrypted and
+     * out of this class; it may still fail to decrypt after a reinstall, see
+     * [GoUpcKeyStore.key].
+     */
+    val goUpcKeySaved: Boolean = false,
+    /**
+     * Set when Go-UPC last refused to answer for a reason the user has to know about: a
+     * refused key or a used-up month look exactly like «not found» from the scanner.
+     */
+    val goUpcProblem: CatalogKeyProblem? = null,
     /**
      * Folder shared with the other household member (SAF tree URI), null when sharing is
      * off. See docs/adr/0004-household-sharing.md.
@@ -127,6 +139,9 @@ class UserPreferencesRepository @Inject constructor(
             lastAutoBackupAt = prefs[KEY_LAST_AUTO_BACKUP] ?: 0L,
             autoBackupArmedAt = prefs[KEY_AUTO_BACKUP_ARMED] ?: 0L,
             offUsername = prefs[KEY_OFF_USERNAME]?.takeIf { it.isNotBlank() },
+            goUpcKeySaved = prefs[GoUpcKeyStore.KEY_SECRET] != null,
+            goUpcProblem = prefs[GoUpcKeyStore.KEY_PROBLEM]
+                ?.let { name -> CatalogKeyProblem.entries.firstOrNull { it.name == name } },
             syncFolderUri = prefs[KEY_SYNC_FOLDER]?.takeIf { it.isNotBlank() },
             lastSyncAt = prefs[KEY_LAST_SYNC] ?: 0L,
             syncArmedAt = prefs[KEY_SYNC_ARMED] ?: 0L,

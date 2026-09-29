@@ -1,5 +1,6 @@
 package com.eatbefore.feature.scanner
 
+import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.StorageLocation
@@ -80,6 +81,35 @@ class ScannerViewModelTest {
         advanceUntilIdle()
 
         assertTrue(vm.state.value.resolution is ScanResolution.NotFound)
+    }
+
+    /** A guessed name gets its own card: no quick add until someone has looked at it. */
+    @Test
+    fun `a guessed code resolves to a suggestion`() = runTest {
+        val guess = CatalogProduct(barcode = "4607053473537", name = "Milk Prostokvashino", needsReview = true)
+        coEvery { lookup(any(), any()) } returns BarcodeLookupResult.Suggested(guess)
+        val vm = viewModel()
+
+        vm.onCodeDetected(scan("4607053473537"))
+        advanceUntilIdle()
+
+        assertEquals(ScanResolution.Suggested("4607053473537", guess), vm.state.value.resolution)
+    }
+
+    /** Batch mode must not add a card under a name nobody has checked. */
+    @Test
+    fun `batch mode parks a guessed code for the form instead of adding it`() = runTest {
+        val guess = CatalogProduct(barcode = "4607053473537", name = "Milk", needsReview = true)
+        coEvery { lookup(any(), any()) } returns BarcodeLookupResult.Suggested(guess)
+        val vm = viewModel()
+        vm.setBatchMode(true)
+
+        vm.onCodeDetected(scan("4607053473537"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("4607053473537"), vm.state.value.batchUnknownCodes)
+        assertEquals(0, vm.state.value.batchAddedCount)
+        coVerify(exactly = 0) { addBatch(any()) }
     }
 
     /** A thrown lookup must surface as an error card, not take the scanner down. */

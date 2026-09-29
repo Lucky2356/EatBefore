@@ -8,6 +8,7 @@ import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.designsystem.format.defaultCurrencyCode
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
+import com.eatbefore.domain.catalog.CatalogSuggestions
 import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.HomemadeKind
@@ -54,6 +55,11 @@ data class AddManualUiState(
     val cookedDate: LocalDate? = null,
     /** Empty unless scanned or typed; a product with one can be offered to the catalog. */
     val barcode: String = "",
+    /**
+     * The name a catalog guessed for the scanned code, pre-filled into [name]. Kept to
+     * say where it came from for as long as the field still holds it untouched.
+     */
+    val nameFromCatalog: String? = null,
     val quantity: String = "1",
     val unit: MeasurementUnit = MeasurementUnit.PIECE,
     val locations: List<StorageLocation> = emptyList(),
@@ -94,6 +100,7 @@ class AddManualViewModel @Inject constructor(
     private val catalogContributor: CatalogContributor,
     private val storageLocationRepository: StorageLocationRepository,
     private val productRepository: ProductRepository,
+    private val catalogSuggestions: CatalogSuggestions,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -115,8 +122,14 @@ class AddManualViewModel @Inject constructor(
         savedStateHandle.get<String>(Routes.ADD_MANUAL_ARG_HOMEMADE)
             ?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } }
 
+    /** What a catalog guessed for the scanned code, waiting to be checked here. */
+    private val suggestion = scannedBarcode?.let(catalogSuggestions::forBarcode)
+
     private val _state = MutableStateFlow(
         AddManualUiState(
+            name = suggestion?.name.orEmpty(),
+            brand = suggestion?.brand.orEmpty(),
+            nameFromCatalog = suggestion?.name,
             expirationDate = expiryFromCode,
             barcode = scannedBarcode.orEmpty(),
             homemadeKind = initialHomemadeKind,
@@ -257,6 +270,8 @@ class AddManualViewModel @Inject constructor(
                     purchaseDate = current.cookedDate?.takeIf { homemade },
                 ),
             )
+            // The card now answers for the code; the guess would only go stale.
+            barcode?.let(catalogSuggestions::forget)
             // Offer to publish any product that carries a barcode, however it got there,
             // and only when an account is actually usable — otherwise say nothing.
             val offer = barcode?.let { code ->
