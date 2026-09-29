@@ -137,6 +137,20 @@ class SettingsViewModel @Inject constructor(
     private val _isCheckingCatalog = MutableStateFlow(false)
     val isCheckingCatalog: StateFlow<Boolean> = _isCheckingCatalog.asStateFlow()
 
+    /**
+     * Whether the stored Go-UPC key can still be read. Like the Open Food Facts password it
+     * is encrypted with a key that does not survive reinstalling the app, and "saved" alone
+     * would say nothing about that.
+     */
+    private val _goUpcKeyUsable = MutableStateFlow(true)
+    val goUpcKeyUsable: StateFlow<Boolean> = _goUpcKeyUsable.asStateFlow()
+
+    private val _isCheckingGoUpc = MutableStateFlow(false)
+    val isCheckingGoUpc: StateFlow<Boolean> = _isCheckingGoUpc.asStateFlow()
+
+    // Declared after every state it touches: viewModelScope runs on Main.immediate, so on a
+    // device the refresh starts inside the constructor, and a flow declared further down
+    // would still be null. Unit tests queue the coroutine instead and never see it.
     init {
         viewModelScope.launch {
             refreshCatalogAccountUsable()
@@ -164,17 +178,6 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-
-    /**
-     * Whether the stored Go-UPC key can still be read. Like the Open Food Facts password it
-     * is encrypted with a key that does not survive reinstalling the app, and "saved" alone
-     * would say nothing about that.
-     */
-    private val _goUpcKeyUsable = MutableStateFlow(true)
-    val goUpcKeyUsable: StateFlow<Boolean> = _goUpcKeyUsable.asStateFlow()
-
-    private val _isCheckingGoUpc = MutableStateFlow(false)
-    val isCheckingGoUpc: StateFlow<Boolean> = _isCheckingGoUpc.asStateFlow()
 
     private suspend fun refreshGoUpcKeyUsable() {
         _goUpcKeyUsable.value = goUpcKeyStore.key() != null
