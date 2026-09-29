@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.eatbefore.R
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.CatalogProduct
+import com.eatbefore.domain.catalog.CatalogSuggestions
 import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.Product
@@ -47,6 +48,7 @@ class AddManualViewModelTest {
     private val clock = FakeAppClock(Instant.parse("2026-08-01T10:00:00Z"))
     private val addManualProduct = mockk<AddManualProductUseCase>()
     private val contributor = mockk<CatalogContributor>(relaxed = true)
+    private val suggestions = CatalogSuggestions()
 
     private val pantry = StorageLocation(id = 5, name = "Шкаф")
     private val fridge = StorageLocation(id = 1, name = "Холодильник", isDefault = true)
@@ -79,8 +81,38 @@ class AddManualViewModelTest {
             catalogContributor = contributor,
             storageLocationRepository = locations,
             productRepository = products,
+            catalogSuggestions = suggestions,
             clock = clock,
         )
+    }
+
+    /** From the scanner's «Проверить и добавить»: the guess is on the form, marked as one. */
+    @Test
+    fun `a catalog guess for the scanned code fills in the name and brand`() = runTest {
+        suggestions.remember(
+            CatalogProduct(barcode = "4607053473537", name = "Молоко Простоквашино", brand = "Простоквашино", needsReview = true),
+        )
+
+        val vm = viewModel(barcode = "4607053473537")
+        advanceUntilIdle()
+
+        assertEquals("Молоко Простоквашино", vm.state.value.name)
+        assertEquals("Простоквашино", vm.state.value.brand)
+        assertEquals("Молоко Простоквашино", vm.state.value.nameFromCatalog)
+    }
+
+    @Test
+    fun `a saved guess is forgotten, the card answers for the code from now on`() = runTest {
+        suggestions.remember(CatalogProduct(barcode = "4607053473537", name = "Milk", needsReview = true))
+        coEvery { addManualProduct(any()) } returns 10L
+        val vm = viewModel(barcode = "4607053473537")
+        advanceUntilIdle()
+
+        vm.onName("Молоко Простоквашино 3,2%")
+        vm.save()
+        advanceUntilIdle()
+
+        assertNull(suggestions.forBarcode("4607053473537"))
     }
 
     /** The default location must win, not simply the first one in the list. */

@@ -3,6 +3,7 @@ package com.eatbefore.feature.scanner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.domain.catalog.CatalogProduct
 import com.eatbefore.domain.gs1.Gs1Parser
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.Product
@@ -36,6 +37,13 @@ sealed interface ScanResolution {
         override val expiryFromCode: LocalDate? = null,
     ) : ScanResolution
 
+    /**
+     * A catalog guessed what it is, but the guess needs checking before it becomes a card.
+     * The add form opens with it filled in.
+     */
+    data class Suggested(override val code: String, val suggestion: CatalogProduct, override val expiryFromCode: LocalDate? = null) :
+        ScanResolution
+
     data class NotFound(override val code: String, val type: BarcodeType, override val expiryFromCode: LocalDate? = null) : ScanResolution
 
     data class Error(
@@ -65,7 +73,7 @@ data class ScannerUiState(
     val batchMode: Boolean = false,
     /** How many packages the current batch-mode run has added. */
     val batchAddedCount: Int = 0,
-    /** Codes scanned in batch mode that the catalog didn't know, kept for the end. */
+    /** Codes scanned in batch mode that need a form (unknown or only guessed), kept for the end. */
     val batchUnknownCodes: List<String> = emptyList(),
 )
 
@@ -114,6 +122,9 @@ class ScannerViewModel @Inject constructor(
                 is BarcodeLookupResult.Found ->
                     ScanResolution.Found(lookupCode, result.product, result.fromNetwork, expiry)
 
+                is BarcodeLookupResult.Suggested ->
+                    ScanResolution.Suggested(lookupCode, result.suggestion, expiry)
+
                 BarcodeLookupResult.NotFound ->
                     ScanResolution.NotFound(lookupCode, scanned.type, expiry)
 
@@ -156,7 +167,9 @@ class ScannerViewModel @Inject constructor(
                 _state.update { it.copy(isResolving = false, isScanning = true) }
             }
 
-            // Unknown or unreachable: remember the code, keep scanning, ask at the end.
+            // Unknown, unreachable, or only guessed: remember the code, keep scanning, ask at
+            // the end. A guess is waiting for the form in CatalogSuggestions, so the code
+            // alone is enough to get it back.
             else -> _state.update {
                 it.copy(
                     isResolving = false,

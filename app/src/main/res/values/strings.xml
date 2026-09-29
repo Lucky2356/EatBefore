@@ -149,6 +149,7 @@
     <string name="add_price_hint">Необязательно. Нужна, чтобы показать, на сколько выброшено</string>
     <string name="add_saved">Продукт добавлен</string>
     <string name="add_error_name_required">Укажите название</string>
+    <string name="add_name_from_catalog">Название из Go-UPC — проверьте и поправьте</string>
 
     <!-- Product card -->
     <string name="product_quantity">Количество</string>
@@ -304,6 +305,9 @@
     <string name="scanner_looking">Ищем товар…</string>
     <string name="scanner_found_title">Товар найден</string>
     <string name="scanner_found_network">Данные из внешнего каталога — проверьте перед сохранением.</string>
+    <string name="scanner_suggested_title">Похоже, это</string>
+    <string name="scanner_suggested_body">Нашлось в зарубежной базе Go-UPC. Названия там бывают на другом языке или с лишним — посмотрите их перед сохранением.</string>
+    <string name="scanner_suggested_review">Проверить и добавить</string>
     <string name="scanner_not_found_title">Товара нет в каталоге</string>
     <string name="scanner_not_found_body">Код %1$s не найден. Каталог знает не все российские товары.</string>
     <string name="scanner_remembered_hint">Добавьте название один раз — при следующем сканировании товар подставится сам, даже без интернета.</string>
@@ -473,6 +477,27 @@
     <string name="settings_off_password_hide">Скрыть пароль</string>
     <string name="settings_off_saved">Аккаунт сохранён</string>
     <string name="settings_off_removed">Аккаунт отвязан</string>
+    <string name="settings_goupc_title">Второй каталог: Go-UPC</string>
+    <string name="settings_goupc_desc">Ищет товары, которых нет в Open Food Facts: на популярных российских штрихкодах находит заметно больше. Спрашивается, только когда товара нет ни в памяти телефона, ни в Open Food Facts. Названия оттуда открываются в форме добавления, чтобы их можно было поправить.</string>
+    <string name="settings_goupc_key">Ключ Go-UPC</string>
+    <string name="settings_goupc_key_none">Не подключён — поиск только в Open Food Facts</string>
+    <string name="settings_goupc_key_saved">Подключён</string>
+    <string name="settings_goupc_key_unreadable">Введите ключ заново — сохранённый больше не читается</string>
+    <string name="settings_goupc_key_rejected">Go-UPC не принял ключ — проверьте его</string>
+    <string name="settings_goupc_key_quota">Запросы на этот месяц закончились — поиск вернётся в следующем</string>
+    <string name="settings_goupc_key_help">Бесплатный ключ на 150 запросов в месяц выдают по заявке: go-upc.com/plans/api/trial. В Go-UPC уходит только штрихкод. Ключ хранится зашифрованным и только на этом телефоне — на втором введите тот же.</string>
+    <string name="settings_goupc_key_field">Ключ API</string>
+    <string name="settings_goupc_key_remove">Удалить ключ</string>
+    <string name="settings_goupc_saved">Ключ сохранён</string>
+    <string name="settings_goupc_removed">Ключ удалён</string>
+    <string name="settings_goupc_save_failed">Не удалось зашифровать ключ, он не сохранён</string>
+    <string name="settings_goupc_check">Проверить ключ</string>
+    <string name="settings_goupc_check_desc">Один настоящий запрос — он спишется из 150 в месяц</string>
+    <string name="settings_goupc_check_ok">Go-UPC принимает ключ</string>
+    <string name="settings_goupc_check_rejected">Go-UPC не принял ключ</string>
+    <string name="settings_goupc_check_quota">Ключ верный, но запросы на этот месяц закончились</string>
+    <string name="settings_goupc_check_not_set">Введите ключ</string>
+    <string name="settings_goupc_check_failed">Не удалось связаться с Go-UPC. Проверьте сеть</string>
 
     <string name="contribute_title">Отправить товар в общую базу?</string>
     <string name="contribute_message">Товара «%1$s» нет в открытом каталоге. Если отправить его, штрихкод начнёт распознаваться у всех — и у вас на другом телефоне.\n\nУйдут только штрихкод, название, бренд и объём. Ваши запасы, сроки и места хранения не отправляются.</string>
@@ -528,7 +553,7 @@
     <string name="settings_section_notifications_desc">Напоминания и тихие часы</string>
     <string name="settings_section_data_desc">Копии, экспорт и импорт</string>
     <string name="settings_section_sharing_desc">Общая папка и второй телефон</string>
-    <string name="settings_section_catalog_desc">Аккаунт Open Food Facts</string>
+    <string name="settings_section_catalog_desc">Open Food Facts и Go-UPC</string>
     <string name="settings_section_about_desc">Версия, обновление, отчёт о сбое</string>
     <string name="settings_kw_theme">тема тёмная светлая цвет оформление</string>
     <string name="settings_kw_soon">срок скоро дни истекает предупреждение</string>

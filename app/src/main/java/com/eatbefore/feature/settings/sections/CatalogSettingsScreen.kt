@@ -10,8 +10,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.eatbefore.R
+import com.eatbefore.core.datastore.CatalogKeyProblem
 import com.eatbefore.core.designsystem.component.SectionCard
 import com.eatbefore.core.designsystem.component.SettingActionRow
+import com.eatbefore.feature.settings.GoUpcKeyDialog
 import com.eatbefore.feature.settings.OffAccountDialog
 import com.eatbefore.feature.settings.SettingsNote
 import com.eatbefore.feature.settings.SettingsSectionScaffold
@@ -26,6 +28,9 @@ fun CatalogSettingsScreen(
     val catalogAccountUsable by viewModel.catalogAccountUsable.collectAsStateWithLifecycle()
     val isCheckingCatalog by viewModel.isCheckingCatalog.collectAsStateWithLifecycle()
     var showOffAccountDialog by remember { mutableStateOf(false) }
+    val goUpcKeyUsable by viewModel.goUpcKeyUsable.collectAsStateWithLifecycle()
+    val isCheckingGoUpc by viewModel.isCheckingGoUpc.collectAsStateWithLifecycle()
+    var showGoUpcDialog by remember { mutableStateOf(false) }
 
     SettingsSectionScaffold(
         titleRes = R.string.settings_section_catalog,
@@ -64,6 +69,48 @@ fun CatalogSettingsScreen(
                 )
             }
         }
+        SectionCard(title = stringResource(R.string.settings_goupc_title)) {
+            SettingsNote(stringResource(R.string.settings_goupc_desc))
+            HorizontalDivider()
+            SettingActionRow(
+                title = stringResource(R.string.settings_goupc_key),
+                // A refused key or a used-up month turns every lookup into «not found»
+                // without a word in the scanner, so this row is where it gets said.
+                subtitle = stringResource(
+                    when {
+                        !prefs.goUpcKeySaved -> R.string.settings_goupc_key_none
+                        !goUpcKeyUsable -> R.string.settings_goupc_key_unreadable
+                        prefs.goUpcProblem == CatalogKeyProblem.REJECTED -> R.string.settings_goupc_key_rejected
+                        prefs.goUpcProblem == CatalogKeyProblem.QUOTA -> R.string.settings_goupc_key_quota
+                        else -> R.string.settings_goupc_key_saved
+                    },
+                ),
+                onClick = { showGoUpcDialog = true },
+            )
+            if (prefs.goUpcKeySaved) {
+                HorizontalDivider()
+                SettingActionRow(
+                    title = stringResource(R.string.settings_goupc_check),
+                    subtitle = if (isCheckingGoUpc) {
+                        stringResource(R.string.settings_off_check_running)
+                    } else {
+                        stringResource(R.string.settings_goupc_check_desc)
+                    },
+                    onClick = viewModel::checkGoUpcKey,
+                )
+            }
+        }
+    }
+
+    if (showGoUpcDialog) {
+        GoUpcKeyDialog(
+            keySaved = prefs.goUpcKeySaved,
+            onDismiss = { showGoUpcDialog = false },
+            onSave = { key ->
+                viewModel.setGoUpcKey(key)
+                showGoUpcDialog = false
+            },
+        )
     }
 
     if (showOffAccountDialog) {

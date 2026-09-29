@@ -8,6 +8,8 @@ import com.eatbefore.R
 import com.eatbefore.core.backup.AutoBackupCatalog
 import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
+import com.eatbefore.core.datastore.CatalogKeyProblem
+import com.eatbefore.core.datastore.GoUpcKeyStore
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.diagnostics.DiagnosticsLog
 import com.eatbefore.core.security.SecretCipher
@@ -18,6 +20,8 @@ import com.eatbefore.core.sync.SyncStats
 import com.eatbefore.core.update.UpdatePreferences
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.ContributionResult
+import com.eatbefore.domain.catalog.KeyCheckResult
+import com.eatbefore.domain.catalog.KeyedCatalog
 import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeStorageLocationRepository
 import com.eatbefore.testutil.MainDispatcherRule
@@ -71,6 +75,7 @@ class SettingsViewModelTest {
     private val syncManager = mockk<SyncManager>(relaxed = true)
     private val syncScheduler = mockk<SyncScheduler>(relaxed = true)
     private val catalogContributor = mockk<CatalogContributor>(relaxed = true)
+    private val keyedCatalog = mockk<KeyedCatalog>(relaxed = true)
     private val locations = FakeStorageLocationRepository()
 
     @Before
@@ -105,6 +110,8 @@ class SettingsViewModelTest {
         syncScheduler = syncScheduler,
         updatePreferences = UpdatePreferences(dataStore),
         catalogContributor = catalogContributor,
+        keyedCatalog = keyedCatalog,
+        goUpcKeyStore = GoUpcKeyStore(dataStore, SecretCipher()),
         clock = clock,
         ioDispatcher = UnconfinedTestDispatcher(),
     )
@@ -321,6 +328,41 @@ class SettingsViewModelTest {
 
             assertEquals(result.toString(), expected, vm.message.value)
         }
+    }
+
+    @Test
+    fun `checking the Go-UPC key reports what the service answered`() = runTest {
+        val cases = mapOf(
+            KeyCheckResult.WORKS to R.string.settings_goupc_check_ok,
+            KeyCheckResult.REJECTED to R.string.settings_goupc_check_rejected,
+            KeyCheckResult.QUOTA_USED to R.string.settings_goupc_check_quota,
+            KeyCheckResult.NOT_SET to R.string.settings_goupc_check_not_set,
+            KeyCheckResult.UNREACHABLE to R.string.settings_goupc_check_failed,
+        )
+
+        cases.forEach { (result, expected) ->
+            coEvery { keyedCatalog.checkKey() } returns result
+            val vm = viewModel()
+
+            vm.checkGoUpcKey()
+            advanceUntilIdle()
+
+            assertEquals(result.toString(), expected, vm.message.value)
+        }
+    }
+
+    /** Removing the key also drops what was said about it: that was about the old one. */
+    @Test
+    fun `removing the Go-UPC key forgets its last problem`() = runTest {
+        GoUpcKeyStore(dataStore, SecretCipher()).setProblem(CatalogKeyProblem.QUOTA)
+        val vm = viewModel()
+
+        vm.setGoUpcKey("")
+        advanceUntilIdle()
+
+        assertEquals(false, stored().goUpcKeySaved)
+        assertNull(stored().goUpcProblem)
+        assertEquals(R.string.settings_goupc_removed, vm.message.value)
     }
 
     @Test

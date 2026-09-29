@@ -34,8 +34,8 @@ android {
         applicationId = "com.eatbefore"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.15.1"
+        versionCode = 20
+        versionName = "1.16.0"
 
         testInstrumentationRunner = "com.eatbefore.HiltTestRunner"
         vectorDrawables { useSupportLibrary = true }

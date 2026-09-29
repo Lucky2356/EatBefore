@@ -1,9 +1,11 @@
 package com.eatbefore.di
 
 import com.eatbefore.data.catalog.ChainedCatalogProvider
+import com.eatbefore.data.catalog.goupc.GoUpcCatalogProvider
 import com.eatbefore.data.catalog.openfoodfacts.OpenFoodFactsCatalogProvider
 import com.eatbefore.data.catalog.openfoodfacts.OpenFoodFactsContributor
 import com.eatbefore.domain.catalog.CatalogContributor
+import com.eatbefore.domain.catalog.KeyedCatalog
 import com.eatbefore.domain.catalog.ProductCatalogProvider
 import dagger.Module
 import dagger.Provides
@@ -41,20 +43,25 @@ object NetworkModule {
     /**
      * The catalog is a chain so more sources can be added without touching callers.
      *
-     * Today it holds a single network source, and that is a finding rather than an
-     * oversight: there is no free public Russian product API to add. «Честный знак»
-     * refuses external callers (HTTP 451), the Национальный каталог requires a paid key,
-     * opengtindb is dead and barcode-list.ru blocks programmatic access. The Open*Facts
-     * request itself covers four databases at once (see the provider), which is where the
-     * real coverage gain comes from.
+     * Open Food Facts first: free, keyless, and its names are good. Go-UPC second, and only
+     * with the user's own key — it knows more Russian barcodes, but its names need a look
+     * before they become a card (ADR-0008). There is still no free public Russian product
+     * API to add: «Честный знак» refuses external callers (HTTP 451), the Национальный
+     * каталог requires a company account, opengtindb is dead and barcode-list.ru blocks
+     * programmatic access.
      */
     @Provides
     @Singleton
     fun provideProductCatalogProvider(
         openFoodFacts: OpenFoodFactsCatalogProvider,
+        goUpc: GoUpcCatalogProvider,
     ): ProductCatalogProvider = ChainedCatalogProvider(
-        providers = listOf(openFoodFacts),
+        providers = listOf(openFoodFacts, goUpc),
     )
+
+    @Provides
+    @Singleton
+    fun provideKeyedCatalog(impl: GoUpcCatalogProvider): KeyedCatalog = impl
 
     @Provides
     @Singleton

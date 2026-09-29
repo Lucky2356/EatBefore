@@ -10,6 +10,7 @@ import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.time.AppClock
+import com.eatbefore.core.datastore.GoUpcKeyStore
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferences
 import com.eatbefore.core.datastore.UserPreferencesRepository
@@ -20,6 +21,8 @@ import com.eatbefore.core.sync.SyncScheduler
 import com.eatbefore.core.update.UpdatePreferences
 import com.eatbefore.domain.catalog.CatalogContributor
 import com.eatbefore.domain.catalog.ContributionResult
+import com.eatbefore.domain.catalog.KeyCheckResult
+import com.eatbefore.domain.catalog.KeyedCatalog
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.StorageLocationRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,6 +50,8 @@ class SettingsViewModel @Inject constructor(
     private val syncScheduler: SyncScheduler,
     private val updatePreferences: UpdatePreferences,
     private val catalogContributor: CatalogContributor,
+    private val keyedCatalog: KeyedCatalog,
+    private val goUpcKeyStore: GoUpcKeyStore,
     private val clock: AppClock,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -133,7 +138,10 @@ class SettingsViewModel @Inject constructor(
     val isCheckingCatalog: StateFlow<Boolean> = _isCheckingCatalog.asStateFlow()
 
     init {
-        viewModelScope.launch { refreshCatalogAccountUsable() }
+        viewModelScope.launch {
+            refreshCatalogAccountUsable()
+            refreshGoUpcKeyUsable()
+        }
     }
 
     private suspend fun refreshCatalogAccountUsable() {
@@ -153,6 +161,52 @@ class SettingsViewModel @Inject constructor(
                 ContributionResult.AuthFailed -> R.string.settings_off_check_auth_failed
                 ContributionResult.NotConfigured -> R.string.settings_off_check_not_configured
                 is ContributionResult.Failed -> R.string.settings_off_check_failed
+            }
+        }
+    }
+
+    /**
+     * Whether the stored Go-UPC key can still be read. Like the Open Food Facts password it
+     * is encrypted with a key that does not survive reinstalling the app, and "saved" alone
+     * would say nothing about that.
+     */
+    private val _goUpcKeyUsable = MutableStateFlow(true)
+    val goUpcKeyUsable: StateFlow<Boolean> = _goUpcKeyUsable.asStateFlow()
+
+    private val _isCheckingGoUpc = MutableStateFlow(false)
+    val isCheckingGoUpc: StateFlow<Boolean> = _isCheckingGoUpc.asStateFlow()
+
+    private suspend fun refreshGoUpcKeyUsable() {
+        _goUpcKeyUsable.value = goUpcKeyStore.key() != null
+    }
+
+    /** Saves or, with a blank [key], removes the Go-UPC key. */
+    fun setGoUpcKey(key: String) {
+        viewModelScope.launch {
+            val saved = goUpcKeyStore.setKey(key)
+            _message.value = when {
+                !saved -> R.string.settings_goupc_save_failed
+                key.isBlank() -> R.string.settings_goupc_removed
+                else -> R.string.settings_goupc_saved
+            }
+            refreshGoUpcKeyUsable()
+        }
+    }
+
+    /** One real lookup with the stored key; the only way to learn whether it works. */
+    fun checkGoUpcKey() {
+        if (_isCheckingGoUpc.value) return
+        _isCheckingGoUpc.value = true
+        viewModelScope.launch {
+            val result = keyedCatalog.checkKey()
+            refreshGoUpcKeyUsable()
+            _isCheckingGoUpc.value = false
+            _message.value = when (result) {
+                KeyCheckResult.WORKS -> R.string.settings_goupc_check_ok
+                KeyCheckResult.REJECTED -> R.string.settings_goupc_check_rejected
+                KeyCheckResult.QUOTA_USED -> R.string.settings_goupc_check_quota
+                KeyCheckResult.NOT_SET -> R.string.settings_goupc_check_not_set
+                KeyCheckResult.UNREACHABLE -> R.string.settings_goupc_check_failed
             }
         }
     }

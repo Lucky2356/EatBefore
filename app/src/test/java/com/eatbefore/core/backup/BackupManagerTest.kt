@@ -7,6 +7,7 @@ import com.eatbefore.core.database.EatBeforeDatabase
 import com.eatbefore.core.database.entity.InventoryBatchEntity
 import com.eatbefore.core.database.entity.ProductEntity
 import com.eatbefore.core.database.entity.StorageLocationEntity
+import com.eatbefore.core.datastore.GoUpcKeyStore
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.security.SecretCipher
@@ -39,6 +40,7 @@ class BackupManagerTest {
     private lateinit var db: EatBeforeDatabase
     private lateinit var manager: BackupManager
     private lateinit var preferences: UserPreferencesRepository
+    private lateinit var goUpcKeys: GoUpcKeyStore
     private lateinit var prefsFile: File
     private val prefsScope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
 
@@ -51,10 +53,9 @@ class BackupManagerTest {
         // A real repository over a throwaway DataStore file: the backup carries settings,
         // so a stub would not exercise the round-trip.
         prefsFile = File.createTempFile("prefs", ".preferences_pb").also { it.delete() }
-        preferences = UserPreferencesRepository(
-            dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile },
-            secretCipher = SecretCipher(),
-        )
+        val dataStore = PreferenceDataStoreFactory.create(scope = prefsScope) { prefsFile }
+        preferences = UserPreferencesRepository(dataStore = dataStore, secretCipher = SecretCipher())
+        goUpcKeys = GoUpcKeyStore(dataStore, SecretCipher())
         manager = BackupManager(db, Json { ignoreUnknownKeys = true }, FakeAppClock(), preferences)
     }
 
@@ -222,17 +223,20 @@ class BackupManagerTest {
         assertEquals(ThemeMode.DARK, preferences.preferences.first().themeMode)
     }
 
-    /** The OFF password is bound to this device's Keystore and must never travel. */
+    /** Catalog secrets are bound to this device's Keystore and must never travel. */
     @Test
     fun export_neverContainsTheCatalogPassword() = runTest {
         seed()
         preferences.setOffAccount("tester", "s3cret-password")
+        goUpcKeys.setKey("goupc-s3cret-key")
 
         val json = manager.export()
 
         assertTrue(!json.contains("s3cret-password"))
         assertTrue(!json.contains("off_password"))
         assertTrue(!json.contains("tester"))
+        assertTrue(!json.contains("goupc-s3cret-key"))
+        assertTrue(!json.contains("go_upc"))
     }
 
     /** Merging a file exported from this very device must not duplicate the product. */
