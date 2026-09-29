@@ -37,6 +37,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -327,6 +328,26 @@ class SettingsViewModelTest {
             advanceUntilIdle()
 
             assertEquals(result.toString(), expected, vm.message.value)
+        }
+    }
+
+    /**
+     * On a phone `viewModelScope` runs on Main.immediate, so the first refresh starts inside
+     * the constructor. A state flow declared below the `init` block was then still null, and
+     * opening settings crashed — the queued test dispatcher hid it. This runs the first work
+     * at once, as the phone does.
+     */
+    @Test
+    fun `the first refresh works when it runs inside the constructor`() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        try {
+            val vm = viewModel()
+            advanceUntilIdle()
+
+            // No key saved, so the refresh must have set this — it starts out true.
+            assertEquals(false, vm.goUpcKeyUsable.value)
+        } finally {
+            Dispatchers.setMain(mainDispatcherRule.dispatcher)
         }
     }
 
