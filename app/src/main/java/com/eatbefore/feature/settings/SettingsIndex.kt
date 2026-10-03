@@ -94,9 +94,11 @@ val SETTINGS_INDEX: List<SettingEntry> = listOf(
     ),
     SettingEntry(R.string.settings_notification_time, SettingsSection.NOTIFICATIONS),
     SettingEntry(R.string.settings_quiet_hours, SettingsSection.NOTIFICATIONS, R.string.settings_kw_quiet),
+    SettingEntry(R.string.settings_weekly_summary, SettingsSection.NOTIFICATIONS, R.string.settings_kw_weekly),
 
     SettingEntry(R.string.settings_auto_backup, SettingsSection.DATA, R.string.settings_kw_backup),
     SettingEntry(R.string.settings_export, SettingsSection.DATA),
+    SettingEntry(R.string.settings_export_csv, SettingsSection.DATA, R.string.settings_kw_csv),
     SettingEntry(R.string.settings_import, SettingsSection.DATA),
     SettingEntry(R.string.settings_restore_auto, SettingsSection.DATA, R.string.settings_kw_restore),
 

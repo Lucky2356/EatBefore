@@ -51,6 +51,7 @@ import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.usecase.AnalyticsSummary
 import com.eatbefore.domain.usecase.BuildAnalyticsUseCase
 import com.eatbefore.domain.usecase.WeeklyStat
+import com.eatbefore.feature.product.label
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -151,6 +152,13 @@ private fun buildReportText(
             appendLine(stringResource(R.string.analytics_wasted_by_category) + ":")
             summary.wastedByCategory.forEach { (category, count) ->
                 appendLine("  ${categoryLabel(category)} — $count")
+            }
+        }
+        if (summary.wastedByReason.isNotEmpty()) {
+            appendLine()
+            appendLine(stringResource(R.string.analytics_wasted_by_reason) + ":")
+            summary.wastedByReason.forEach { (reason, count) ->
+                appendLine("  ${reason.label()} — $count")
             }
         }
         if (summary.topAddedProducts.isNotEmpty()) {
@@ -264,6 +272,13 @@ private fun SummaryContent(summary: AnalyticsSummary) {
             rows = summary.wastedByCategory.map { (category, count) ->
                 categoryLabel(category) to count
             },
+        )
+    }
+
+    if (summary.wastedByReason.isNotEmpty()) {
+        SectionList(
+            title = stringResource(R.string.analytics_wasted_by_reason),
+            rows = summary.wastedByReason.map { (reason, count) -> reason.label() to count },
         )
     }
 

@@ -225,4 +225,27 @@ class BuildAnalyticsUseCaseTest {
         assertEquals(1.0, wastedShare(thrownQuantity = null, initialQuantity = 5.0), 1e-9)
         assertEquals(1.0, wastedShare(thrownQuantity = 1.0, initialQuantity = 0.0), 1e-9)
     }
+
+    /** Only the write-offs that said why are counted, most common reason first. */
+    @Test
+    fun wastedByReason_countsTheAnsweredOnes() {
+        val events = listOf(
+            event(EventType.DISCARDED, batchId = 1).copy(reason = "FORGOT"),
+            event(EventType.DISCARDED, batchId = 2).copy(reason = "FORGOT"),
+            event(EventType.DISCARDED, batchId = 3).copy(reason = "TOO_MUCH"),
+            event(EventType.DISCARDED, batchId = 4),
+            // Something that is not a reason code: an undo's own note.
+            event(EventType.DISCARDED, batchId = 5).copy(reason = "undo"),
+        )
+
+        val summary = useCase(events, products, from)
+
+        assertEquals(
+            listOf(
+                com.eatbefore.domain.model.DiscardReason.FORGOT to 2,
+                com.eatbefore.domain.model.DiscardReason.TOO_MUCH to 1,
+            ),
+            summary.wastedByReason,
+        )
+    }
 }

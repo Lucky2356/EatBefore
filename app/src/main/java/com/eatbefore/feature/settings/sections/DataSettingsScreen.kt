@@ -35,6 +35,9 @@ fun DataSettingsScreen(
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri -> uri?.let(viewModel::exportTo) }
+    val csvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv"),
+    ) { uri -> uri?.let(viewModel::exportCsvTo) }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { pendingImportUri = it } }
@@ -69,6 +72,12 @@ fun DataSettingsScreen(
                 title = stringResource(R.string.settings_export),
                 subtitle = stringResource(R.string.settings_export_desc),
                 onClick = { exportLauncher.launch("eatbefore-backup.json") },
+            )
+            HorizontalDivider()
+            SettingActionRow(
+                title = stringResource(R.string.settings_export_csv),
+                subtitle = stringResource(R.string.settings_export_csv_desc),
+                onClick = { csvLauncher.launch("eatbefore-${java.time.LocalDate.now()}.csv") },
             )
             HorizontalDivider()
             SettingActionRow(

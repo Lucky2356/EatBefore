@@ -150,6 +150,13 @@ fun NotificationsSettingsScreen(
                         onEndChange = { viewModel.setQuietHours(true, prefs.quietStartHour, it) },
                     )
                 }
+                HorizontalDivider()
+                SettingSwitchRow(
+                    title = stringResource(R.string.settings_weekly_summary),
+                    subtitle = stringResource(R.string.settings_weekly_summary_desc),
+                    checked = prefs.weeklySummaryEnabled,
+                    onCheckedChange = viewModel::setWeeklySummaryEnabled,
+                )
             }
         }
     }

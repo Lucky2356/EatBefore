@@ -9,6 +9,7 @@ import com.eatbefore.core.diagnostics.CrashReporter
 import com.eatbefore.core.launcher.AppShortcuts
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.core.notifications.NotificationScheduler
+import com.eatbefore.core.notifications.WeeklySummaryScheduler
 import com.eatbefore.core.sync.SyncScheduler
 import com.eatbefore.core.update.UpdateScheduler
 import dagger.hilt.android.HiltAndroidApp
@@ -34,6 +35,8 @@ class EatBeforeApplication :
     @Inject lateinit var workerFactory: HiltWorkerFactory
 
     @Inject lateinit var notificationScheduler: NotificationScheduler
+
+    @Inject lateinit var weeklySummaryScheduler: WeeklySummaryScheduler
 
     @Inject lateinit var autoBackupScheduler: AutoBackupScheduler
 
@@ -98,6 +101,16 @@ class EatBeforeApplication :
             userPreferencesRepository.preferences
                 .distinctUntilChanged { old, new -> old.updateCheckEnabled == new.updateCheckEnabled }
                 .onEach { updateScheduler.apply(it) }
+                .collect {}
+        }
+
+        appScope.launch {
+            userPreferencesRepository.preferences
+                .distinctUntilChanged { old, new ->
+                    old.notificationsEnabled == new.notificationsEnabled &&
+                        old.weeklySummaryEnabled == new.weeklySummaryEnabled
+                }
+                .onEach { weeklySummaryScheduler.apply(it) }
                 .collect {}
         }
     }
