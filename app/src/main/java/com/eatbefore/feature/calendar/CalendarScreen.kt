@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,6 +57,9 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // From composition rather than Locale.getDefault(): month and weekday names then follow
+    // a language change without restarting the screen.
+    val locale = LocalLocale.current.platformLocale
     ScreenScaffold(title = stringResource(R.string.calendar_title), onBack = onBack) { padding ->
         val month = state.month
         if (state.isLoading || month == null) {
@@ -69,13 +73,15 @@ fun CalendarScreen(
         ) {
             item(key = "header") {
                 MonthHeader(
-                    title = month.month.month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault())
+                    title = month.month.month.getDisplayName(TextStyle.FULL_STANDALONE, locale)
                         .replaceFirstChar { it.uppercase() } + " " + month.month.year,
                     onPrevious = { viewModel.showMonth(-1) },
                     onNext = { viewModel.showMonth(1) },
                 )
             }
-            item(key = "grid") { MonthGrid(month = month, selected = state.selected, onSelect = viewModel::select) }
+            item(key = "grid") {
+                MonthGrid(month = month, selected = state.selected, locale = locale, onSelect = viewModel::select)
+            }
             item(key = "day") {
                 Text(
                     state.selected?.let { formatDate(it) }.orEmpty(),
@@ -118,12 +124,17 @@ private fun MonthHeader(title: String, onPrevious: () -> Unit, onNext: () -> Uni
 }
 
 @Composable
-private fun MonthGrid(month: CalendarMonth, selected: java.time.LocalDate?, onSelect: (java.time.LocalDate) -> Unit) {
+private fun MonthGrid(
+    month: CalendarMonth,
+    selected: java.time.LocalDate?,
+    locale: Locale,
+    onSelect: (java.time.LocalDate) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         Row(modifier = Modifier.fillMaxWidth()) {
             month.weeks.first().forEach { day ->
                 Text(
-                    day.date.dayOfWeek.getDisplayName(TextStyle.SHORT_STANDALONE, Locale.getDefault()),
+                    day.date.dayOfWeek.getDisplayName(TextStyle.SHORT_STANDALONE, locale),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
