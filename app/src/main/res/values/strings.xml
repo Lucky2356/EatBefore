@@ -646,4 +646,6 @@
         <item quantity="other">В список покупок добавлено %1$d пункта</item>
     </plurals>
     <string name="share_import_empty">В тексте не нашлось ничего похожего на список</string>
+
+    <string name="home_restock_title">Купили снова?</string>
 </resources>

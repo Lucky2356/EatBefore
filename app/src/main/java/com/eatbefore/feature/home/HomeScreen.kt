@@ -1,5 +1,6 @@
 package com.eatbefore.feature.home
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material.icons.outlined.Backup
 import androidx.compose.material.icons.outlined.CloudOff
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.SoupKitchen
 import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,6 +77,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val restock by viewModel.restock.collectAsStateWithLifecycle()
     val quickActionSignal by viewModel.quickActionSignal.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
@@ -149,6 +154,17 @@ fun HomeScreen(
                         Icons.Outlined.ShoppingCart,
                         stringResource(R.string.home_quick_shopping),
                         onOpenShopping,
+                    )
+                }
+            }
+
+            // Regular purchases not at home: «купили снова» in one tap, as bought last time.
+            if (restock.isNotEmpty()) {
+                item(key = "restock") {
+                    RestockRow(
+                        modifier = animatedItem(),
+                        items = restock,
+                        onRepeat = viewModel::repeatPurchase,
                     )
                 }
             }
@@ -351,6 +367,34 @@ private fun DataWarningCard(warning: DataSafetyWarning, onClick: () -> Unit, mod
             ) {
                 Text(stringResource(title), style = MaterialTheme.typography.titleSmall)
                 Text(stringResource(text), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+/**
+ * Regular purchases that are not at home, each one tap from being back in stock with last
+ * time's amount, place and shelf span. A row of chips rather than a card: it is a shortcut,
+ * not something the screen wants attention for.
+ */
+@Composable
+private fun RestockRow(items: List<RestockUi>, onRepeat: (Long) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+        Text(
+            stringResource(R.string.home_restock_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+        ) {
+            items.forEach { item ->
+                AssistChip(
+                    onClick = { onRepeat(item.productId) },
+                    label = { Text(item.name) },
+                    leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null) },
+                )
             }
         }
     }

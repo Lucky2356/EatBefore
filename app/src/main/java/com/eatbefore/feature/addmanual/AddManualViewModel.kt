@@ -13,6 +13,7 @@ import com.eatbefore.domain.catalog.ContributionResult
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.domain.model.MeasurementUnit
+import com.eatbefore.domain.model.Product
 import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.model.StorageType
 import com.eatbefore.domain.repository.ProductRepository
@@ -45,6 +46,12 @@ data class AddManualUiState(
      * different things; tapping the one that already exists is what keeps them one.
      */
     val knownCategories: List<String> = emptyList(),
+    /**
+     * Products already in the catalogue whose name matches what is being typed. Picking one
+     * fills in its brand, category and unit, and — because the name then matches exactly —
+     * the new package lands on the existing card instead of starting a second one.
+     */
+    val nameSuggestions: List<NameSuggestion> = emptyList(),
     /**
      * Set when the form is for home cooking rather than shopping. The date asked for then
      * is when it was made, the shelf-life hint comes from the home-made table, and barcode,
@@ -95,6 +102,9 @@ data class AddManualUiState(
     val message: Int? = null,
 )
 
+/** A known product offered while its name is typed. */
+data class NameSuggestion(val productId: Long, val name: String, val brand: String?)
+
 /** The product about to be offered to the shared catalog. */
 data class ContributeOffer(val name: String, val barcode: String)
 
@@ -143,6 +153,13 @@ class AddManualViewModel @Inject constructor(
     )
     val state: StateFlow<AddManualUiState> = _state.asStateFlow()
 
+    /**
+     * The catalogue as last seen, for name suggestions. Above `init` on purpose: the
+     * collector there runs inside the constructor on a phone, and an initializer below it
+     * would then reset the list it had just filled.
+     */
+    private var knownProducts: List<Product> = emptyList()
+
     init {
         // A home-made form has a hint before anything is typed: soup is three days in the
         // fridge whatever it is called.
@@ -164,6 +181,7 @@ class AddManualViewModel @Inject constructor(
             // Cards in use only: a category that survives solely on a struck-off card is
             // not one the household still sorts by, and offering it invites it back.
             productRepository.observeActive().collect { products ->
+                knownProducts = products
                 val categories = products
                     .mapNotNull { it.category?.trim()?.takeIf(String::isNotEmpty) }
                     .distinctBy { it.lowercase() }
@@ -176,7 +194,42 @@ class AddManualViewModel @Inject constructor(
     // Recomputed as the name is typed: the suggestion is only useful while the expiry is
     // still being chosen, and by then the name is what identifies the product — the
     // category is rarely filled in by hand.
-    fun onName(value: String) = _state.update { it.copy(name = value, nameError = false).withSuggestion(before = it) }
+    fun onName(value: String) = _state.update {
+        it.copy(name = value, nameError = false, nameSuggestions = suggestionsFor(value, it.homemadeKind))
+            .withSuggestion(before = it)
+    }
+
+    /** Fills the form from a known product picked among the suggestions. */
+    fun onNameSuggestion(productId: Long) {
+        val product = knownProducts.firstOrNull { it.id == productId } ?: return
+        _state.update { current ->
+            current.copy(
+                name = product.name,
+                brand = product.brand.orEmpty().takeIf { current.homemadeKind == null } ?: current.brand,
+                category = product.category ?: current.category,
+                unit = product.measurementUnit,
+                barcode = current.barcode.ifBlank { product.barcode.orEmpty() },
+                nameError = false,
+                nameSuggestions = emptyList(),
+            ).withSuggestion(before = current)
+        }
+    }
+
+    /**
+     * Known products whose name contains [query], those starting with it first. Home
+     * cooking is matched among home cooking and bought among bought — the same split the
+     * duplicate check makes, so a suggestion never lands the package on the wrong card.
+     */
+    private fun suggestionsFor(query: String, homemadeKind: HomemadeKind?): List<NameSuggestion> {
+        val needle = query.trim()
+        if (needle.length < MIN_SUGGESTION_QUERY) return emptyList()
+        return knownProducts
+            .filter { (it.homemadeKind != null) == (homemadeKind != null) }
+            .filter { it.name.contains(needle, ignoreCase = true) && !it.name.equals(needle, ignoreCase = true) }
+            .sortedWith(compareBy({ !it.name.startsWith(needle, ignoreCase = true) }, { it.name.length }))
+            .take(MAX_SUGGESTIONS)
+            .map { NameSuggestion(productId = it.id, name = it.name, brand = it.brand) }
+    }
 
     /** Dish or preserve. The two keep for days and for months, so the hint follows. */
     fun onHomemadeKind(kind: HomemadeKind) = _state.update { it.copy(homemadeKind = kind).withSuggestion(before = it) }
@@ -346,5 +399,7 @@ class AddManualViewModel @Inject constructor(
     private companion object {
         /** Long enough for a Честный знак payload, short enough to stay a barcode. */
         const val MAX_BARCODE_LENGTH = 128
+        const val MIN_SUGGESTION_QUERY = 2
+        const val MAX_SUGGESTIONS = 5
     }
 }

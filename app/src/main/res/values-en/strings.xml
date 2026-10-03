@@ -618,4 +618,6 @@
         <item quantity="other">%1$d items added to the shopping list</item>
     </plurals>
     <string name="share_import_empty">Nothing in the text looked like a list</string>
+
+    <string name="home_restock_title">Bought again?</string>
 </resources>

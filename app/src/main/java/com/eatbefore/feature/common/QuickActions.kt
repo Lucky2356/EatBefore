@@ -182,6 +182,12 @@ class QuickActions @Inject constructor(
         }
     }
 
+    /**
+     * Runs a stock change that is not one of the row actions — «купили снова» on the home
+     * screen — through the same snackbar and undo. [block] returns whether anything changed.
+     */
+    suspend fun track(@StringRes messageRes: Int, block: suspend () -> Boolean) = record(messageRes, block = block)
+
     fun consumeSignal() {
         bulkBatchIds = null
         _signal.value = null

@@ -619,4 +619,40 @@ class AddManualViewModelTest {
         assertTrue(vm.state.value.quantityError)
         coVerify(exactly = 0) { addManualProduct(any()) }
     }
+
+    /** «мол…» offers the milk already in the catalogue, and picking it fills the form. */
+    @Test
+    fun `typing offers known products and picking one fills the form`() = runTest {
+        val milk = Product(
+            id = 1,
+            name = "Молоко 3,2%",
+            brand = "Домик в деревне",
+            category = "Молочное",
+            measurementUnit = com.eatbefore.domain.model.MeasurementUnit.LITER,
+        )
+        val soup = Product(id = 2, name = "Молочный суп", homemadeKind = HomemadeKind.DISH)
+        val vm = viewModel(catalogue = listOf(milk, soup))
+        advanceUntilIdle()
+
+        vm.onName("мол")
+        assertEquals(listOf(1L), vm.state.value.nameSuggestions.map { it.productId })
+
+        vm.onNameSuggestion(1L)
+        val state = vm.state.value
+        assertEquals("Молоко 3,2%", state.name)
+        assertEquals("Домик в деревне", state.brand)
+        assertEquals("Молочное", state.category)
+        assertEquals(com.eatbefore.domain.model.MeasurementUnit.LITER, state.unit)
+        assertTrue(state.nameSuggestions.isEmpty())
+    }
+
+    @Test
+    fun `one letter suggests nothing`() = runTest {
+        val vm = viewModel(catalogue = listOf(Product(id = 1, name = "Молоко")))
+        advanceUntilIdle()
+
+        vm.onName("м")
+
+        assertTrue(vm.state.value.nameSuggestions.isEmpty())
+    }
 }
