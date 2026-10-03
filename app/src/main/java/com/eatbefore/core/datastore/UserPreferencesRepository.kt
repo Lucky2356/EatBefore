@@ -42,6 +42,12 @@ data class UserPreferences(
     val notificationHour: Int = 9,
     val notificationMinute: Int = 0,
     val quietHoursEnabled: Boolean = false,
+    /**
+     * The Sunday-evening line about the week: eaten, thrown out, coming up. On by default —
+     * it is one notification a week and the only nudge towards the analytics — and silent
+     * whenever reminders as a whole are off.
+     */
+    val weeklySummaryEnabled: Boolean = true,
     val quietStartHour: Int = 22,
     val quietEndHour: Int = 8,
     /**
@@ -131,6 +137,7 @@ class UserPreferencesRepository @Inject constructor(
             notificationHour = prefs[KEY_NOTIF_HOUR] ?: 9,
             notificationMinute = prefs[KEY_NOTIF_MINUTE] ?: 0,
             quietHoursEnabled = prefs[KEY_QUIET_ENABLED] ?: false,
+            weeklySummaryEnabled = prefs[KEY_WEEKLY_SUMMARY] ?: true,
             quietStartHour = prefs[KEY_QUIET_START] ?: 22,
             quietEndHour = prefs[KEY_QUIET_END] ?: 8,
             autoBackupEnabled = prefs[KEY_AUTO_BACKUP] ?: false,
@@ -303,6 +310,10 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_WEEKLY_SUMMARY] = enabled }
+    }
+
     suspend fun setQuietHours(enabled: Boolean, startHour: Int, endHour: Int) {
         dataStore.edit {
             it[KEY_QUIET_ENABLED] = enabled
@@ -321,6 +332,7 @@ class UserPreferencesRepository @Inject constructor(
         val KEY_NOTIF_HOUR = intPreferencesKey("notification_hour")
         val KEY_NOTIF_MINUTE = intPreferencesKey("notification_minute")
         val KEY_QUIET_ENABLED = booleanPreferencesKey("quiet_hours_enabled")
+        val KEY_WEEKLY_SUMMARY = booleanPreferencesKey("weekly_summary_enabled")
         val KEY_QUIET_START = intPreferencesKey("quiet_start_hour")
         val KEY_QUIET_END = intPreferencesKey("quiet_end_hour")
         val KEY_AUTO_BACKUP = booleanPreferencesKey("auto_backup_enabled")

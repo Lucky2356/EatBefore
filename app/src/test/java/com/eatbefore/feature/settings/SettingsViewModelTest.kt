@@ -113,6 +113,7 @@ class SettingsViewModelTest {
         catalogContributor = catalogContributor,
         keyedCatalog = keyedCatalog,
         goUpcKeyStore = GoUpcKeyStore(dataStore, SecretCipher()),
+        stockCsvExporter = mockk(relaxed = true),
         clock = clock,
         ioDispatcher = UnconfinedTestDispatcher(),
     )

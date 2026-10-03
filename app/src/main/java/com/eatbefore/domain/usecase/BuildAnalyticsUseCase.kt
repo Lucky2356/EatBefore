@@ -1,6 +1,7 @@
 package com.eatbefore.domain.usecase
 
 import com.eatbefore.domain.model.BatchPrice
+import com.eatbefore.domain.model.DiscardReason
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.Product
@@ -52,6 +53,12 @@ data class AnalyticsSummary(
     val weeklyTrend: List<WeeklyStat> = emptyList(),
     /** What the waste cost, when any of it carried a price. Null when none did. */
     val wastedMoney: WastedMoney? = null,
+    /**
+     * Why things were thrown out, most common first — only the write-offs that said. Empty
+     * until someone answers the optional question, so the screen shows nothing rather than
+     * a table of zeros.
+     */
+    val wastedByReason: List<Pair<DiscardReason, Int>> = emptyList(),
 ) {
     val hasData: Boolean
         get() = addedCount + consumedCount + discardedCount + expiredCount > 0
@@ -92,6 +99,7 @@ class BuildAnalyticsUseCase @Inject constructor() {
         var wastedPriced = 0
         var wastedCurrency: String? = null
         val wastedByCategory = mutableMapOf<String, Int>()
+        val wastedByReason = mutableMapOf<DiscardReason, Int>()
         val addedByProduct = mutableMapOf<Long, Int>()
         val usedByWeek = mutableMapOf<LocalDate, Int>()
         val wastedByWeek = mutableMapOf<LocalDate, Int>()
@@ -113,6 +121,7 @@ class BuildAnalyticsUseCase @Inject constructor() {
 
                 EventType.DISCARDED, EventType.EXPIRED -> {
                     if (event.eventType == EventType.DISCARDED) discarded++ else expired++
+                    DiscardReason.fromCode(event.reason)?.let { wastedByReason.merge(it, 1, Int::plus) }
                     val product = productsById[event.productId]
                     // Home cooking rarely gets a category, and "uncategorised" would hide
                     // the one thing the household can actually change: cooking less.
@@ -150,6 +159,9 @@ class BuildAnalyticsUseCase @Inject constructor() {
             wastedByCategory = wastedByCategory.entries
                 .sortedByDescending { it.value }
                 .take(TOP_LIMIT)
+                .map { it.key to it.value },
+            wastedByReason = wastedByReason.entries
+                .sortedByDescending { it.value }
                 .map { it.key to it.value },
             topAddedProducts = addedByProduct.entries
                 .sortedByDescending { it.value }

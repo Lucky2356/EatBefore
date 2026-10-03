@@ -8,6 +8,7 @@ import com.eatbefore.R
 import com.eatbefore.core.backup.AutoBackupCatalog
 import com.eatbefore.core.backup.AutoBackupEntry
 import com.eatbefore.core.backup.BackupManager
+import com.eatbefore.core.backup.StockCsvExporter
 import com.eatbefore.core.common.dispatcher.IoDispatcher
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.GoUpcKeyStore
@@ -52,6 +53,7 @@ class SettingsViewModel @Inject constructor(
     private val catalogContributor: CatalogContributor,
     private val keyedCatalog: KeyedCatalog,
     private val goUpcKeyStore: GoUpcKeyStore,
+    private val stockCsvExporter: StockCsvExporter,
     private val clock: AppClock,
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -101,6 +103,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setSoonDays(days: Int) {
         viewModelScope.launch { preferences.setSoonThresholdDays(days) }
+    }
+
+    fun setWeeklySummaryEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferences.setWeeklySummaryEnabled(enabled) }
     }
 
     fun setQuietHours(enabled: Boolean, startHour: Int, endHour: Int) {
@@ -343,6 +349,22 @@ class SettingsViewModel @Inject constructor(
             }
             _message.value =
                 if (result.isSuccess) R.string.backup_export_done else R.string.backup_export_error
+        }
+    }
+
+    /** Writes every batch as a spreadsheet table to a user-chosen document. */
+    fun exportCsvTo(uri: Uri) {
+        viewModelScope.launch {
+            val result = withContext(ioDispatcher) {
+                runCatching {
+                    val content = stockCsvExporter.export()
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(content.toByteArray(Charsets.UTF_8))
+                    } ?: error("Cannot open output")
+                }
+            }
+            result.exceptionOrNull()?.let { diagnostics.record("CSV", "Could not write the table", it) }
+            _message.value = if (result.isSuccess) R.string.csv_export_done else R.string.csv_export_error
         }
     }
 

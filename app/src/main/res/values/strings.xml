@@ -656,4 +656,45 @@
     <string name="calendar_next">Следующий месяц</string>
     <string name="calendar_day_empty">В этот день ничего не истекает</string>
     <string name="calendar_day_count">истекает: %1$d</string>
+
+    <string name="analytics_wasted_by_reason">Почему выбрасываем</string>
+
+    <!-- 1.17.0: weekly summary -->
+    <string name="weekly_channel_name">Итоги недели</string>
+    <string name="weekly_channel_desc">Раз в неделю: сколько съели, сколько выбросили и что истекает дальше</string>
+    <string name="weekly_title">Неделя с продуктами</string>
+    <string name="weekly_line_eaten">Съедено: %1$d</string>
+    <string name="weekly_line_wasted">выброшено: %1$d</string>
+    <string name="weekly_line_wasted_money">выброшено: %1$d (на %2$s)</string>
+    <string name="weekly_line_due">на этой неделе истекает: %1$d</string>
+    <string name="settings_weekly_summary">Итоги недели</string>
+    <string name="settings_weekly_summary_desc">В воскресенье вечером — сколько съели, сколько выбросили и что истекает на неделе</string>
+
+    <!-- 1.17.0: CSV export -->
+    <string name="settings_export_csv">Экспорт в таблицу (CSV)</string>
+    <string name="settings_export_csv_desc">Все партии — что дома и что уже съели или выбросили — для Excel или Google Таблиц</string>
+    <string name="settings_kw_csv">csv excel таблица выгрузка google sheets</string>
+    <string name="settings_kw_weekly">итоги неделя сводка воскресенье отчёт</string>
+    <string name="csv_export_done">Таблица сохранена</string>
+    <string name="csv_export_error">Не удалось сохранить таблицу</string>
+    <string name="csv_product">Продукт</string>
+    <string name="csv_brand">Бренд</string>
+    <string name="csv_category">Категория</string>
+    <string name="csv_location">Место</string>
+    <string name="csv_quantity">Количество</string>
+    <string name="csv_unit">Ед.</string>
+    <string name="csv_status">Статус</string>
+    <string name="csv_bought">Куплено</string>
+    <string name="csv_expires">Годен до</string>
+    <string name="csv_opened">Вскрыто</string>
+    <string name="csv_price">Цена</string>
+    <string name="csv_currency">Валюта</string>
+    <string name="csv_note">Заметка</string>
+    <string name="csv_status_active">дома</string>
+    <string name="csv_status_opened">вскрыто</string>
+    <string name="csv_status_partial">дома, начато</string>
+    <string name="csv_status_consumed">съедено</string>
+    <string name="csv_status_discarded">выброшено</string>
+    <string name="csv_status_expired">просрочено</string>
+    <string name="csv_status_archived">убрано</string>
 </resources>

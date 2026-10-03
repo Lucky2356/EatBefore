@@ -628,4 +628,45 @@
     <string name="calendar_next">Next month</string>
     <string name="calendar_day_empty">Nothing runs out on this day</string>
     <string name="calendar_day_count">expiring: %1$d</string>
+
+    <string name="analytics_wasted_by_reason">Why food is thrown out</string>
+
+    <!-- 1.17.0: weekly summary -->
+    <string name="weekly_channel_name">Weekly summary</string>
+    <string name="weekly_channel_desc">Once a week: how much was eaten, how much thrown out and what runs out next</string>
+    <string name="weekly_title">Your week with food</string>
+    <string name="weekly_line_eaten">Eaten: %1$d</string>
+    <string name="weekly_line_wasted">thrown out: %1$d</string>
+    <string name="weekly_line_wasted_money">thrown out: %1$d (worth %2$s)</string>
+    <string name="weekly_line_due">running out this week: %1$d</string>
+    <string name="settings_weekly_summary">Weekly summary</string>
+    <string name="settings_weekly_summary_desc">On Sunday evening: how much was eaten, how much thrown out and what runs out this week</string>
+
+    <!-- 1.17.0: CSV export -->
+    <string name="settings_export_csv">Export as a table (CSV)</string>
+    <string name="settings_export_csv_desc">Every batch — at home, eaten or thrown out — for Excel or Google Sheets</string>
+    <string name="settings_kw_csv">csv excel table spreadsheet export google sheets</string>
+    <string name="settings_kw_weekly">weekly summary week sunday report</string>
+    <string name="csv_export_done">Table saved</string>
+    <string name="csv_export_error">Could not save the table</string>
+    <string name="csv_product">Product</string>
+    <string name="csv_brand">Brand</string>
+    <string name="csv_category">Category</string>
+    <string name="csv_location">Place</string>
+    <string name="csv_quantity">Quantity</string>
+    <string name="csv_unit">Unit</string>
+    <string name="csv_status">Status</string>
+    <string name="csv_bought">Bought</string>
+    <string name="csv_expires">Best before</string>
+    <string name="csv_opened">Opened</string>
+    <string name="csv_price">Price</string>
+    <string name="csv_currency">Currency</string>
+    <string name="csv_note">Note</string>
+    <string name="csv_status_active">at home</string>
+    <string name="csv_status_opened">opened</string>
+    <string name="csv_status_partial">at home, started</string>
+    <string name="csv_status_consumed">eaten</string>
+    <string name="csv_status_discarded">thrown out</string>
+    <string name="csv_status_expired">expired</string>
+    <string name="csv_status_archived">removed</string>
 </resources>
