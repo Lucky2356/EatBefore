@@ -80,6 +80,18 @@ class FakeProductRepository(private val products: MutableMap<Long, Product> = mu
         publish()
     }
 
+    override suspend fun setMinQuantity(productId: Long, minQuantity: Double?) {
+        val product = products[productId] ?: return
+        products[productId] = product.copy(minQuantity = minQuantity)
+        publish()
+    }
+
+    override suspend fun setReminderDays(productId: Long, days: Int?) {
+        val product = products[productId] ?: return
+        products[productId] = product.copy(reminderDays = days)
+        publish()
+    }
+
     override suspend fun setNotificationsMuted(productId: Long, muted: Boolean) {
         val product = products[productId] ?: return
         products[productId] = product.copy(notificationsMuted = muted)

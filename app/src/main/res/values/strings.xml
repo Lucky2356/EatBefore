@@ -585,4 +585,51 @@
     <string name="update_permission_open">Открыть настройки</string>
     <string name="settings_update_auto">Проверять обновления</string>
     <string name="settings_update_auto_desc">Раз в сутки по Wi-Fi. Ничего не скачивается без вашего нажатия.</string>
+
+    <!-- 1.17.0: product card — stock rules, freezer, discard reason, prices -->
+    <string name="product_rules_title">Запас и напоминания</string>
+    <string name="product_min_quantity">Держать дома минимум</string>
+    <string name="product_min_quantity_none">Не задано</string>
+    <string name="product_min_quantity_value">%1$s — когда меньше, попадёт в покупки</string>
+    <string name="product_min_quantity_hint">Когда дома останется меньше, продукт сам попадёт в список покупок.</string>
+    <string name="product_rule_remove">Убрать</string>
+    <string name="product_reminder_days">Напоминать заранее</string>
+    <string name="product_reminder_days_hint">Для мяса и рыбы лучше раньше, для круп и консервов — позже. Остальные продукты напоминают по общей настройке.</string>
+    <plurals name="product_reminder_days_general">
+        <item quantity="one">Как обычно — за %1$d день</item>
+        <item quantity="few">Как обычно — за %1$d дня</item>
+        <item quantity="many">Как обычно — за %1$d дней</item>
+        <item quantity="other">Как обычно — за %1$d дня</item>
+    </plurals>
+    <plurals name="product_reminder_days_value">
+        <item quantity="one">За %1$d день до срока</item>
+        <item quantity="few">За %1$d дня до срока</item>
+        <item quantity="many">За %1$d дней до срока</item>
+        <item quantity="other">За %1$d дня до срока</item>
+    </plurals>
+    <plurals name="product_reminder_days_chip">
+        <item quantity="one">%1$d день</item>
+        <item quantity="few">%1$d дня</item>
+        <item quantity="many">%1$d дней</item>
+        <item quantity="other">%1$d дня</item>
+    </plurals>
+    <string name="discard_reason_prompt">Почему? Можно не отвечать</string>
+    <string name="discard_reason_spoiled">Испортилось</string>
+    <string name="discard_reason_forgot">Забыли</string>
+    <string name="discard_reason_too_much">Купили много</string>
+    <string name="discard_reason_disliked">Не понравилось</string>
+    <string name="product_move_title">Переложить: %1$s</string>
+    <string name="product_move_amount">Сколько переложить</string>
+    <string name="product_move_amount_of">%1$s из %2$s</string>
+    <string name="product_move_frozen_date">Заморожено — до %1$s</string>
+    <string name="product_move_thawed_date">Разморожено — до %1$s</string>
+    <string name="product_move_keep_date">Оставить до %1$s</string>
+    <string name="product_move_keep_no_date">Оставить без срока</string>
+    <string name="product_move_confirm">Переложить</string>
+    <string name="product_price_history">Цены</string>
+    <string name="product_price_latest">Последняя покупка: %1$s за %2$s</string>
+    <string name="product_price_average">В среднем %1$s за %2$s</string>
+    <string name="product_price_up">Дороже прошлой покупки на %1$d %%</string>
+    <string name="product_price_down">Дешевле прошлой покупки на %1$d %%</string>
+    <string name="product_price_same">Столько же, сколько в прошлый раз</string>
 </resources>

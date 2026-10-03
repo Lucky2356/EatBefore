@@ -54,6 +54,14 @@ class ProductRepositoryImpl @Inject constructor(private val productDao: ProductD
         productDao.setNotificationsMuted(id = productId, muted = muted, now = clock.now().toEpochMilli())
     }
 
+    override suspend fun setMinQuantity(productId: Long, minQuantity: Double?) {
+        productDao.setMinQuantity(id = productId, minQuantity = minQuantity, now = clock.now().toEpochMilli())
+    }
+
+    override suspend fun setReminderDays(productId: Long, days: Int?) {
+        productDao.setReminderDays(id = productId, days = days, now = clock.now().toEpochMilli())
+    }
+
     override fun observeFrequent(limit: Int, minTimes: Int): Flow<List<Product>> =
         productDao.observeFrequent(limit, minTimes).map { list -> list.map { it.toDomain() } }
 }

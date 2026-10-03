@@ -13,7 +13,11 @@ import javax.inject.Inject
  * row is never physically deleted — terminal statuses are soft-deleted so history and
  * "restore" keep working. Emits the matching history event.
  */
-class MarkBatchStatusUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
+class MarkBatchStatusUseCase @Inject constructor(
+    private val inventoryRepository: InventoryRepository,
+    private val keepMinimumStock: KeepMinimumStockUseCase,
+    private val clock: AppClock,
+) {
 
     suspend operator fun invoke(
         batchId: Long,
@@ -43,6 +47,8 @@ class MarkBatchStatusUseCase @Inject constructor(private val inventoryRepository
         )
 
         inventoryRepository.updateBatchWithEvent(updated, event)
+        // Expired counts too: food that is off is not food the household still has.
+        runCatching { keepMinimumStock(batch.productId) }
     }
 
     private companion object {

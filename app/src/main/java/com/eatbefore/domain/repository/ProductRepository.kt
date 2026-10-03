@@ -35,6 +35,12 @@ interface ProductRepository {
      */
     suspend fun setNotificationsMuted(productId: Long, muted: Boolean)
 
+    /** Keep at least [minQuantity] at home; null removes the minimum. */
+    suspend fun setMinQuantity(productId: Long, minQuantity: Double?)
+
+    /** Remind [days] ahead for this product; null returns it to the general setting. */
+    suspend fun setReminderDays(productId: Long, days: Int?)
+
     /**
      * Most frequently added products (repeat purchases), most frequent first. Only
      * products added at least [minTimes] times qualify, so one-off buys don't show up.

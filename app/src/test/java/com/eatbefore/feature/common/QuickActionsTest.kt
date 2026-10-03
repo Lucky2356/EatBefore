@@ -10,6 +10,7 @@ import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.CalculateExpirationAfterOpeningUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
+import com.eatbefore.domain.usecase.KeepMinimumStockUseCase
 import com.eatbefore.domain.usecase.MarkBatchStatusUseCase
 import com.eatbefore.domain.usecase.OpenBatchUseCase
 import com.eatbefore.domain.usecase.RestoreBatchUseCase
@@ -67,13 +68,14 @@ class QuickActionsTest {
         history = FakeHistoryRepository(inventory)
         shopping = FakeShoppingListRepository()
 
+        val keepMinimum = KeepMinimumStockUseCase(products, inventory, shopping, AddToShoppingListUseCase(shopping, history, clock))
         quickActions = QuickActions(
             inventoryRepository = inventory,
             openBatch = OpenBatchUseCase(inventory, CalculateExpirationAfterOpeningUseCase(), clock),
-            changeQuantity = ChangeQuantityUseCase(inventory, clock),
+            changeQuantity = ChangeQuantityUseCase(inventory, keepMinimum, clock),
             addToShoppingList = AddToShoppingListUseCase(shopping, history, clock),
             addBatch = AddBatchUseCase(products, inventory, clock),
-            markStatus = MarkBatchStatusUseCase(inventory, clock),
+            markStatus = MarkBatchStatusUseCase(inventory, keepMinimum, clock),
             restoreBatch = RestoreBatchUseCase(inventory, clock),
             undoLastAction = UndoLastActionUseCase(history, inventory, clock),
         )

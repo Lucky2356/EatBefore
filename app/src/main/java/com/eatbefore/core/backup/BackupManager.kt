@@ -295,6 +295,8 @@ class BackupManager @Inject constructor(
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
         homemadeKind = homemadeKind?.name,
+        minQuantity = minQuantity,
+        reminderDays = reminderDays,
     )
 
     private fun BackupProduct.toEntity() = ProductEntity(
@@ -317,6 +319,8 @@ class BackupManager @Inject constructor(
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
         homemadeKind = homemadeKind?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } },
+        minQuantity = minQuantity?.takeIf { it > 0.0 },
+        reminderDays = reminderDays?.takeIf { it > 0 },
     )
 
     private fun InventoryBatchEntity.toBackup() = BackupBatch(

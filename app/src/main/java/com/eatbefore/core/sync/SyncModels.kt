@@ -73,6 +73,13 @@ data class SyncProduct(
      * older reader skips the key it does not know. See ADR-0007.
      */
     val homemadeKind: String? = null,
+    /**
+     * Keep-at-least amount and per-product reminder lead. Absent (null) means a peer too
+     * old to know the field, so the local value is kept; zero means «switched off» — the
+     * one way to say none that an old journal cannot be mistaken for.
+     */
+    val minQuantity: Double? = null,
+    val reminderDays: Int? = null,
 )
 
 @Serializable

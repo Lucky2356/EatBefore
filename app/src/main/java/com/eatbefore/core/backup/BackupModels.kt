@@ -90,6 +90,9 @@ data class BackupProduct(
     val notificationsMuted: Boolean = false,
     /** Home-made, and what sort; absent in older files, which means "bought". ADR-0007. */
     val homemadeKind: String? = null,
+    /** Keep-at-least amount and reminder lead; absent in older files, which means none. */
+    val minQuantity: Double? = null,
+    val reminderDays: Int? = null,
 )
 
 @Serializable

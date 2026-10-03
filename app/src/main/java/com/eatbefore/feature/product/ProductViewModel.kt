@@ -8,6 +8,7 @@ import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.designsystem.format.defaultCurrencyCode
 import com.eatbefore.domain.model.BatchStatus
+import com.eatbefore.domain.model.DiscardReason
 import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.model.InventoryEvent
 import com.eatbefore.domain.model.InventoryItem
@@ -16,6 +17,7 @@ import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.repository.ProductRepository
+import com.eatbefore.domain.repository.ShoppingListRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
 import com.eatbefore.domain.usecase.AddBatchUseCase
 import com.eatbefore.domain.usecase.AddToShoppingListUseCase
@@ -94,6 +96,10 @@ data class ProductUiState(
     val closed: Boolean = false,
     /** Detailed quantity mode: "decrease" asks for the exact remaining amount. */
     val detailedMode: Boolean = false,
+    /** What the product has cost over its purchases; null when no price was ever entered. */
+    val priceHistory: PriceHistory? = null,
+    /** The app-wide «скоро» window, shown as the default next to a product's own one. */
+    val generalReminderDays: Int = 0,
 )
 
 /** Transient, screen-local signals kept in one flow so the state combine stays small. */
@@ -163,6 +169,7 @@ class ProductViewModel @Inject constructor(
     private val addToShoppingList: AddToShoppingListUseCase,
     private val addBatch: AddBatchUseCase,
     private val productRepository: ProductRepository,
+    private val shoppingListRepository: ShoppingListRepository,
     private val clock: AppClock,
 ) : ViewModel() {
 
@@ -213,7 +220,13 @@ class ProductViewModel @Inject constructor(
             ProductUiState(
                 isLoading = false,
                 item = item,
-                expiryStatus = determineExpiryStatus.forDate(effective, clock.today(), prefs.soonThresholdDays),
+                // A product with a reminder lead of its own is «скоро» by that measure here
+                // too, so the card agrees with the notification about it.
+                expiryStatus = determineExpiryStatus.forDate(
+                    effective,
+                    clock.today(),
+                    item.product.reminderDays ?: prefs.soonThresholdDays,
+                ),
                 remainingDays = effective?.let { ChronoUnit.DAYS.between(clock.today(), it) },
                 shelfLife = shelfLifeOf(item, clock.today(), clock.zone()),
                 otherBatches = others.map {
@@ -227,6 +240,8 @@ class ProductViewModel @Inject constructor(
                 actionMessageRes = local.actionMessageRes,
                 offerShoppingList = local.offerShoppingList,
                 detailedMode = prefs.detailedQuantityMode,
+                priceHistory = priceHistoryOf(context.batches, clock.zone()),
+                generalReminderDays = prefs.soonThresholdDays,
             )
         }
     }.stateIn(
@@ -261,8 +276,9 @@ class ProductViewModel @Inject constructor(
         changeQuantity(batchId, 0.0)
     }
 
-    fun discard() = runAction(offerShopping = true, messageRes = R.string.event_discarded) {
-        markStatus(batchId, BatchStatus.DISCARDED)
+    /** [reason] is optional — the question may be skipped — and lands in the event. */
+    fun discard(reason: DiscardReason? = null) = runAction(offerShopping = true, messageRes = R.string.event_discarded) {
+        markStatus(batchId, BatchStatus.DISCARDED, reason = reason?.name)
     }
 
     fun markExpired() = runAction(messageRes = R.string.event_expired) {
@@ -271,6 +287,42 @@ class ProductViewModel @Inject constructor(
 
     fun moveTo(locationId: Long) = runAction(messageRes = R.string.event_moved) {
         moveBatch(batchId, locationId)
+    }
+
+    /**
+     * Moves all or part of the batch, with a new date when it goes into or comes out of
+     * the freezer. Moving only a part leaves this screen on the part that stayed.
+     */
+    fun moveTo(locationId: Long, quantity: Double?, newExpiry: java.time.LocalDate?, changeExpiry: Boolean) =
+        runAction(messageRes = R.string.event_moved) {
+            moveBatch(
+                MoveBatchUseCase.Params(
+                    batchId = batchId,
+                    newStorageLocationId = locationId,
+                    quantity = quantity,
+                    newExpirationDate = newExpiry,
+                    changeExpiry = changeExpiry,
+                ),
+            )
+        }
+
+    /**
+     * «Keep at least N at home». Like the reminder switch, not undoable from the snackbar —
+     * it is a setting of the card, read back from it, not a change to the stock.
+     */
+    fun setMinQuantity(value: Double?) {
+        val productId = uiState.value.item?.product?.id ?: return
+        viewModelScope.launch {
+            runCatching { productRepository.setMinQuantity(productId, value?.takeIf { it > 0.0 }) }
+        }
+    }
+
+    /** Remind this many days ahead for this product; null returns to the general setting. */
+    fun setReminderDays(days: Int?) {
+        val productId = uiState.value.item?.product?.id ?: return
+        viewModelScope.launch {
+            runCatching { productRepository.setReminderDays(productId, days?.takeIf { it > 0 }) }
+        }
     }
 
     /** Edits card + batch details (name, brand, category, expiry, note). */
@@ -382,6 +434,11 @@ class ProductViewModel @Inject constructor(
         localState.update { it.copy(undoableActionAt = null) }
     }
 
+    private suspend fun isOnShoppingList(): Boolean {
+        val productId = inventoryRepository.getBatch(batchId)?.productId ?: return false
+        return runCatching { shoppingListRepository.findOpenForProduct(productId) != null }.getOrDefault(false)
+    }
+
     private fun runAction(
         offerShopping: Boolean = false,
         messageRes: Int? = null,
@@ -390,11 +447,15 @@ class ProductViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { block() }
                 .onSuccess {
+                    // A product with a minimum may have just joined the list by itself;
+                    // asking «add it?» about something already there is a question with
+                    // no right answer.
+                    val alreadyListed = offerShopping && isOnShoppingList()
                     localState.update {
                         it.copy(
                             undoableActionAt = clock.now().toEpochMilli(),
                             actionMessageRes = messageRes,
-                            offerShoppingList = offerShopping,
+                            offerShoppingList = offerShopping && !alreadyListed,
                         )
                     }
                 }

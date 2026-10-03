@@ -88,9 +88,20 @@ class UndoLastActionUseCase @Inject constructor(
     }
 
     private suspend fun undoMove(batch: InventoryBatch, last: InventoryEvent, now: Instant) {
+        MoveMetadata.parseSplitFrom(last.metadata)?.let { originalId ->
+            undoSplit(part = batch, originalId = originalId, last = last, now = now)
+            return
+        }
         val previous = last.previousStorageLocationId
             ?: throw UnsupportedOperationException("Move has no previous location")
-        val updated = batch.copy(storageLocationId = previous, updatedAt = now)
+        // A move into or out of the freezer may have set a new date; put the old one back.
+        val dates = MoveMetadata.parsePreviousExpiry(last.metadata)
+        val moved = batch.copy(storageLocationId = previous, updatedAt = now)
+        val updated = if (dates == null) {
+            moved
+        } else {
+            moved.copy(expirationDate = dates.first, calculatedExpirationAfterOpening = dates.second)
+        }
         inventoryRepository.updateBatchWithEvent(
             updated,
             compensating(
@@ -99,6 +110,39 @@ class UndoLastActionUseCase @Inject constructor(
                 now,
                 previousLocation = batch.storageLocationId,
                 newLocation = previous,
+            ),
+        )
+    }
+
+    /**
+     * Puts a split-off part back into the batch it came from: the part is archived, its
+     * amount and its share of the price go home. Pressing undo again finds the part already
+     * archived and leaves things alone rather than adding the amount a second time.
+     */
+    private suspend fun undoSplit(part: InventoryBatch, originalId: Long, last: InventoryEvent, now: Instant) {
+        if (part.deletedAt != null) return
+        val original = inventoryRepository.getBatch(originalId)
+            ?: throw UnsupportedOperationException("Split source $originalId is gone")
+        val joinedPrice = if (original.price == null && part.price == null) null else (original.price ?: 0.0) + (part.price ?: 0.0)
+        inventoryRepository.updateBatchWithEvent(
+            part.copy(status = BatchStatus.ARCHIVED, deletedAt = now, updatedAt = now),
+            compensating(last, EventType.UPDATED, now, reason = "undo split"),
+        )
+        inventoryRepository.updateBatchWithEvent(
+            original.copy(
+                quantity = original.quantity + part.quantity,
+                initialQuantity = original.initialQuantity + part.initialQuantity,
+                price = joinedPrice,
+                updatedAt = now,
+            ),
+            InventoryEvent(
+                inventoryBatchId = original.id,
+                productId = original.productId,
+                eventType = EventType.QUANTITY_CHANGED,
+                oldQuantity = original.quantity,
+                newQuantity = original.quantity + part.quantity,
+                reason = "undo split",
+                createdAt = now,
             ),
         )
     }

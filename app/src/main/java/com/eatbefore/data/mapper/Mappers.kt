@@ -38,6 +38,8 @@ fun ProductEntity.toDomain(): Product = Product(
     deletedAt = deletedAt.toInstantOrNull(),
     notificationsMuted = notificationsMuted,
     homemadeKind = homemadeKind,
+    minQuantity = minQuantity,
+    reminderDays = reminderDays,
 )
 
 fun Product.toEntity(): ProductEntity = ProductEntity(
@@ -60,6 +62,8 @@ fun Product.toEntity(): ProductEntity = ProductEntity(
     deletedAt = deletedAt?.toEpochMilli(),
     notificationsMuted = notificationsMuted,
     homemadeKind = homemadeKind,
+    minQuantity = minQuantity,
+    reminderDays = reminderDays,
 )
 
 fun StorageLocationEntity.toDomain(): StorageLocation = StorageLocation(

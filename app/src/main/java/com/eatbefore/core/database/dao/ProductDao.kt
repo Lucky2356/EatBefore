@@ -94,6 +94,13 @@ interface ProductDao {
     @Query("UPDATE products SET notifications_muted = :muted, updated_at = :now WHERE id = :id")
     suspend fun setNotificationsMuted(id: Long, muted: Boolean, now: Long)
 
+    /** Like the mute switch, these move `updated_at` so the change wins the next exchange. */
+    @Query("UPDATE products SET min_quantity = :minQuantity, updated_at = :now WHERE id = :id")
+    suspend fun setMinQuantity(id: Long, minQuantity: Double?, now: Long)
+
+    @Query("UPDATE products SET reminder_days = :days, updated_at = :now WHERE id = :id")
+    suspend fun setReminderDays(id: Long, days: Int?, now: Long)
+
     // Backup/export support.
     @Query("SELECT * FROM products")
     suspend fun getAll(): List<ProductEntity>
