@@ -2,11 +2,14 @@ package com.eatbefore.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.eatbefore.R
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.repository.InventoryRepository
+import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.usecase.DetermineExpiryStatusUseCase
+import com.eatbefore.domain.usecase.RepeatPurchaseUseCase
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.common.QuickAction
 import com.eatbefore.feature.common.QuickActionSignal
@@ -48,6 +51,9 @@ data class HomeUiState(
     val dataWarning: DataSafetyWarning? = null,
 )
 
+/** A regular purchase that is not at home right now, offered as «купили снова». */
+data class RestockUi(val productId: Long, val name: String)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -56,8 +62,31 @@ class HomeViewModel @Inject constructor(
     private val determineExpiryStatus: DetermineExpiryStatusUseCase,
     private val quickActions: QuickActions,
     private val focusRequest: InventoryFocusRequest,
+    productRepository: ProductRepository,
+    private val repeatPurchase: RepeatPurchaseUseCase,
     private val clock: AppClock,
 ) : ViewModel() {
+
+    /**
+     * Things bought again and again that are not at home now — the bread and milk of the
+     * household. One tap adds one as it was bought last time. Products still in stock are
+     * left out: «купили снова» about the yoghurt already in the fridge is noise.
+     */
+    val restock: StateFlow<List<RestockUi>> = combine(
+        productRepository.observeFrequent(limit = FREQUENT_LOOKUP, minTimes = 2),
+        inventoryRepository.observePresentByExpiry(),
+    ) { frequent, present ->
+        val atHome = present.mapTo(HashSet()) { it.product.id }
+        frequent.filter { it.id !in atHome && it.homemadeKind == null }
+            .take(RESTOCK_SHOWN)
+            .map { RestockUi(productId = it.id, name = it.name) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun repeatPurchase(productId: Long) {
+        viewModelScope.launch {
+            quickActions.track(R.string.event_added) { repeatPurchase.invoke(productId) != null }
+        }
+    }
 
     /** Today per the app clock, for the header date (display-only). */
     val today: java.time.LocalDate get() = clock.today()
@@ -124,6 +153,11 @@ class HomeViewModel @Inject constructor(
      * with no date at all cannot be ranked and are never picked — the card would be
      * telling the user to hurry for no stated reason.
      */
+    private companion object {
+        const val FREQUENT_LOOKUP = 12
+        const val RESTOCK_SHOWN = 6
+    }
+
     private fun List<InventoryRowUi>.pickEatFirst(): InventoryRowUi? = this
         .filter { it.remainingDays != null }
         .minWithOrNull(

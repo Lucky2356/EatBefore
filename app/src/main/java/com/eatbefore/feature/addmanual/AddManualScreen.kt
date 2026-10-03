@@ -155,6 +155,23 @@ fun AddManualScreen(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
             )
+            // Known products matching what is typed: one tap fills brand, category and unit,
+            // and the package lands on the existing card instead of a near-duplicate.
+            if (state.nameSuggestions.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
+                ) {
+                    state.nameSuggestions.forEach { suggestion ->
+                        AssistChip(
+                            onClick = { viewModel.onNameSuggestion(suggestion.productId) },
+                            label = {
+                                Text(listOfNotNull(suggestion.name, suggestion.brand).joinToString(" · "))
+                            },
+                        )
+                    }
+                }
+            }
             // A pot of soup has no brand and no barcode; asking for them would only be noise.
             if (!homemade) {
                 OutlinedTextField(

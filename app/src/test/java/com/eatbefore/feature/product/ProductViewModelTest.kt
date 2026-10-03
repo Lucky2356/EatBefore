@@ -33,6 +33,8 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -494,13 +496,13 @@ class ProductViewModelTest {
     @Test
     fun `discarding with a reason passes it on`() = runTest {
         val vm = viewModel()
-        vm.uiState.test {
-            awaitItemWhere { !it.isLoading }
-            vm.discard(com.eatbefore.domain.model.DiscardReason.FORGOT)
-            cancelAndIgnoreRemainingEvents()
-        }
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
 
-        io.mockk.coVerify { markStatus(batchId, com.eatbefore.domain.model.BatchStatus.DISCARDED, "FORGOT") }
+        vm.discard(com.eatbefore.domain.model.DiscardReason.FORGOT)
+        advanceUntilIdle()
+
+        coVerify { markStatus(batchId, com.eatbefore.domain.model.BatchStatus.DISCARDED, "FORGOT") }
     }
 
     /** Already on the list (a minimum put it there): no «add it to the list?» question. */
@@ -529,12 +531,12 @@ class ProductViewModelTest {
     @Test
     fun `keeping a minimum is written to the card`() = runTest {
         val vm = viewModel()
-        vm.uiState.test {
-            awaitItemWhere { !it.isLoading }
-            vm.setMinQuantity(2.0)
-            vm.setReminderDays(7)
-            cancelAndIgnoreRemainingEvents()
-        }
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.setMinQuantity(2.0)
+        vm.setReminderDays(7)
+        advanceUntilIdle()
 
         assertEquals(2.0, catalogue.getValue(3L).minQuantity)
         assertEquals(7, catalogue.getValue(3L).reminderDays)

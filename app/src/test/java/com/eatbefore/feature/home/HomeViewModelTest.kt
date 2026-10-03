@@ -36,6 +36,7 @@ class HomeViewModelTest {
     private val fridge = StorageLocation(id = 1, name = "Fridge", type = StorageType.FRIDGE)
     private val inventory = FakeInventoryRepository()
     private val focusRequest = InventoryFocusRequest()
+    private val catalogue = com.eatbefore.testutil.FakeProductRepository()
 
     private fun opened(item: InventoryItem) =
         item.copy(batch = item.batch.copy(openedAt = clock.now()))
@@ -62,6 +63,8 @@ class HomeViewModelTest {
             determineExpiryStatus = DetermineExpiryStatusUseCase(),
             quickActions = mockk<QuickActions>(relaxed = true),
             focusRequest = focusRequest,
+            productRepository = catalogue,
+            repeatPurchase = mockk(relaxed = true),
             clock = clock,
         )
     }
@@ -224,6 +227,22 @@ class HomeViewModelTest {
         viewModel().focusInventoryOn(TimeBucket.EXPIRED)
 
         assertEquals(TimeBucket.EXPIRED, focusRequest.pending.value)
+    }
+
+    /** Regular purchases are offered again — but not the one already in the fridge. */
+    @Test
+    fun `restock offers regular purchases that are not at home`() = runTest {
+        val milk = catalogue.upsert(Product(name = "Молоко"))
+        catalogue.upsert(Product(name = "Хлеб"))
+        inventory.presentItems.value = listOf(
+            item(id = 10, expiry = null).let { it.copy(product = it.product.copy(id = milk, name = "Молоко")) },
+        )
+
+        viewModel().restock.test {
+            val offered = awaitItemWhere { it.isNotEmpty() }
+            assertEquals(listOf("Хлеб"), offered.map { it.name })
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }
 
