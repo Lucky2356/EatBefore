@@ -44,7 +44,27 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- A list shared from a messenger lands on the shopping list. Plain text only:
+                 nothing in it is opened, run or fetched. -->
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
+
+        <!-- «Сканировать» in the quick-settings shade. Exported with the system-only
+             permission, as every tile must be. -->
+        <service
+            android:name=".core.launcher.ScanTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_shortcut_scan"
+            android:label="@string/shortcut_scan"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <!-- Handles the notification's "not today" action. Not exported: only our own
              PendingIntent triggers it. -->

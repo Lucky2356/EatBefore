@@ -632,4 +632,18 @@
     <string name="product_price_up">Дороже прошлой покупки на %1$d %%</string>
     <string name="product_price_down">Дешевле прошлой покупки на %1$d %%</string>
     <string name="product_price_same">Столько же, сколько в прошлый раз</string>
+
+    <!-- 1.17.0: launcher shortcuts, quick-settings tile, list shared from a messenger -->
+    <string name="shortcut_scan">Сканировать</string>
+    <string name="shortcut_add">Добавить</string>
+    <string name="shortcut_homemade">Домашнее</string>
+    <string name="shortcut_shopping">Покупки</string>
+    <string name="share_target_label">В список покупок</string>
+    <plurals name="share_import_done">
+        <item quantity="one">В список покупок добавлен %1$d пункт</item>
+        <item quantity="few">В список покупок добавлено %1$d пункта</item>
+        <item quantity="many">В список покупок добавлено %1$d пунктов</item>
+        <item quantity="other">В список покупок добавлено %1$d пункта</item>
+    </plurals>
+    <string name="share_import_empty">В тексте не нашлось ничего похожего на список</string>
 </resources>

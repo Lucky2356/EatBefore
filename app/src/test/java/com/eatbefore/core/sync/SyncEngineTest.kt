@@ -69,7 +69,6 @@ class SyncEngineTest {
         productUpdatedAt: Long = 100L,
         productDeletedAt: Long? = null,
         productHomemadeKind: String? = null,
-        productMinQuantity: Double? = null,
     ) = SyncJournal(
         deviceId = "peer-device",
         writtenAtEpochMillis = 100L,
@@ -81,7 +80,6 @@ class SyncEngineTest {
                 measurementUnit = "PIECE", imageUri = null, updatedAt = productUpdatedAt,
                 deletedAt = productDeletedAt,
                 homemadeKind = productHomemadeKind,
-                minQuantity = productMinQuantity,
             ),
         ),
         batches = listOf(
@@ -504,13 +502,16 @@ class SyncEngineTest {
     @Test
     fun `a minimum arrives, survives an old journal and is cleared only by zero`() = runTest {
         seedLocal()
-        engine.merge(peerJournal(productUpdatedAt = 200L, productMinQuantity = 2.0))
+        fun withMinimum(updatedAt: Long, minimum: Double?) = peerJournal(productUpdatedAt = updatedAt)
+            .let { journal -> journal.copy(products = journal.products.map { it.copy(minQuantity = minimum) }) }
+
+        engine.merge(withMinimum(updatedAt = 200L, minimum = 2.0))
         assertEquals(2.0, db.productDao().getByUuid("p-1")!!.minQuantity!!, 0.0)
 
-        engine.merge(peerJournal(productUpdatedAt = 300L, productMinQuantity = null))
+        engine.merge(withMinimum(updatedAt = 300L, minimum = null))
         assertEquals(2.0, db.productDao().getByUuid("p-1")!!.minQuantity!!, 0.0)
 
-        engine.merge(peerJournal(productUpdatedAt = 400L, productMinQuantity = 0.0))
+        engine.merge(withMinimum(updatedAt = 400L, minimum = 0.0))
         assertNull(db.productDao().getByUuid("p-1")!!.minQuantity)
     }
 }

@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.eatbefore.core.datastore.ThemeMode
 import com.eatbefore.core.designsystem.component.LoadingState
 import com.eatbefore.core.designsystem.theme.EatBeforeTheme
+import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.feature.addmanual.AddManualScreen
 import com.eatbefore.feature.analytics.AnalyticsScreen
 import com.eatbefore.feature.history.HistoryScreen
@@ -45,6 +46,7 @@ import com.eatbefore.feature.settings.sections.NotificationsSettingsScreen
 import com.eatbefore.feature.settings.sections.SharingSettingsScreen
 import com.eatbefore.feature.shopping.ShoppingScreen
 import com.eatbefore.navigation.EatBeforeBottomBar
+import com.eatbefore.navigation.LaunchTarget
 import com.eatbefore.navigation.Routes
 import com.eatbefore.navigation.TopLevelDestination
 import com.eatbefore.navigation.isTopLevelRoute
@@ -52,8 +54,8 @@ import com.eatbefore.navigation.isTopLevelRoute
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun EatBeforeApp(
-    openInventory: Boolean = false,
-    onOpenInventoryHandled: () -> Unit = {},
+    launchTarget: LaunchTarget? = null,
+    onLaunchTargetHandled: () -> Unit = {},
     rootViewModel: RootViewModel = hiltViewModel(),
 ) {
     val rootState by rootViewModel.state.collectAsStateWithLifecycle()
@@ -84,8 +86,8 @@ fun EatBeforeApp(
                 is RootState.Ready -> MainNavigation(
                     startDestination = if (s.onboardingCompleted) Routes.HOME else Routes.ONBOARDING,
                     // Only honour the deep link once onboarding is done.
-                    openInventory = openInventory && s.onboardingCompleted,
-                    onOpenInventoryHandled = onOpenInventoryHandled,
+                    launchTarget = launchTarget.takeIf { s.onboardingCompleted },
+                    onLaunchTargetHandled = onLaunchTargetHandled,
                 )
             }
         }
@@ -95,8 +97,8 @@ fun EatBeforeApp(
 @Composable
 private fun MainNavigation(
     startDestination: String,
-    openInventory: Boolean = false,
-    onOpenInventoryHandled: () -> Unit = {},
+    launchTarget: LaunchTarget? = null,
+    onLaunchTargetHandled: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -110,12 +112,18 @@ private fun MainNavigation(
         }
     }
 
-    // "Open list" in the expiry notification lands directly on Inventory.
-    androidx.compose.runtime.LaunchedEffect(openInventory) {
-        if (openInventory) {
-            navigateTopLevel(TopLevelDestination.INVENTORY)
-            onOpenInventoryHandled()
+    // The reminder, a launcher shortcut, the quick-settings tile or a shared list asked
+    // for a particular screen.
+    androidx.compose.runtime.LaunchedEffect(launchTarget) {
+        when (launchTarget) {
+            null -> return@LaunchedEffect
+            LaunchTarget.INVENTORY -> navigateTopLevel(TopLevelDestination.INVENTORY)
+            LaunchTarget.SCANNER -> navigateTopLevel(TopLevelDestination.SCANNER)
+            LaunchTarget.SHOPPING -> navigateTopLevel(TopLevelDestination.SHOPPING)
+            LaunchTarget.ADD -> navController.navigate(Routes.addManual())
+            LaunchTarget.HOMEMADE -> navController.navigate(Routes.addManual(homemade = HomemadeKind.DISH.name))
         }
+        onLaunchTargetHandled()
     }
 
     Scaffold(

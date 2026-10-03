@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import com.eatbefore.core.backup.AutoBackupScheduler
 import com.eatbefore.core.datastore.UserPreferencesRepository
 import com.eatbefore.core.diagnostics.CrashReporter
+import com.eatbefore.core.launcher.AppShortcuts
 import com.eatbefore.core.notifications.ExpiryNotifier
 import com.eatbefore.core.notifications.NotificationScheduler
 import com.eatbefore.core.sync.SyncScheduler
@@ -58,6 +59,8 @@ class EatBeforeApplication :
         // First, so that a failure in anything below is still recorded.
         crashReporter.install()
         expiryNotifier.ensureChannel()
+        // Launcher shortcuts; a launcher that refuses them is no reason to stop starting.
+        runCatching { AppShortcuts.publish(this) }
         // Re-apply the schedule whenever notification-related settings change.
         appScope.launch {
             userPreferencesRepository.preferences
