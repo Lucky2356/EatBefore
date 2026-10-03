@@ -104,7 +104,7 @@ class HistoryViewModel @Inject constructor(
             // Success is deliberately silent: restoring writes a RESTORED event, which
             // appears as the first row of the very list being looked at. A snackbar saying
             // the same thing on top of it is noise.
-            runCatching { restoreBatch(event.inventoryBatchId) }
+            runCatching { restoreBatch(event.inventoryBatchId, quantityIfEmpty = event.oldQuantity) }
                 .onFailure { announce(R.string.history_restore_failed) }
         }
     }

@@ -13,4 +13,5 @@ data class BatchPriceRow(
     @ColumnInfo(name = "id") val batchId: Long,
     @ColumnInfo(name = "price") val price: Double,
     @ColumnInfo(name = "currency") val currency: String?,
+    @ColumnInfo(name = "initial_quantity") val initialQuantity: Double,
 )

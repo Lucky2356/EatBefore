@@ -8,4 +8,9 @@ package com.eatbefore.domain.model
  * on holiday stays priced in euros, and a total that silently mixed currencies would be a
  * number with no meaning.
  */
-data class BatchPrice(val amount: Double, val currency: String?)
+data class BatchPrice(
+    val amount: Double,
+    val currency: String?,
+    /** How much the price paid for, so the share of it that went in the bin can be told. */
+    val initialQuantity: Double = 0.0,
+)

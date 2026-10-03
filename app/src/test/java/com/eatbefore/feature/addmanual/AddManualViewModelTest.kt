@@ -604,4 +604,19 @@ class AddManualViewModelTest {
 
         assertTrue(vm.state.value.knownCategories.isEmpty())
     }
+
+    /** Zero used to reach the use case, which refuses it — and the refusal crashed the app. */
+    @Test
+    fun `a zero amount is refused on the form, not by a crash`() = runTest {
+        val vm = viewModel()
+        advanceUntilIdle()
+        vm.onName("Сыр")
+        vm.onQuantity("0")
+
+        vm.save()
+        advanceUntilIdle()
+
+        assertTrue(vm.state.value.quantityError)
+        coVerify(exactly = 0) { addManualProduct(any()) }
+    }
 }

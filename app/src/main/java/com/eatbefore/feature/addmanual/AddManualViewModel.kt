@@ -78,6 +78,11 @@ data class AddManualUiState(
     val price: String = "",
     val isSaving: Boolean = false,
     val nameError: Boolean = false,
+    /**
+     * Zero typed in the amount. The use case refuses an empty package, and the refusal used
+     * to escape as a crash of the whole app; now the field says what is wrong.
+     */
+    val quantityError: Boolean = false,
     val savedBatchId: Long? = null,
     /**
      * Set after saving a product that carried a barcode the open catalog does not know.
@@ -210,7 +215,8 @@ class AddManualViewModel @Inject constructor(
     // Barcodes are digits and, for Честный знак, a few symbols; whitespace never belongs.
     fun onBarcode(value: String) =
         _state.update { it.copy(barcode = value.take(MAX_BARCODE_LENGTH).filterNot { c -> c.isWhitespace() }) }
-    fun onQuantity(value: String) = _state.update { it.copy(quantity = value.filter { c -> c.isDigit() || c == '.' }) }
+    fun onQuantity(value: String) =
+        _state.update { it.copy(quantity = value.filter { c -> c.isDigit() || c == '.' }, quantityError = false) }
 
     /**
      * Steps the amount by one, never below one — zero packages of something is not a thing
@@ -219,7 +225,7 @@ class AddManualViewModel @Inject constructor(
     fun stepQuantity(delta: Int) = _state.update {
         val current = it.quantity.toDoubleOrNull() ?: 1.0
         val stepped = (current + delta).coerceAtLeast(1.0)
-        it.copy(quantity = formatAmount(stepped))
+        it.copy(quantity = formatAmount(stepped), quantityError = false)
     }
 
     fun onUnit(unit: MeasurementUnit) = _state.update { it.copy(unit = unit) }
@@ -246,9 +252,15 @@ class AddManualViewModel @Inject constructor(
             return
         }
         val locationId = current.selectedLocationId ?: return
+        // Blank or unreadable still means one package, as it always has; only a number
+        // that is not more than zero is refused.
+        val quantity = current.quantity.toDoubleOrNull() ?: 1.0
+        if (quantity <= 0.0) {
+            _state.update { it.copy(quantityError = true) }
+            return
+        }
         _state.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            val quantity = current.quantity.toDoubleOrNull() ?: 1.0
             val homemade = current.homemadeKind != null
             // Hidden on the home-made form, so anything left in them is not the user's.
             val barcode = current.barcode.trim().ifBlank { null }?.takeUnless { homemade }

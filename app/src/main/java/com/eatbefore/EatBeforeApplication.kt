@@ -64,7 +64,11 @@ class EatBeforeApplication :
                 .distinctUntilChanged { old, new ->
                     old.notificationsEnabled == new.notificationsEnabled &&
                         old.notificationHour == new.notificationHour &&
-                        old.notificationMinute == new.notificationMinute
+                        old.notificationMinute == new.notificationMinute &&
+                        // Quiet hours move the reminder when it falls inside them.
+                        old.quietHoursEnabled == new.quietHoursEnabled &&
+                        old.quietStartHour == new.quietStartHour &&
+                        old.quietEndHour == new.quietEndHour
                 }
                 .onEach { notificationScheduler.apply(it) }
                 .collect {}

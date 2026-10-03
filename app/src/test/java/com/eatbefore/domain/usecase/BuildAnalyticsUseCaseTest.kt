@@ -215,4 +215,14 @@ class BuildAnalyticsUseCaseTest {
         val trend = useCase(events, products, Instant.EPOCH, ZoneOffset.UTC).weeklyTrend
         assertEquals(BuildAnalyticsUseCase.TREND_WEEKS, trend.size)
     }
+
+    /** The last fifth of a cheese thrown out wastes a fifth of its price, not all of it. */
+    @Test
+    fun wastedShare_isThePartThatWasThrownOut() {
+        assertEquals(0.2, wastedShare(thrownQuantity = 1.0, initialQuantity = 5.0), 1e-9)
+        assertEquals(1.0, wastedShare(thrownQuantity = 5.0, initialQuantity = 5.0), 1e-9)
+        // Nothing known: the whole price, as before.
+        assertEquals(1.0, wastedShare(thrownQuantity = null, initialQuantity = 5.0), 1e-9)
+        assertEquals(1.0, wastedShare(thrownQuantity = 1.0, initialQuantity = 0.0), 1e-9)
+    }
 }
