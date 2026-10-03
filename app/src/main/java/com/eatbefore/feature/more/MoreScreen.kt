@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
@@ -50,6 +52,9 @@ fun MoreScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                // Five cards no longer fit a small phone in landscape, or one with large
+                // font: without scrolling the last of them, Settings, was out of reach.
+                .verticalScroll(rememberScrollState())
                 .padding(Dimens.spaceLg),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
