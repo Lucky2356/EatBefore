@@ -225,4 +225,32 @@ class InventoryUseCasesTest {
     fun undo_withNoHistory_returnsFalse() = runTest {
         assertFalse(undo())
     }
+
+    /**
+     * Counted down to zero and then restored from history: it comes back with what it had
+     * just before, not as a present batch of nothing that never leaves the list.
+     */
+    @Test
+    fun restore_ofABatchCountedDownToZero_bringsBackWhatItHad() = runTest {
+        val batchId = addManual(AddManualProductUseCase.Params(name = "Cheese", storageLocationId = 1, quantity = 3.0))
+        changeQuantity(batchId, 1.0)
+        changeQuantity(batchId, 0.0)
+
+        restore(batchId, quantityIfEmpty = 1.0)
+
+        val batch = inventory.getBatch(batchId)!!
+        assertEquals(1.0, batch.quantity, 0.0)
+        assertTrue(batch.status.isPresent)
+        assertNull(batch.deletedAt)
+    }
+
+    @Test
+    fun restore_ofAnEmptyBatchWithNothingKnown_fallsBackToTheFullAmount() = runTest {
+        val batchId = addManual(AddManualProductUseCase.Params(name = "Cheese", storageLocationId = 1, quantity = 2.0))
+        changeQuantity(batchId, 0.0)
+
+        restore(batchId)
+
+        assertEquals(2.0, inventory.getBatch(batchId)!!.quantity, 0.0)
+    }
 }

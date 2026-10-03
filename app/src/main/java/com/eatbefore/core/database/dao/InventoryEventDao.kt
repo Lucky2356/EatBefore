@@ -39,13 +39,17 @@ interface InventoryEventDao {
     fun observeByType(eventType: String): Flow<List<InventoryEventEntity>>
 
     /**
-     * Most recent event overall — backs the global "undo last action" affordance.
-     * Compensating events written by undo itself (reason 'undo…') are skipped so a
-     * repeated undo does not ping-pong by reverting the previous revert.
+     * Most recent event made on this phone — backs the global "undo last action"
+     * affordance. Compensating events written by undo itself (reason 'undo…') are skipped
+     * so a repeated undo does not ping-pong by reverting the previous revert.
+     *
+     * Events that arrived from the other phone (non-empty device_id) are skipped too: the
+     * button undoes what the person holding this phone just did, and it used to revert
+     * whatever the exchange had brought in last instead.
      */
     @Query(
         "SELECT * FROM inventory_events " +
-            "WHERE reason IS NULL OR reason NOT LIKE 'undo%' " +
+            "WHERE (reason IS NULL OR reason NOT LIKE 'undo%') AND device_id = '' " +
             "ORDER BY created_at DESC, id DESC LIMIT 1",
     )
     suspend fun getLast(): InventoryEventEntity?

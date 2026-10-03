@@ -165,4 +165,16 @@ class NotificationLogicTest {
     fun quietHours_zeroLengthWindowIsNeverQuiet() {
         assertFalse(isWithinQuietHours(hour = 5, startHour = 5, endHour = 5))
     }
+
+    /** 7:00 inside quiet hours until 8:00 used to mean no reminder, ever. */
+    @Test
+    fun reminderInsideQuietHours_movesToTheirEnd() {
+        assertEquals(8 to 0, reminderTime(7, 30, quietEnabled = true, quietStart = 22, quietEnd = 8))
+    }
+
+    @Test
+    fun reminderOutsideQuietHours_staysWhereItWasSet() {
+        assertEquals(9 to 15, reminderTime(9, 15, quietEnabled = true, quietStart = 22, quietEnd = 8))
+        assertEquals(7 to 30, reminderTime(7, 30, quietEnabled = false, quietStart = 22, quietEnd = 8))
+    }
 }

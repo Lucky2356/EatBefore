@@ -149,6 +149,7 @@
     <string name="add_price_hint">Необязательно. Нужна, чтобы показать, на сколько выброшено</string>
     <string name="add_saved">Продукт добавлен</string>
     <string name="add_error_name_required">Укажите название</string>
+    <string name="add_error_quantity">Больше нуля</string>
     <string name="add_name_from_catalog">Название из Go-UPC — проверьте и поправьте</string>
 
     <!-- Product card -->

@@ -136,6 +136,7 @@
     <string name="add_price_hint">Optional. Needed to show how much went into the bin</string>
     <string name="add_saved">Product added</string>
     <string name="add_error_name_required">Enter a name</string>
+    <string name="add_error_quantity">More than zero</string>
     <string name="add_name_from_catalog">Name from Go-UPC — check and correct it</string>
 
     <!-- Product card -->

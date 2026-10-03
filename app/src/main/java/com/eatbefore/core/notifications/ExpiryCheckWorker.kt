@@ -26,6 +26,7 @@ class ExpiryCheckWorker @AssistedInject constructor(
     private val preferences: UserPreferencesRepository,
     private val buildNotification: BuildExpiryNotificationUseCase,
     private val notifier: ExpiryNotifier,
+    private val scheduler: NotificationScheduler,
     private val clock: AppClock,
 ) : CoroutineWorker(appContext, params) {
 
@@ -38,6 +39,7 @@ class ExpiryCheckWorker @AssistedInject constructor(
         if (prefs.quietHoursEnabled &&
             isWithinQuietHours(nowHour, prefs.quietStartHour, prefs.quietEndHour)
         ) {
+            scheduler.deferUntilQuietHoursEnd(prefs)
             return Result.success()
         }
 

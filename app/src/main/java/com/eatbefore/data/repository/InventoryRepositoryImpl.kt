@@ -49,7 +49,7 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override fun observePrices(): Flow<Map<Long, BatchPrice>> =
         batchDao.observePrices().map { rows ->
-            rows.associate { it.batchId to BatchPrice(it.price, it.currency) }
+            rows.associate { it.batchId to BatchPrice(it.price, it.currency, it.initialQuantity) }
         }
 
     override fun observeItem(batchId: Long): Flow<InventoryItem?> =

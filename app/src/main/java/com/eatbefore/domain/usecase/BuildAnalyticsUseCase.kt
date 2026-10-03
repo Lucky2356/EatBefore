@@ -121,7 +121,7 @@ class BuildAnalyticsUseCase @Inject constructor() {
                     wastedByCategory.merge(category, 1, Int::plus)
                     wastedByWeek.merge(weekOf(event.createdAt), 1, Int::plus)
                     pricesByBatchId[event.inventoryBatchId]?.let { price ->
-                        wastedAmount += price.amount
+                        wastedAmount += price.amount * wastedShare(event.oldQuantity, price.initialQuantity)
                         wastedPriced++
                         wastedCurrency = wastedCurrency ?: price.currency
                     }
@@ -192,4 +192,14 @@ class BuildAnalyticsUseCase @Inject constructor() {
         const val TREND_WEEKS = 8
         private const val TOP_LIMIT = 5
     }
+}
+
+/**
+ * The part of a batch's price that went in the bin. Throwing out the last fifth of a cheese
+ * wastes a fifth of what it cost, not all of it — the total used to count the whole price.
+ * Unknown amounts count in full, as before.
+ */
+internal fun wastedShare(thrownQuantity: Double?, initialQuantity: Double): Double {
+    if (thrownQuantity == null || initialQuantity <= 0.0) return 1.0
+    return (thrownQuantity / initialQuantity).coerceIn(0.0, 1.0)
 }

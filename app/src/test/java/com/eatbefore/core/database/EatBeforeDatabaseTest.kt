@@ -4,9 +4,11 @@ import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.eatbefore.core.database.entity.InventoryBatchEntity
+import com.eatbefore.core.database.entity.InventoryEventEntity
 import com.eatbefore.core.database.entity.ProductEntity
 import com.eatbefore.domain.model.BarcodeType
 import com.eatbefore.domain.model.BatchStatus
+import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.model.MeasurementUnit
 import com.eatbefore.domain.model.ProductSource
 import kotlinx.coroutines.flow.first
@@ -205,5 +207,27 @@ class EatBeforeDatabaseTest {
     private companion object {
         /** Arbitrary epoch day standing in for "today + the user's soon window". */
         const val THRESHOLD = 20_000L
+    }
+
+    /**
+     * «Undo last action» is about what was done on this phone. An event that came in from the
+     * other phone carries its device id and must never be the target — it used to be, so
+     * pressing undo could revert what the other person did a minute ago.
+     */
+    @Test
+    fun lastEventForUndo_skipsEventsFromTheOtherPhone() = runTest {
+        val productId = db.productDao().insert(sampleProduct())
+        val locationId = db.storageLocationDao().getDefault()!!.id
+        val batchId = db.inventoryBatchDao().insert(sampleBatch(productId, locationId))
+        val events = db.inventoryEventDao()
+        fun event(at: Long, device: String) = InventoryEventEntity(
+            inventoryBatchId = batchId, productId = productId, eventType = EventType.QUANTITY_CHANGED,
+            oldQuantity = 2.0, newQuantity = 1.0, previousStorageLocationId = null, newStorageLocationId = null,
+            reason = null, createdAt = at, metadata = null, deviceId = device,
+        )
+        val mine = events.insert(event(at = 1_000, device = ""))
+        events.insert(event(at = 2_000, device = "peer-phone"))
+
+        assertEquals(mine, events.getLast()?.id)
     }
 }

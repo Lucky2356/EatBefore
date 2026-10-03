@@ -11,6 +11,7 @@ import com.eatbefore.domain.repository.HistoryRepository
 import com.eatbefore.domain.repository.ProductRepository
 import com.eatbefore.domain.repository.ShoppingListRepository
 import com.eatbefore.domain.repository.StorageLocationRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 /**
@@ -48,8 +49,14 @@ class AddToShoppingListUseCase @Inject constructor(
         val now = clock.now()
 
         // Merge with an existing open entry for the same product instead of duplicating.
-        val existing = params.productId?.let { productId ->
-            shoppingListRepository.findOpenForProduct(productId)
+        // A typed name is matched too, whatever its capitals: «молоко» written twice used to
+        // become two rows, and a list pasted from a chat repeats things all the time.
+        val existing = if (params.productId != null) {
+            shoppingListRepository.findOpenForProduct(params.productId)
+        } else {
+            shoppingListRepository.observeAll().first().firstOrNull { item ->
+                !item.isCompleted && item.productId == null && item.customName.equals(name, ignoreCase = true)
+            }
         }
         if (existing != null) {
             val merged = existing.copy(quantity = existing.quantity + quantity)

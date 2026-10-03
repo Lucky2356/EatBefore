@@ -117,7 +117,7 @@ interface InventoryBatchDao {
      * fill this in for some products and not others, which is exactly why the screen has
      * to say how many batches a total covers.
      */
-    @Query("SELECT id, price, currency FROM inventory_batches WHERE price IS NOT NULL")
+    @Query("SELECT id, price, currency, initial_quantity FROM inventory_batches WHERE price IS NOT NULL")
     fun observePrices(): Flow<List<BatchPriceRow>>
 
     /** All present batches for the given product, used when merging duplicates. */

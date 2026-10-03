@@ -306,6 +306,12 @@ fun AddManualScreen(
                     value = state.quantity,
                     onValueChange = viewModel::onQuantity,
                     label = { Text(stringResource(R.string.add_quantity)) },
+                    isError = state.quantityError,
+                    supportingText = if (state.quantityError) {
+                        { Text(stringResource(R.string.add_error_quantity)) }
+                    } else {
+                        null
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.weight(1f),

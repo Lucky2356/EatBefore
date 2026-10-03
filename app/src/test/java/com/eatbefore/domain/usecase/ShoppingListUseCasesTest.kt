@@ -144,4 +144,26 @@ class ShoppingListUseCasesTest {
         assertEquals(1, products.observeAllCount())
         assertNull(shopping.getById(id))
     }
+
+    /** «молоко» typed twice — or pasted twice from a chat — is one row with two of it. */
+    @Test
+    fun addingTheSameTypedNameTwice_mergesWhateverItsCapitals() = runTest {
+        val first = addToList(AddToShoppingListUseCase.Params(customName = "молоко"))
+        val second = addToList(AddToShoppingListUseCase.Params(customName = "Молоко"))
+
+        assertEquals(first, second)
+        assertEquals(1, shopping.items.size)
+        assertEquals(2.0, shopping.getById(first)!!.quantity, 0.0)
+    }
+
+    /** Already bought is done with; buying it again is a new row. */
+    @Test
+    fun aBoughtTypedItemIsNotMergedInto() = runTest {
+        val first = addToList(AddToShoppingListUseCase.Params(customName = "Хлеб"))
+        toggle(first)
+
+        val second = addToList(AddToShoppingListUseCase.Params(customName = "Хлеб"))
+
+        assertTrue(first != second)
+    }
 }
