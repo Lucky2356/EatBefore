@@ -606,4 +606,16 @@
     <string name="product_price_up">%1$d %% dearer than last time</string>
     <string name="product_price_down">%1$d %% cheaper than last time</string>
     <string name="product_price_same">Same as last time</string>
+
+    <!-- 1.17.0: launcher shortcuts, quick-settings tile, list shared from a messenger -->
+    <string name="shortcut_scan">Scan</string>
+    <string name="shortcut_add">Add</string>
+    <string name="shortcut_homemade">Home cooking</string>
+    <string name="shortcut_shopping">Shopping</string>
+    <string name="share_target_label">To the shopping list</string>
+    <plurals name="share_import_done">
+        <item quantity="one">%1$d item added to the shopping list</item>
+        <item quantity="other">%1$d items added to the shopping list</item>
+    </plurals>
+    <string name="share_import_empty">Nothing in the text looked like a list</string>
 </resources>
