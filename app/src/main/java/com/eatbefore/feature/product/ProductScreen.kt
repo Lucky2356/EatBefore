@@ -89,6 +89,7 @@ import com.eatbefore.core.designsystem.theme.Motion
 import com.eatbefore.core.designsystem.theme.Shapes
 import com.eatbefore.domain.model.ExpiryStatus
 import com.eatbefore.domain.model.HomemadeKind
+import com.eatbefore.domain.model.StorageLocation
 import com.eatbefore.feature.common.InventoryRowUi
 import com.eatbefore.feature.history.eventAuthor
 import com.eatbefore.feature.history.eventLabel
@@ -177,21 +178,29 @@ fun ProductScreen(
     }
 
     if (showDiscardConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDiscardConfirm = false },
-            title = { Text(stringResource(R.string.product_discard_confirm_title)) },
-            text = { Text(stringResource(R.string.product_discard_confirm_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDiscardConfirm = false
-                    viewModel.discard()
-                }) { Text(stringResource(R.string.product_action_discard)) }
+        DiscardDialog(
+            onConfirm = { reason ->
+                showDiscardConfirm = false
+                viewModel.discard(reason)
             },
-            dismissButton = {
-                TextButton(onClick = { showDiscardConfirm = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+            onDismiss = { showDiscardConfirm = false },
+        )
+    }
+
+    // Set when the chosen place needs a question first: how much, and which date.
+    var moveTarget by remember { mutableStateOf<StorageLocation?>(null) }
+    val movingItem = state.item
+    val target = moveTarget
+    if (target != null && movingItem != null) {
+        MoveDialog(
+            item = movingItem,
+            target = target,
+            today = viewModel.today,
+            onConfirm = { quantity, newExpiry, changeExpiry ->
+                moveTarget = null
+                viewModel.moveTo(target.id, quantity, newExpiry, changeExpiry)
             },
+            onDismiss = { moveTarget = null },
         )
     }
 
@@ -291,9 +300,15 @@ fun ProductScreen(
                             expanded = showMoveMenu,
                             state = state,
                             onDismiss = { showMoveMenu = false },
-                            onMoveTo = {
-                                viewModel.moveTo(it)
+                            onMoveTo = { locationId ->
                                 showMoveMenu = false
+                                val item = state.item
+                                val location = state.locations.firstOrNull { it.id == locationId }
+                                if (item != null && location != null && moveNeedsDialog(item, location)) {
+                                    moveTarget = location
+                                } else {
+                                    viewModel.moveTo(locationId)
+                                }
                             },
                         )
                     }
@@ -345,6 +360,15 @@ fun ProductScreen(
                     showDates = state.shelfLife == null,
                     onRemindersChange = viewModel::setNotificationsMuted,
                 )
+
+                StockRulesCard(
+                    product = item.product,
+                    generalReminderDays = state.generalReminderDays,
+                    onMinQuantity = viewModel::setMinQuantity,
+                    onReminderDays = viewModel::setReminderDays,
+                )
+
+                state.priceHistory?.let { PriceHistoryCard(it) }
 
                 OtherBatchesSection(
                     others = state.otherBatches,

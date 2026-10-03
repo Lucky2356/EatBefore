@@ -177,4 +177,23 @@ class NotificationLogicTest {
         assertEquals(9 to 15, reminderTime(9, 15, quietEnabled = true, quietStart = 22, quietEnd = 8))
         assertEquals(7 to 30, reminderTime(7, 30, quietEnabled = false, quietStart = 22, quietEnd = 8))
     }
+
+    /** Meat wants warning a week ahead even when the general window is three days. */
+    @Test
+    fun aProductWithItsOwnLeadIsSoonByItsOwnMeasure() {
+        val meat = item(today.plusDays(6)).let { it.copy(product = it.product.copy(reminderDays = 7)) }
+        val flour = item(today.plusDays(6))
+
+        val plan = build(listOf(meat, flour), today, soonThresholdDays = 3)
+
+        assertEquals(1, plan.soonCount)
+    }
+
+    /** And a shorter lead keeps a product quiet the general window would have flagged. */
+    @Test
+    fun aShorterOwnLeadKeepsAProductQuietLonger() {
+        val honey = item(today.plusDays(2)).let { it.copy(product = it.product.copy(reminderDays = 1)) }
+
+        assertFalse(build(listOf(honey), today, soonThresholdDays = 3).hasContent)
+    }
 }

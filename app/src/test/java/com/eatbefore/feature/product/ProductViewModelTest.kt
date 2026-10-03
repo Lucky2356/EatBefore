@@ -88,6 +88,7 @@ class ProductViewModelTest {
     private val addBatch = mockk<com.eatbefore.domain.usecase.AddBatchUseCase>(relaxed = true)
     private val catalogue = mutableMapOf(3L to product)
     private val products = FakeProductRepository(catalogue)
+    private val shopping = com.eatbefore.testutil.FakeShoppingListRepository()
 
     private fun viewModel(preferences: UserPreferences = UserPreferences()): ProductViewModel {
         inventory.batches[batchId] = batch
@@ -110,6 +111,7 @@ class ProductViewModelTest {
             addToShoppingList = addToShoppingList,
             addBatch = addBatch,
             productRepository = products,
+            shoppingListRepository = shopping,
             clock = clock,
         )
     }
@@ -486,5 +488,55 @@ class ProductViewModelTest {
 
     private companion object {
         const val MAX_EMISSIONS = 20
+    }
+
+    /** The reason chosen in the dialog lands in the event, by its code. */
+    @Test
+    fun `discarding with a reason passes it on`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.discard(com.eatbefore.domain.model.DiscardReason.FORGOT)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        io.mockk.coVerify { markStatus(batchId, com.eatbefore.domain.model.BatchStatus.DISCARDED, "FORGOT") }
+    }
+
+    /** Already on the list (a minimum put it there): no «add it to the list?» question. */
+    @Test
+    fun `no shopping offer for a product already on the list`() = runTest {
+        shopping.items[1L] = com.eatbefore.domain.model.ShoppingListItem(
+            id = 1L,
+            productId = 3L,
+            customName = null,
+            quantity = 1.0,
+            measurementUnit = com.eatbefore.domain.model.MeasurementUnit.PIECE,
+            priority = com.eatbefore.domain.model.ShoppingPriority.NORMAL,
+            isCompleted = false,
+            addedAt = Instant.EPOCH,
+        )
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.markFinished()
+            val after = awaitItemWhere { it.undoableActionAt != null }
+            assertFalse(after.offerShoppingList)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `keeping a minimum is written to the card`() = runTest {
+        val vm = viewModel()
+        vm.uiState.test {
+            awaitItemWhere { !it.isLoading }
+            vm.setMinQuantity(2.0)
+            vm.setReminderDays(7)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(2.0, catalogue.getValue(3L).minQuantity)
+        assertEquals(7, catalogue.getValue(3L).reminderDays)
     }
 }

@@ -59,4 +59,8 @@ data class ProductEntity(
      * decides how long it keeps and how it is labelled. See ADR-0007.
      */
     @ColumnInfo(name = "homemade_kind") val homemadeKind: HomemadeKind? = null,
+    /** Keep at least this much; below it the product joins the shopping list. Schema v6. */
+    @ColumnInfo(name = "min_quantity") val minQuantity: Double? = null,
+    /** Remind this many days ahead instead of the general setting. Schema v6. */
+    @ColumnInfo(name = "reminder_days") val reminderDays: Int? = null,
 )

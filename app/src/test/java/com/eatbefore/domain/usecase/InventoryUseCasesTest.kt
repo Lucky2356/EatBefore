@@ -8,6 +8,7 @@ import com.eatbefore.testutil.FakeAppClock
 import com.eatbefore.testutil.FakeHistoryRepository
 import com.eatbefore.testutil.FakeInventoryRepository
 import com.eatbefore.testutil.FakeProductRepository
+import com.eatbefore.testutil.FakeShoppingListRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -27,6 +28,7 @@ class InventoryUseCasesTest {
     private lateinit var products: FakeProductRepository
     private lateinit var inventory: FakeInventoryRepository
     private lateinit var history: FakeHistoryRepository
+    private lateinit var shopping: FakeShoppingListRepository
 
     private lateinit var addManual: AddManualProductUseCase
     private lateinit var addBatch: AddBatchUseCase
@@ -43,12 +45,14 @@ class InventoryUseCasesTest {
         products = FakeProductRepository()
         inventory = FakeInventoryRepository()
         history = FakeHistoryRepository(inventory)
+        shopping = FakeShoppingListRepository()
+        val keepMinimum = KeepMinimumStockUseCase(products, inventory, shopping, AddToShoppingListUseCase(shopping, history, clock))
         val merge = MergeSameProductUseCase(products)
         addManual = AddManualProductUseCase(products, inventory, merge, clock)
         addBatch = AddBatchUseCase(products, inventory, clock)
-        changeQuantity = ChangeQuantityUseCase(inventory, clock)
+        changeQuantity = ChangeQuantityUseCase(inventory, keepMinimum, clock)
         openBatch = OpenBatchUseCase(inventory, CalculateExpirationAfterOpeningUseCase(), clock)
-        markStatus = MarkBatchStatusUseCase(inventory, clock)
+        markStatus = MarkBatchStatusUseCase(inventory, keepMinimum, clock)
         moveBatch = MoveBatchUseCase(inventory, clock)
         restore = RestoreBatchUseCase(inventory, clock)
         undo = UndoLastActionUseCase(history, inventory, clock)
@@ -252,5 +256,83 @@ class InventoryUseCasesTest {
         restore(batchId)
 
         assertEquals(2.0, inventory.getBatch(batchId)!!.quantity, 0.0)
+    }
+
+    /** «Keep two at home»: eating the second-to-last puts it on the list, once. */
+    @Test
+    fun droppingBelowTheMinimum_putsTheProductOnTheShoppingList() = runTest {
+        val batchId = addManual(AddManualProductUseCase.Params(name = "Яйца", storageLocationId = 1, quantity = 3.0))
+        val productId = inventory.getBatch(batchId)!!.productId
+        products.setMinQuantity(productId, 2.0)
+
+        changeQuantity(batchId, 2.0)
+        assertTrue("still at the minimum", shopping.items.isEmpty())
+
+        changeQuantity(batchId, 1.0)
+        val entry = shopping.items.values.single()
+        assertEquals(productId, entry.productId)
+        assertEquals(1.0, entry.quantity, 0.0)
+
+        // Already on the list: a further decrease does not bump it.
+        changeQuantity(batchId, 0.0)
+        assertEquals(1.0, shopping.items.values.single().quantity, 0.0)
+    }
+
+    @Test
+    fun writingOffWithNoMinimum_leavesTheShoppingListAlone() = runTest {
+        val batchId = addManual(AddManualProductUseCase.Params(name = "Сыр", storageLocationId = 1, quantity = 1.0))
+
+        markStatus(batchId, BatchStatus.DISCARDED)
+
+        assertTrue(shopping.items.isEmpty())
+    }
+
+    /** Into the freezer with a new date; undo puts both the place and the date back. */
+    @Test
+    fun freezing_setsTheNewDate_andUndoBringsTheOldOneBack() = runTest {
+        val fridgeDate = java.time.LocalDate.of(2026, 8, 3)
+        val frozenDate = java.time.LocalDate.of(2027, 2, 1)
+        val id = addManual(
+            AddManualProductUseCase.Params(name = "Курица", storageLocationId = 1, expirationDate = fridgeDate),
+        )
+
+        moveBatch(MoveBatchUseCase.Params(id, newStorageLocationId = 2, newExpirationDate = frozenDate, changeExpiry = true))
+        assertEquals(frozenDate, inventory.getBatch(id)!!.expirationDate)
+
+        undo()
+
+        val back = inventory.getBatch(id)!!
+        assertEquals(1L, back.storageLocationId)
+        assertEquals(fridgeDate, back.expirationDate)
+    }
+
+    /** Half to the freezer: two batches, the amounts and the price shared out. */
+    @Test
+    fun movingPartOfABatch_splitsIt_andUndoJoinsItBack() = runTest {
+        val id = addManual(
+            AddManualProductUseCase.Params(name = "Фарш", storageLocationId = 1, quantity = 4.0, price = 400.0, currency = "RUB"),
+        )
+
+        val partId = moveBatch(MoveBatchUseCase.Params(id, newStorageLocationId = 2, quantity = 1.0))
+
+        val original = inventory.getBatch(id)!!
+        val part = inventory.getBatch(partId)!!
+        assertEquals(3.0, original.quantity, 0.0)
+        assertEquals(1L, original.storageLocationId)
+        assertEquals(1.0, part.quantity, 0.0)
+        assertEquals(2L, part.storageLocationId)
+        assertEquals(300.0, original.price!!, 0.001)
+        assertEquals(100.0, part.price!!, 0.001)
+
+        undo()
+
+        val joined = inventory.getBatch(id)!!
+        assertEquals(4.0, joined.quantity, 0.0)
+        assertEquals(400.0, joined.price!!, 0.001)
+        assertNotNull(inventory.getBatch(partId)!!.deletedAt)
+
+        // A second undo does not add the part again.
+        undo()
+        assertEquals(4.0, inventory.getBatch(id)!!.quantity, 0.0)
     }
 }

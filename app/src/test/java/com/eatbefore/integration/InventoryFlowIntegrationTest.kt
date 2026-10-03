@@ -8,9 +8,12 @@ import com.eatbefore.core.database.EatBeforeDatabase
 import com.eatbefore.data.repository.HistoryRepositoryImpl
 import com.eatbefore.data.repository.InventoryRepositoryImpl
 import com.eatbefore.data.repository.ProductRepositoryImpl
+import com.eatbefore.data.repository.ShoppingListRepositoryImpl
 import com.eatbefore.domain.model.EventType
 import com.eatbefore.domain.usecase.AddManualProductUseCase
+import com.eatbefore.domain.usecase.AddToShoppingListUseCase
 import com.eatbefore.domain.usecase.ChangeQuantityUseCase
+import com.eatbefore.domain.usecase.KeepMinimumStockUseCase
 import com.eatbefore.domain.usecase.MergeSameProductUseCase
 import com.eatbefore.domain.usecase.UndoLastActionUseCase
 import com.eatbefore.testutil.FakeAppClock
@@ -78,7 +81,9 @@ class InventoryFlowIntegrationTest {
         val history = HistoryRepositoryImpl(db.inventoryEventDao())
         val merge = MergeSameProductUseCase(products)
         addManual = AddManualProductUseCase(products, inventory, merge, clock)
-        changeQuantity = ChangeQuantityUseCase(inventory, clock)
+        val shopping = ShoppingListRepositoryImpl(db.shoppingListDao())
+        val keepMinimum = KeepMinimumStockUseCase(products, inventory, shopping, AddToShoppingListUseCase(shopping, history, clock))
+        changeQuantity = ChangeQuantityUseCase(inventory, keepMinimum, clock)
         undo = UndoLastActionUseCase(history, inventory, clock)
     }
 

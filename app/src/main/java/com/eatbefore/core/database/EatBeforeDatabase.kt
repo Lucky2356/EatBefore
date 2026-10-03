@@ -39,9 +39,10 @@ abstract class EatBeforeDatabase : RoomDatabase() {
          * v2 added uuid/device_id for household sync (ADR-0004);
          * v3 added products.deleted_at so a card can be struck off the catalogue;
          * v4 added products.notifications_muted so one product can stop reminding;
-         * v5 added products.homemade_kind for home-made dishes and preserves (ADR-0007).
+         * v5 added products.homemade_kind for home-made dishes and preserves (ADR-0007);
+         * v6 added products.min_quantity and products.reminder_days.
          */
-        const val VERSION = 5
+        const val VERSION = 6
         const val NAME = "eatbefore.db"
     }
 }

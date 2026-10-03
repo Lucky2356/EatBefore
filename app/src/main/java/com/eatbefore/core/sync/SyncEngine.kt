@@ -95,17 +95,7 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
             } else {
                 productIds[remote.uuid] = existing.id
                 if (remote.updatedAt > existing.updatedAt) {
-                    val incoming = remote.toEntity()
-                    db.productDao().update(
-                        incoming.copy(
-                            id = existing.id,
-                            // Nothing in the app turns home cooking back into bought food,
-                            // so a missing kind is a peer too old to know the field — not
-                            // a change. Taking it at its word would strip the label here
-                            // the first time that phone edited the card. ADR-0007.
-                            homemadeKind = incoming.homemadeKind ?: existing.homemadeKind,
-                        ),
-                    )
+                    db.productDao().update(mergedProduct(existing, remote))
                 }
             }
         }
@@ -179,6 +169,24 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         }
     }
 
+    /**
+     * The peer's newer copy of a card, minus what an older peer cannot have meant to change.
+     *
+     * Nothing in the app turns home cooking back into bought food, so a missing kind is a
+     * peer too old to know the field — not a change. Taking it at its word would strip the
+     * label here the first time that phone edited the card. ADR-0007. Same for the minimum
+     * and the reminder lead: absent is an old peer, and only an explicit zero clears them.
+     */
+    private fun mergedProduct(existing: ProductEntity, remote: SyncProduct): ProductEntity {
+        val incoming = remote.toEntity()
+        return incoming.copy(
+            id = existing.id,
+            homemadeKind = incoming.homemadeKind ?: existing.homemadeKind,
+            minQuantity = if (remote.minQuantity == null) existing.minQuantity else incoming.minQuantity,
+            reminderDays = if (remote.reminderDays == null) existing.reminderDays else incoming.reminderDays,
+        )
+    }
+
     private fun ProductEntity.toSync() = SyncProduct(
         uuid = uuid,
         barcode = barcode,
@@ -193,6 +201,8 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         deletedAt = deletedAt,
         notificationsMuted = notificationsMuted,
         homemadeKind = homemadeKind?.name,
+        minQuantity = minQuantity ?: 0.0,
+        reminderDays = reminderDays ?: 0,
     )
 
     private fun SyncProduct.toEntity() = ProductEntity(
@@ -215,6 +225,8 @@ class SyncEngine @Inject constructor(private val db: EatBeforeDatabase, private 
         // A kind this version does not know yet reads as bought rather than failing the
         // whole exchange: the food still arrives, only without its label.
         homemadeKind = homemadeKind?.let { name -> HomemadeKind.entries.firstOrNull { it.name == name } },
+        minQuantity = minQuantity?.takeIf { it > 0.0 },
+        reminderDays = reminderDays?.takeIf { it > 0 },
     )
 
     private fun InventoryBatchEntity.toSync(productUuid: String, locationName: String?) = SyncBatch(

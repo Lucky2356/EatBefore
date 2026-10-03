@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.eatbefore.core.common.time.AppClock
 import com.eatbefore.core.datastore.UserPreferencesRepository
+import com.eatbefore.domain.notification.ReminderDays
 import com.eatbefore.domain.notification.isWithinQuietHours
 import com.eatbefore.domain.repository.InventoryRepository
 import com.eatbefore.domain.usecase.BuildExpiryNotificationUseCase
@@ -44,7 +45,10 @@ class ExpiryCheckWorker @AssistedInject constructor(
         }
 
         val today = clock.today()
-        val threshold = today.plusDays(prefs.soonThresholdDays.toLong()).toEpochDay()
+        // Far enough ahead for the product with the longest lead of its own; the plan then
+        // applies each product's window, or the general one.
+        val lookahead = maxOf(prefs.soonThresholdDays, ReminderDays.MAX)
+        val threshold = today.plusDays(lookahead.toLong()).toEpochDay()
         val items = inventoryRepository.observeExpiringBefore(threshold).first()
         val plan = buildNotification(items, today, prefs.soonThresholdDays)
         notifier.notify(plan)

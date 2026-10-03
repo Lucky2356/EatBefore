@@ -10,6 +10,7 @@ private const val VERSION_2 = 2
 private const val VERSION_3 = 3
 private const val VERSION_4 = 4
 private const val VERSION_5 = 5
+private const val VERSION_6 = 6
 
 /**
  * Adds stable cross-device identifiers required by household sync (ADR-0004):
@@ -84,6 +85,18 @@ val MIGRATION_4_5 = object : Migration(VERSION_4, VERSION_5) {
 }
 
 /**
+ * Adds `products.min_quantity` (keep at least this much at home) and
+ * `products.reminder_days` (warn this many days ahead for this product). Both nullable
+ * with no default: everything on the phone so far has neither, and NULL says exactly that.
+ */
+val MIGRATION_5_6 = object : Migration(VERSION_5, VERSION_6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE products ADD COLUMN min_quantity REAL")
+        db.execSQL("ALTER TABLE products ADD COLUMN reminder_days INTEGER")
+    }
+}
+
+/**
  * Schema migrations. Every version bump gets one here rather than a destructive
  * fallback — user data must never be silently dropped.
  *
@@ -95,4 +108,5 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
     MIGRATION_2_3,
     MIGRATION_3_4,
     MIGRATION_4_5,
+    MIGRATION_5_6,
 )

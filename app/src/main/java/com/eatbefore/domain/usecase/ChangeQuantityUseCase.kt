@@ -13,7 +13,11 @@ import javax.inject.Inject
  * history); a partial amount marks it PARTIALLY_USED (unless already OPENED). Emits a
  * QUANTITY_CHANGED event, or CONSUMED when it hits zero.
  */
-class ChangeQuantityUseCase @Inject constructor(private val inventoryRepository: InventoryRepository, private val clock: AppClock) {
+class ChangeQuantityUseCase @Inject constructor(
+    private val inventoryRepository: InventoryRepository,
+    private val keepMinimumStock: KeepMinimumStockUseCase,
+    private val clock: AppClock,
+) {
 
     suspend operator fun invoke(batchId: Long, newQuantity: Double, reason: String? = null) {
         val batch = inventoryRepository.getBatch(batchId)
@@ -49,5 +53,7 @@ class ChangeQuantityUseCase @Inject constructor(private val inventoryRepository:
         )
 
         inventoryRepository.updateBatchWithEvent(updated, event)
+        // The write-off itself has happened; a failing shopping-list top-up must not undo it.
+        if (clamped < batch.quantity) runCatching { keepMinimumStock(batch.productId) }
     }
 }

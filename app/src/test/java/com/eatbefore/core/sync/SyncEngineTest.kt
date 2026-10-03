@@ -69,6 +69,7 @@ class SyncEngineTest {
         productUpdatedAt: Long = 100L,
         productDeletedAt: Long? = null,
         productHomemadeKind: String? = null,
+        productMinQuantity: Double? = null,
     ) = SyncJournal(
         deviceId = "peer-device",
         writtenAtEpochMillis = 100L,
@@ -80,6 +81,7 @@ class SyncEngineTest {
                 measurementUnit = "PIECE", imageUri = null, updatedAt = productUpdatedAt,
                 deletedAt = productDeletedAt,
                 homemadeKind = productHomemadeKind,
+                minQuantity = productMinQuantity,
             ),
         ),
         batches = listOf(
@@ -493,5 +495,22 @@ class SyncEngineTest {
                 deletedAt = null, updatedAt = 1L,
             ),
         )
+    }
+
+    /**
+     * The minimum travels. A journal from a version that does not know it (null) leaves the
+     * local one alone; only an explicit zero — «switched off» — clears it.
+     */
+    @Test
+    fun `a minimum arrives, survives an old journal and is cleared only by zero`() = runTest {
+        seedLocal()
+        engine.merge(peerJournal(productUpdatedAt = 200L, productMinQuantity = 2.0))
+        assertEquals(2.0, db.productDao().getByUuid("p-1")!!.minQuantity!!, 0.0)
+
+        engine.merge(peerJournal(productUpdatedAt = 300L, productMinQuantity = null))
+        assertEquals(2.0, db.productDao().getByUuid("p-1")!!.minQuantity!!, 0.0)
+
+        engine.merge(peerJournal(productUpdatedAt = 400L, productMinQuantity = 0.0))
+        assertNull(db.productDao().getByUuid("p-1")!!.minQuantity)
     }
 }

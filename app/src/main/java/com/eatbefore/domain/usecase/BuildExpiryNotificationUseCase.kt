@@ -26,7 +26,9 @@ class BuildExpiryNotificationUseCase @Inject constructor(private val determineEx
             // in the tally would produce «3 продукта истекают» naming only two, which is
             // worse than either telling or not telling.
             if (item.product.notificationsMuted) continue
-            val status = determineExpiryStatus.forDate(item.batch.effectiveExpirationDate, today, soonThresholdDays)
+            // A product with its own lead time is «скоро» by its own measure.
+            val window = item.product.reminderDays ?: soonThresholdDays
+            val status = determineExpiryStatus.forDate(item.batch.effectiveExpirationDate, today, window)
             val relevant = when (status) {
                 ExpiryStatus.EXPIRED -> {
                     expired++

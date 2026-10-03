@@ -43,4 +43,14 @@ data class Product(
      * own — a jar put up last summer and a pot of soup keep for very different times.
      */
     val homemadeKind: HomemadeKind? = null,
+    /**
+     * Keep at least this much at home. When what is left drops below it, the product goes
+     * onto the shopping list by itself. Null means no minimum.
+     */
+    val minQuantity: Double? = null,
+    /**
+     * Remind this many days before the date, instead of the app-wide «скоро» setting:
+     * meat wants warning earlier than flour. Null means the general setting.
+     */
+    val reminderDays: Int? = null,
 )

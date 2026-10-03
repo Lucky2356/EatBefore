@@ -231,6 +231,36 @@ class MigrationTest {
         db.close()
     }
 
+    /**
+     * The v5→v6 step adds `products.min_quantity` and `products.reminder_days`. Nothing on
+     * the phone had either, and both must come through empty — a default minimum would put
+     * the whole catalogue on the shopping list at the first decrease.
+     */
+    @Test
+    fun migrate5To6_addsNoMinimumAndNoOwnReminder() {
+        helper.createDatabase(TEST_DB, 5).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO products (id, uuid, barcode, barcode_type, name, brand, category, description,
+                    package_size, measurement_unit, image_uri, source, is_user_created, created_at,
+                    updated_at, deleted_at, notifications_muted, homemade_kind)
+                VALUES (1, 'uuid-1', NULL, 'NONE', 'Варенье', NULL, NULL, NULL,
+                    NULL, 'PIECE', NULL, 'USER', 1, 1, 1, NULL, 0, 'PRESERVE')
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 6, true, MIGRATION_5_6)
+
+        db.query("SELECT homemade_kind, min_quantity, reminder_days FROM products").use { c ->
+            c.moveToFirst()
+            assertEquals("earlier columns survive the step", "PRESERVE", c.getString(0))
+            assertTrue("no minimum", c.isNull(1))
+            assertTrue("no own reminder", c.isNull(2))
+        }
+        db.close()
+    }
+
     @Test
     fun currentSchemaOpensWithDeclaredMigrations() {
         helper.createDatabase(TEST_DB, EatBeforeDatabase.VERSION).close()
