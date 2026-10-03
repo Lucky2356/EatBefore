@@ -648,4 +648,12 @@
     <string name="share_import_empty">В тексте не нашлось ничего похожего на список</string>
 
     <string name="home_restock_title">Купили снова?</string>
+
+    <!-- 1.17.0: expiry calendar -->
+    <string name="calendar_title">Календарь сроков</string>
+    <string name="more_calendar_desc">Что и в какой день истекает — для меню на неделю</string>
+    <string name="calendar_previous">Предыдущий месяц</string>
+    <string name="calendar_next">Следующий месяц</string>
+    <string name="calendar_day_empty">В этот день ничего не истекает</string>
+    <string name="calendar_day_count">истекает: %1$d</string>
 </resources>

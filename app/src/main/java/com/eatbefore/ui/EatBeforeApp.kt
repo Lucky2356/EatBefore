@@ -25,6 +25,7 @@ import com.eatbefore.core.designsystem.theme.EatBeforeTheme
 import com.eatbefore.domain.model.HomemadeKind
 import com.eatbefore.feature.addmanual.AddManualScreen
 import com.eatbefore.feature.analytics.AnalyticsScreen
+import com.eatbefore.feature.calendar.CalendarScreen
 import com.eatbefore.feature.history.HistoryScreen
 import com.eatbefore.feature.home.DataSafetyWarning
 import com.eatbefore.feature.home.HomeScreen
@@ -216,6 +217,7 @@ private fun MainNavigation(
             composable(Routes.MORE) {
                 MoreScreen(
                     onOpenHistory = { navController.navigate(Routes.HISTORY) },
+                    onOpenCalendar = { navController.navigate(Routes.CALENDAR) },
                     onOpenAnalytics = { navController.navigate(Routes.ANALYTICS) },
                     onOpenProducts = { navController.navigate(Routes.PRODUCTS) },
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) },
@@ -332,6 +334,13 @@ private fun MainNavigation(
 
             composable(Routes.HISTORY) {
                 HistoryScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Routes.CALENDAR) {
+                CalendarScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenBatch = { navController.navigate(Routes.product(it)) },
+                )
             }
         }
     }
