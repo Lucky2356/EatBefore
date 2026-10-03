@@ -620,4 +620,12 @@
     <string name="share_import_empty">Nothing in the text looked like a list</string>
 
     <string name="home_restock_title">Bought again?</string>
+
+    <!-- 1.17.0: expiry calendar -->
+    <string name="calendar_title">Expiry calendar</string>
+    <string name="more_calendar_desc">What runs out on which day — for planning the week\'s meals</string>
+    <string name="calendar_previous">Previous month</string>
+    <string name="calendar_next">Next month</string>
+    <string name="calendar_day_empty">Nothing runs out on this day</string>
+    <string name="calendar_day_count">expiring: %1$d</string>
 </resources>
