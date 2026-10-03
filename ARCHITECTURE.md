@@ -64,10 +64,11 @@ UI (Compose, ViewModel)  ->  Domain (use cases, интерфейсы)  ->  Data 
    (`core/backup/BackupModels.kt`, `BackupManager.kt`) со значением по умолчанию:
    иначе оно теряется при первом же обмене со вторым телефоном.
 
-Текущая схема — **v5**: v2 — uuid и deviceId для совместного доступа
+Текущая схема — **v6**: v2 — uuid и deviceId для совместного доступа
 ([ADR-0004](docs/adr/0004-household-sharing.md)), v3 — `products.deleted_at`,
 v4 — `products.notifications_muted`, v5 — `products.homemade_kind`
-([ADR-0007](docs/adr/0007-homemade-food.md)). Совпадение экспортированной схемы с
+([ADR-0007](docs/adr/0007-homemade-food.md)), v6 — `products.min_quantity` и
+`products.reminder_days` ([ADR-0009](docs/adr/0009-stock-rules-and-freezer.md)). Совпадение экспортированной схемы с
 закоммиченной проверяет отдельный шаг CI.
 
 ### feature / ui / navigation
